@@ -1,6 +1,36 @@
 # 🐟 Robalo
 .NET-powered secure AI Agent
 
+## Architecture
+
+The architecture includes two main services: *Controller* and **Worker*.
+
+### Controller
+
+Controller will handle the communication with the user via REST API with server-sent events (SSE) e.g. via Postman, and will route requests to the External LLM (local or cloud). 
+All conversation history, memory, summaries will be stored in an encrypted storage, and API Credentials (e.g. API keys or Auth token to an LLM) will be stored in a system-default keyring, e.g. macOS Keychain with appropriate permissions.
+
+Any tool execution, including via MCP servers, and skills, will be executed in the Worker, ideally running on a separate machine, or at least under a different unprivileged user. Multiple workers will be supported, e.g. there could be one working on a Mac, and another running inside a Docker container.
+
+The communication between Controller and Workers will be based on gRPC.
+
+### External LLM
+
+This will be an LLM as configured by the user, that the Controller will use to process prompts. This can either be a cloud LLM provider (e.g. OpenAI or Anthropic), or a locally installed model.
+
+### Keyring
+
+Keyring denotes a default OS credentials store, such as the Keychain on macOS. It will be used to store sensitive credentials, such as API keys to external LLM providers.
+
+### Encrypted storage
+
+NoSQL Database will be used to store and encrypt all conversations, memory data and possibly summaries. 
+
+
+
+![Architecture](docs/architecture.svg)
+
+
 ## Requirements
 
 Create a secure AI agent using .NET and Microsoft Agent Framework (successor of Semantic Kernel) with support for workflows (Graph Engineering), privacy mode for handling personal data (PII), rich logging, kill switches and secure credential handling.
@@ -12,12 +42,12 @@ The AI agent will support both chat mode (Prompt Engineering) and workflow mode 
 ### Process Isolation
 
 The AI Agent will contain two isolated processes:
-1. The AI Agent Controller (Cabeca) which will handle the LLM requests
-2. The AI Agent Worker (Barbatana) which will execute tools, including the command line, but will not have conversation history or any LLM credentials stored locally.
+1. The AI Agent Controller which will handle the LLM requests
+2. The AI Agent Worker which will execute tools, including the command line, but will not have conversation history or any LLM credentials stored locally.
 
 Ideally, the AI Agent Worker would be running either on dedicated hardware, in a Docker container, or at a minimum, under a different user from the AI Agent Controller.
 
-For the Privacy Mode, all requests will be executed in the AI Agent Controller (Cabeca), since it has less chance of being compromised, since the AI Agent Workers would by default be untrusted due to the use of tools, such as the command line. 
+For the Privacy Mode, all requests will be executed in the AI Agent Controller, since it has less chance of being compromised, since the AI Agent Workers would by default be untrusted due to the use of tools, such as the command line. 
 
 ### Privacy Mode
 
@@ -72,7 +102,7 @@ All conversations (sessions) will be stored encrypted. Thus, even if the host wh
 
 ### Integrity and Code Modification
 
-Both AI Agent Controller (Cabeca) and AI Agent Worker (Barbatana) will ship as one-file .NET executables to prevent file substitution or alteration. This especially addresses vulnerability with Node.JS-agents, where a user is able to edit Javascript files and restart the agent for changes to take effect without confirmation.
+Both AI Agent Controller and AI Agent Worker will ship as one-file .NET executables to prevent file substitution or alteration. This especially addresses vulnerability with Node.JS-agents, where a user is able to edit Javascript files and restart the agent for changes to take effect without confirmation.
 
 ### Internal AI
 
