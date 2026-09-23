@@ -1,0 +1,6 @@
+{
+    "title": "validation_error",
+    "status": 422,
+    "detail": "content_is_required",
+    "instance": "/threads/thd_123/messages"
+}

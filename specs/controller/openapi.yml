@@ -19,8 +19,7 @@ paths:
       - Threads
       operationId: createThread
       summary: Create a thread with its first user message
-      description: A thread cannot be created without an initial message. Processing is sequential within
-        each thread.
+      description: Create a thread with its first user message.
       responses:
         '201':
           description: Thread and initial message created. Follow the messages link to retrieve the message.
@@ -41,8 +40,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '400':
           $ref: '#/components/responses/BadRequest'
-        '409':
-          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
       parameters:
       - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
@@ -302,6 +301,10 @@ components:
           examples:
             default:
               externalValue: ./examples/get-messages-response.json
+    
+    UnprocessableEntity:
+      description: The request was well-formed but was unable to be followed due to semantic errors.
+        Error payload schema is not yet defined.
     BadRequest:
       description: Invalid request. Error payload schema is not yet defined.
     Unauthorized:
