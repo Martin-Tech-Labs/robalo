@@ -1,0 +1,29 @@
+type: object
+description: >-
+  Problem Details for HTTP APIs (RFC 9457), served as application/problem+json.
+  Standard fields are optional. Problem types may define extension properties.
+externalDocs:
+  url: https://www.rfc-editor.org/rfc/rfc9457.html
+properties:
+  type:
+    type: string
+    format: uri-reference
+    default: about:blank
+    description: URI reference identifying the problem type.
+  title:
+    type: string
+    description: >-
+      Short human-readable summary of the problem type, stable across occurrences
+      except for localization.
+  status:
+    type: integer
+    minimum: 100
+    maximum: 599
+    description: HTTP status code for this occurrence; must match the response status.
+  detail:
+    type: string
+    description: Human-readable explanation specific to this occurrence.
+  instance:
+    type: string
+    format: uri-reference
+    description: URI reference identifying this specific problem occurrence.

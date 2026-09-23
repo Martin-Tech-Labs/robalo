@@ -1,0 +1,319 @@
+openapi: 3.2.1
+info:
+  title: Robalo Controller API
+  version: 0.1.0
+  description: Controller API
+servers:
+- url: http://localhost:8080
+  description: Local development
+security:
+- bearerAuth: []
+tags:
+- name: Threads
+- name: Messages
+- name: Events
+paths:
+  /threads:
+    post:
+      tags:
+      - Threads
+      operationId: createThread
+      summary: Create a thread with its first user message
+      description: A thread cannot be created without an initial message. Processing is sequential within
+        each thread.
+      responses:
+        '201':
+          description: Thread and initial message created. Follow the messages link to retrieve the message.
+          headers:
+            Location:
+              description: URI of the created thread.
+              schema:
+                type: string
+                format: uri-reference
+          content:
+            application/hal+json:
+              schema:
+                $ref: ./schemas/thread-response.yaml
+              examples:
+                default:
+                  externalValue: ./examples/thread-response.json
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        $ref: '#/components/requestBodies/UserMessage'
+  /threads/{threadId}:
+    parameters:
+    - $ref: '#/components/parameters/ThreadId'
+    get:
+      tags:
+      - Threads
+      operationId: getThread
+      summary: Get thread metadata
+      responses:
+        '200':
+          $ref: '#/components/responses/Thread'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    delete:
+      tags:
+      - Threads
+      operationId: deleteThread
+      summary: Delete a thread and its message history
+      responses:
+        '204':
+          description: Thread and its message history deleted. No response body.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /threads/{threadId}/messages:
+    parameters:
+    - $ref: '#/components/parameters/ThreadId'
+    get:
+      tags:
+      - Messages
+      operationId: getMessages
+      summary: Get the latest batch of messages
+      description: The server chooses the batch size. Clients follow the returned links unchanged. The
+        initial request selects the latest messages; next selects older messages and prev newer messages.
+        Array order is unspecified. The cursor-based self link anchors the selected batch so new messages
+        do not shift it; it does not preserve deleted or edited messages. first retrieves the latest batch
+        and last the oldest. next and prev are omitted when no corresponding batch exists.
+      responses:
+        '200':
+          $ref: '#/components/responses/Messages'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+      - Messages
+      operationId: createUserMessage
+      summary: Add a user message to a thread
+      description: Messages can be submitted while processing is active. The Controller processes work
+        sequentially within the thread.
+      responses:
+        '201':
+          description: User message stored. This does not mean LLM processing has completed; subscribe
+            to events for subsequent messages.
+          headers:
+            Location:
+              description: URI of the created message.
+              schema:
+                type: string
+                format: uri-reference
+          content:
+            application/hal+json:
+              schema:
+                $ref: ./schemas/message-response.yaml
+              examples:
+                default:
+                  externalValue: ./examples/message-response.json
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        $ref: '#/components/requestBodies/UserMessage'
+  /threads/{threadId}/messages/query/{cursor}:
+    parameters:
+    - $ref: '#/components/parameters/ThreadId'
+    - $ref: '#/components/parameters/Cursor'
+    get:
+      tags:
+      - Messages
+      operationId: getMessageBatch
+      summary: Follow an opaque message pagination link
+      description: The server chooses the batch size. Clients follow the returned links unchanged. The
+        initial request selects the latest messages; next selects older messages and prev newer messages.
+        Array order is unspecified. The cursor-based self link anchors the selected batch so new messages
+        do not shift it; it does not preserve deleted or edited messages. first retrieves the latest batch
+        and last the oldest. next and prev are omitted when no corresponding batch exists.
+      responses:
+        '200':
+          $ref: '#/components/responses/Messages'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /threads/{threadId}/messages/{messageId}:
+    parameters:
+    - $ref: '#/components/parameters/ThreadId'
+    - $ref: '#/components/parameters/MessageId'
+    get:
+      tags:
+      - Messages
+      operationId: getMessage
+      summary: Get a message
+      responses:
+        '200':
+          $ref: '#/components/responses/Message'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    delete:
+      tags:
+      - Messages
+      operationId: deleteMessage
+      summary: Delete a message from history
+      responses:
+        '204':
+          description: Message deleted. No response body.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /events:
+    get:
+      tags:
+      - Events
+      operationId: getEvents
+      summary: Stream newly created messages as NDJSON
+      description: Without a thread filter, stream messages from all threads accessible to the caller.
+        With a thread filter, stream only that thread. Each batch includes the subscription self link
+        and each message includes its thread link. This is NDJSON, not SSE; no SSE framing is used. Replay
+        and reconnection semantics are not yet defined.
+      responses:
+        '200':
+          description: An open-ended stream of message batches. Each line is a complete JSON object conforming
+            to itemSchema.
+          content:
+            application/x-ndjson:
+              examples:
+                messageBatch:
+                  summary: One batch serialized as a single NDJSON line.
+                  serializedValue: '{"_embedded":{"messages":[{"content":"Hello world","created_on":"2027-06-05T12:34:56Z","source":"user","thread_id":"thd_123","message_id":"msg_123","_links":{"self":{"href":"/threads/thd_123/messages/msg_123"},"thread":{"href":"/threads/thd_123"}}},{"content":"Hi
+                    there","created_on":"2027-06-05T12:35:56Z","source":"llm","thread_id":"thd_123","message_id":"msg_124","_links":{"self":{"href":"/threads/thd_123/messages/msg_124"},"thread":{"href":"/threads/thd_123"}}}]},"_links":{"self":{"href":"/events?thread=thd_123"}}}
+
+                    '
+              itemSchema:
+                $ref: ./schemas/get-events-response.yaml
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      parameters:
+      - name: thread
+        in: query
+        required: false
+        description: Restrict the subscription to this thread.
+        schema:
+          type: string
+        example: thd_123
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Controller access token. Use HTTPS outside local development. Resources are scoped
+        to the authenticated caller; inaccessible resources return 404. LLM credentials are managed separately
+        in the OS keyring.
+  parameters:
+    ThreadId:
+      name: threadId
+      in: path
+      required: true
+      description: Thread identifier.
+      schema:
+        type: string
+      example: thd_123
+    MessageId:
+      name: messageId
+      in: path
+      required: true
+      description: Message identifier.
+      schema:
+        type: string
+      example: msg_123
+    Cursor:
+      name: cursor
+      in: path
+      required: true
+      description: Opaque server-issued pagination value. Follow returned links without interpreting or
+        modifying it. Links are not guaranteed to remain valid indefinitely.
+      schema:
+        type: string
+      example: crs_123
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: Optional client-generated key for retrying a creation request. Reuse the same key and
+        payload for retries. Within the authenticated caller and target endpoint, a repeated request with
+        a retained key returns the original result without creating another resource. Reusing the key
+        with a different payload returns 409. Key retention duration is not yet defined.
+      schema:
+        type: string
+        minLength: 1
+  requestBodies:
+    UserMessage:
+      required: true
+      description: A user message, also used as the initial message when creating a thread.
+      content:
+        application/json:
+          schema:
+            $ref: ./schemas/message-request.yaml
+          examples:
+            default:
+              externalValue: ./examples/message-request.json
+  responses:
+    Thread:
+      description: Thread metadata.
+      content:
+        application/hal+json:
+          schema:
+            $ref: ./schemas/thread-response.yaml
+          examples:
+            default:
+              externalValue: ./examples/thread-response.json
+    Message:
+      description: Message representation.
+      content:
+        application/hal+json:
+          schema:
+            $ref: ./schemas/message-response.yaml
+          examples:
+            default:
+              externalValue: ./examples/message-response.json
+    Messages:
+      description: A batch of messages with navigation links.
+      content:
+        application/hal+json:
+          schema:
+            $ref: ./schemas/get-messages-response.yaml
+          examples:
+            default:
+              externalValue: ./examples/get-messages-response.json
+    BadRequest:
+      description: Invalid request. Error payload schema is not yet defined.
+    Unauthorized:
+      description: Missing or invalid Controller access token. Error payload schema is not yet defined.
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+          example: Bearer
+    NotFound:
+      description: Resource or pagination link not found or inaccessible to the caller. Error payload
+        schema is not yet defined.
+    Conflict:
+      description: The idempotency key was already used for a different request. Error payload schema
+        is not yet defined.

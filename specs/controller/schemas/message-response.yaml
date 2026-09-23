@@ -1,0 +1,11 @@
+allOf:
+  - $ref: './message.yaml'
+  - type: object
+    properties:
+      _links:
+        type: object
+        required:
+          - events
+        properties:
+          events:
+            $ref: './link.yaml'

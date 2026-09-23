@@ -1,0 +1,31 @@
+type: object
+required:
+  - created_on
+  - modified_on
+  - title
+  - thread_id
+  - _links
+properties:
+  created_on:
+    type: string
+    format: date-time
+  modified_on:
+    type: string
+    format: date-time
+  title:
+    type: string
+  thread_id:
+    type: string
+  _links:
+    type: object
+    required:
+      - self
+      - messages
+      - events
+    properties:
+      self:
+        $ref: './link.yaml'
+      messages:
+        $ref: './link.yaml'
+      events:
+        $ref: './link.yaml'

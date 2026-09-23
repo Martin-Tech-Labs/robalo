@@ -1,0 +1,37 @@
+type: object
+required:
+  - _embedded
+  - _links
+properties:
+  _embedded:
+    type: object
+    required:
+      - messages
+    properties:
+      messages:
+        type: array
+        items:
+          $ref: './message.yaml'
+  _links:
+    type: object
+    required:
+      - self
+      - thread
+      - events
+      - first
+      - last
+    properties:
+      self:
+        $ref: './link.yaml'
+      thread:
+        $ref: './link.yaml'
+      events:
+        $ref: './link.yaml'
+      next:
+        $ref: './link.yaml'
+      prev:
+        $ref: './link.yaml'
+      first:
+        $ref: './link.yaml'
+      last:
+        $ref: './link.yaml'
