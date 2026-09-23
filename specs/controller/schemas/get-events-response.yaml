@@ -1,0 +1,22 @@
+type: object
+description: A batch of messages delivered through the event stream.
+required:
+  - _embedded
+  - _links
+properties:
+  _embedded:
+    type: object
+    required:
+      - messages
+    properties:
+      messages:
+        type: array
+        items:
+          $ref: './message.yaml'
+  _links:
+    type: object
+    required:
+      - self
+    properties:
+      self:
+        $ref: './link.yaml'

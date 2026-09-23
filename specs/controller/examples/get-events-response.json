@@ -1,0 +1,41 @@
+{
+    "_embedded": {
+        "messages": [
+            {
+                "content": "Hello world",
+                "created_on": "2027-06-05T12:34:56Z",
+                "source": "user",
+                "thread_id": "thd_123",
+                "message_id": "msg_123",
+                "_links": {
+                    "self": {
+                        "href": "/threads/thd_123/messages/msg_123"
+                    },
+                    "thread": {
+                        "href": "/threads/thd_123"
+                    }
+                }
+            },
+            {
+                "content": "Hi there",
+                "created_on": "2027-06-05T12:35:56Z",
+                "source": "llm",
+                "thread_id": "thd_123",
+                "message_id": "msg_124",
+                "_links": {
+                    "self": {
+                        "href": "/threads/thd_123/messages/msg_124"
+                    },
+                    "thread": {
+                        "href": "/threads/thd_123"
+                    }
+                }
+            }
+        ]
+    },
+    "_links": {
+        "self": {
+            "href": "/events?thread=thd_123"
+        } 
+    }
+}

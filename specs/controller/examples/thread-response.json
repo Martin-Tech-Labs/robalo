@@ -1,0 +1,17 @@
+{
+    "created_on": "2027-06-05T12:34:56Z",
+    "modified_on": "2027-06-05T12:34:56Z",
+    "title": "Hello",
+    "thread_id": "thd_123",
+    "_links": {
+        "self": {
+            "href": "/threads/thd_123"
+        },
+        "messages": {
+            "href": "/threads/thd_123/messages"
+        },
+        "events": {
+            "href": "/events?thread=thd_123"
+        }
+    }
+}
