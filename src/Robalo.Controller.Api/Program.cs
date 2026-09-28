@@ -23,7 +23,6 @@ var summaries = new[]
 {
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
 };
-Log.Information("Starting Robalo.Controller.Api");
 app.MapGet("/weatherforecast", () =>
 {
     var forecast = Enumerable.Range(1, 5).Select(index =>
@@ -38,7 +37,21 @@ app.MapGet("/weatherforecast", () =>
 })
 .WithName("GetWeatherForecast");
 
-app.Run();
+try
+{
+    Log.Information("Starting Robalo.Controller.Api");
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Host terminated unexpectedly");
+}
+finally
+{
+    Log.Information("Shutting down Robalo.Controller.Api");
+    Log.CloseAndFlush();
+}
+
 
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {
