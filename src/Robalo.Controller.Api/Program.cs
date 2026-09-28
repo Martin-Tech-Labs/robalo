@@ -1,4 +1,6 @@
 
+using Robalo.Common.Health;
+
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddEnvironmentVariables("ROBALO_");
 
@@ -10,32 +12,16 @@ Log.Logger = new LoggerConfiguration()
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddSerilog();
+builder.Services.AddHealthChecks()
+    .AddCheck<TestHealthCheck>("Test");
+
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
+// _System endpoints - Ping, Health, Metrics, etc.
+app.MapGet("/_system/ping", () => Results.Ok("pong"));
+app.MapHealthChecks("/_system/health");
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
 
 try
 {
