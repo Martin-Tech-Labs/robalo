@@ -1,0 +1,15 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "dotnet",
+			"task": "build",
+			"file": "${workspaceFolder}/src/Robalo.Controller.Api/Robalo.Controller.Api.csproj",
+			"group": "build",
+			"problemMatcher": [
+				"$msCompile"
+			],
+			"label": "Build Controller"
+		}
+	]
+}
