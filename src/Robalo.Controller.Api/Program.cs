@@ -1,5 +1,4 @@
-
-using System.Net.Mime;
+using OpenTelemetry.Metrics;
 using Robalo.Common.Health;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,8 +16,25 @@ builder.Services.AddHealthChecks()
     .AddCheck<TestHealthCheck>("Test One")
     .AddCheck<AnotherHealthCheck>("Test Another");
 
+builder.Services.AddOpenTelemetry()
+    .WithMetrics(builder =>
+    {
+        builder.AddPrometheusExporter();
+
+        builder.AddMeter("Microsoft.AspNetCore.Hosting", "Microsoft.AspNetCore.Server.Kestrel");
+        builder.AddView("http.server.request.duration",
+           new ExplicitBucketHistogramConfiguration
+           {
+               Boundaries = [ 0, 0.005, 0.01, 0.025, 0.05,
+                       0.075, 0.1, 0.25, 0.5, 0.75, 1, 2.5, 5, 7.5, 10 ]
+           });
+    });
+
 
 var app = builder.Build();
+
+app.MapPrometheusScrapingEndpoint("/_system/metrics");
+
 
 // _System endpoints - Ping, Health, Metrics, etc.
 app.MapGet("/_system/ping", () => Results.Ok("pong"));
