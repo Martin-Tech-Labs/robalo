@@ -1,0 +1,23 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Controller",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "Build Controller",
+            "program": "${workspaceFolder}/src/Robalo.Controller.Api/bin/Debug/net11.0/Robalo.Controller.Api.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/src/Robalo.Controller.Api/bin/Debug/net11.0",
+            "stopAtEntry": false,
+            "console": "integratedTerminal",
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "ASPNETCORE_URLS": "http://*:8080/"
+            }
+        }
+    ]
+}
