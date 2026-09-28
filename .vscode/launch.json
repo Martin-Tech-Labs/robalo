@@ -16,7 +16,7 @@
             "console": "integratedTerminal",
             "env": {
                 "ASPNETCORE_ENVIRONMENT": "Development",
-                "ASPNETCORE_URLS": "http://*:8080/"
+                "ASPNETCORE_URLS": "http://*:5010/"
             }
         }
     ]
