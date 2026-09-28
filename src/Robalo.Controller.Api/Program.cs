@@ -1,4 +1,5 @@
 
+using System.Net.Mime;
 using Robalo.Common.Health;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,16 +14,20 @@ Log.Logger = new LoggerConfiguration()
 builder.Services.AddOpenApi();
 builder.Services.AddSerilog();
 builder.Services.AddHealthChecks()
-    .AddCheck<TestHealthCheck>("Test");
+    .AddCheck<TestHealthCheck>("Test One")
+    .AddCheck<AnotherHealthCheck>("Test Another");
 
 
 var app = builder.Build();
 
 // _System endpoints - Ping, Health, Metrics, etc.
 app.MapGet("/_system/ping", () => Results.Ok("pong"));
-app.MapHealthChecks("/_system/health");
+app.MapHealthChecks("/_system/health", new()
+{
+    ResponseWriter = static (context, report) =>
+        context.Response.WriteAsJsonAsync(report.Entries.ToDictionary(e => e.Key, e => e.Value.Description))
 
-
+});
 try
 {
     Log.Information("Starting Robalo.Controller.Api");
