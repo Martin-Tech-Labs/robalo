@@ -1,0 +1,27 @@
+services:
+  controller:
+    build:
+      context: .
+      dockerfile: src/Robalo.Controller.Api/Dockerfile
+    ports:
+      - "5010:5010"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_HTTP_PORTS: 5010
+      ROBALO_Serilog__WriteTo__1__args__serverURL: http://seq:5341
+
+  seq:
+    image: datalust/seq:2026.1.17182
+    ports:
+      - "127.0.0.1:8081:80"
+      - "127.0.0.1:5341:5341"
+    environment:
+      # Starting Seq with this setting accepts https://datalust.co/doc/eula.
+      ACCEPT_EULA: "Y"
+      # Local development only; host ports are bound to loopback.
+      SEQ_FIRSTRUN_NOAUTHENTICATION: "true"
+    volumes:
+      - seq-data:/data
+
+volumes:
+  seq-data:
