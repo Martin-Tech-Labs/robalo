@@ -20,6 +20,7 @@ builder.Services.AddOpenTelemetry()
     .WithMetrics(builder =>
     {
         builder.AddPrometheusExporter();
+        builder.AddOtlpExporter();
 
         builder.AddMeter("Microsoft.AspNetCore.Hosting", "Microsoft.AspNetCore.Server.Kestrel");
         builder.AddView("http.server.request.duration",
