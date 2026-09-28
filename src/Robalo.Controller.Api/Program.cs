@@ -1,3 +1,5 @@
+using OpenTelemetry.Metrics;
+using Robalo.Common.Health;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddEnvironmentVariables("ROBALO_");
@@ -10,33 +12,39 @@ Log.Logger = new LoggerConfiguration()
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddSerilog();
+builder.Services.AddHealthChecks()
+    .AddCheck<TestHealthCheck>("Test One")
+    .AddCheck<AnotherHealthCheck>("Test Another");
+
+builder.Services.AddOpenTelemetry()
+    .WithMetrics(builder =>
+    {
+        builder.AddPrometheusExporter();
+        builder.AddOtlpExporter();
+
+        builder.AddMeter("Microsoft.AspNetCore.Hosting", "Microsoft.AspNetCore.Server.Kestrel");
+        builder.AddView("http.server.request.duration",
+           new ExplicitBucketHistogramConfiguration
+           {
+               Boundaries = [ 0, 0.005, 0.01, 0.025, 0.05,
+                       0.075, 0.1, 0.25, 0.5, 0.75, 1, 2.5, 5, 7.5, 10 ]
+           });
+    });
+
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
+app.MapPrometheusScrapingEndpoint("/_system/metrics");
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
 
+// _System endpoints - Ping, Health, Metrics, etc.
+app.MapGet("/_system/ping", () => Results.Ok("pong"));
+app.MapHealthChecks("/_system/health", new()
+{
+    ResponseWriter = static (context, report) =>
+        context.Response.WriteAsJsonAsync(report.Entries.ToDictionary(e => e.Key, e => e.Value.Description))
+
+});
 try
 {
     Log.Information("Starting Robalo.Controller.Api");
