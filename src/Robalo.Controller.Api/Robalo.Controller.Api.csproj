@@ -8,6 +8,16 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="11.0.0-rc.1.26425.128" />
+    <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
+
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Robalo.Common\Robalo.Common.csproj" />  
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Serilog" />
   </ItemGroup>
 
 </Project>

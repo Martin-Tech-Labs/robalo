@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Robalo.Common/Robalo.Common.csproj" />
     <Project Path="src/Robalo.Controller.Api/Robalo.Controller.Api.csproj" />
   </Folder>
   <Folder Name="/test/">
