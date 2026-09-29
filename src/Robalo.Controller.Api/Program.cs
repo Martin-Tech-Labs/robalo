@@ -38,7 +38,7 @@ app.MapPrometheusScrapingEndpoint("/_system/metrics");
 
 
 // _System endpoints - Ping, Health, Metrics, etc.
-app.MapGet("/_system/ping", () => Results.Ok("pong"));
+app.MapGet("/_system/ping", () => Results.Text("pong"));
 app.MapHealthChecks("/_system/health", new()
 {
     ResponseWriter = static (context, report) =>

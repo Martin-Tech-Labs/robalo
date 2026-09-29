@@ -5,6 +5,18 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "internalConsoleOptions": "openOnSessionStart",
+            "name": "Acceptance",
+            "program": "${workspaceFolder}/node_modules/mocha/bin/mocha.js",
+            "request": "launch",
+            "type": "node",
+            "console": "integratedTerminal",
+            "args": [
+                "--timeout",
+                "30000"
+            ],
+        },
+        {
             "name": "Controller",
             "type": "coreclr",
             "request": "launch",

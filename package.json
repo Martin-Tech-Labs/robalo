@@ -1,0 +1,22 @@
+{
+  "type": "module",
+  "scripts": {
+    "precheck": "tsc --noEmit --strict --module nodenext --target es2022 --erasableSyntaxOnly --verbatimModuleSyntax --allowImportingTsExtensions --types chai AcceptanceTests/Scenarios/*.ts",
+    "test": "npm run precheck && mocha"
+  },
+  "mocha": {
+    "spec": [
+      "AcceptanceTests/Scenarios/*.ts"
+    ]
+  },
+  "devDependencies": {
+    "@types/chai": "^5.2.3",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^26.6.3",
+    "@types/supertest": "^7.2.1",
+    "chai": "^6.2.2",
+    "mocha": "^12.0.2",
+    "supertest": "^7.3.0",
+    "typescript": "^7.0.2"
+  }
+}
