@@ -1,7 +1,7 @@
 {
   "type": "module",
   "scripts": {
-    "precheck": "tsc --noEmit --strict --module nodenext --target es2022 --erasableSyntaxOnly --verbatimModuleSyntax --types node,mocha,chai AcceptanceTests/Scenarios/*.ts",
+    "precheck": "tsc --noEmit --strict --module nodenext --target es2022 --erasableSyntaxOnly --verbatimModuleSyntax --types chai AcceptanceTests/Scenarios/*.ts",
     "test": "npm run precheck && mocha"
   },
   "mocha": {
