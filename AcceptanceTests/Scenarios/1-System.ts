@@ -5,7 +5,7 @@ import ControllerApi from '../Api/controllerApi.ts'
 import type { Response } from 'supertest';
 
 describe('1 - Scenario: System Endpoints', () => {
-    describe.only('Ping endpoint', () => {
+    describe('Ping endpoint', () => {
 
         let response: Response;
         it("When I get /_system/ping", async () => { response = await ControllerApi.ping() });
