@@ -1,6 +1,7 @@
 import 'chai/register-should.js';
 import { describe, it } from 'mocha';
 
+import Config from '../Config/config.ts'
 
 describe('Some feature', () => {
     describe('Some Scenario @debug', () => {
