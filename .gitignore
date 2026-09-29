@@ -23,6 +23,8 @@ bld/
 [Ll]og/
 [Ll]ogs/
 app/
+.gemini/*
+.ai/*
 
 # .NET Core
 project.lock.json

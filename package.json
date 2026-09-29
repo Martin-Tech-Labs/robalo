@@ -1,10 +1,12 @@
 {
+  "type": "module",
   "scripts": {
-    "test": "mocha"
+    "precheck": "npx tsc --noEmit --strict --module nodenext --target es2022 --erasableSyntaxOnly --verbatimModuleSyntax --types node,mocha,chai AcceptanceTests/Scenarios/*.ts",
+    "test": "npm run precheck && mocha"
   },
   "mocha": {
     "spec": [
-      "AcceptanceTests/Scenarios/*.js"
+      "AcceptanceTests/Scenarios/*.ts"
     ]
   },
   "devDependencies": {
@@ -13,6 +15,7 @@
     "@types/supertest": "^7.2.1",
     "chai": "^6.2.2",
     "mocha": "^12.0.2",
-    "supertest": "^7.3.0"
+    "supertest": "^7.3.0",
+    "typescript": "^7.0.2"
   }
 }

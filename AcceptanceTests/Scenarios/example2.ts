@@ -1,10 +1,13 @@
-require('chai').should();
+import 'chai/register-should.js';
+import { describe, it } from 'mocha';
+
 
 describe('Some feature', () => {
 
+
     describe('Some Scenario', () => {
 
-        let number = 2;
+        let number: number = 2;
 
         it('Given a number', () => {
             number.should.exist;
