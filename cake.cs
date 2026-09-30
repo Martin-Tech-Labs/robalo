@@ -41,16 +41,45 @@ Task("BuildContainerController")
     {
         File = "src/Robalo.Controller.Api/Dockerfile",
         Load = true,
-        
+
         Annotation = [
             $"org.opencontainers.image.revision={gitVersionOutput.Sha}"
         ],
 
         Tag = [
-            "robalo-controller:latest",
-             $"robalo-controller:{gitVersionOutput.SemVer}"]
+            $"{EnvironmentVariable("DOCKERHUB_USERNAME")}/robalo-controller:{gitVersionOutput.SemVer}",
+            $"{EnvironmentVariable("DOCKERHUB_USERNAME")}/robalo-controller:latest"]
     }, ".");
 });
+
+Task("DockerLogin")
+.Does(() =>
+{
+    DockerLogin(
+     username: EnvironmentVariable("DOCKERHUB_USERNAME"),
+     password: EnvironmentVariable("DOCKERHUB_TOKEN"));
+});
+
+
+Task("PushContainerController")
+.IsDependentOn("BuildContainerController")
+.IsDependentOn("DockerLogin")
+.Does(() =>
+{
+    var gitVersionOutput = lazyGitVersionOutput.Value;
+
+    var tags = new[]
+ {
+    $"{EnvironmentVariable("DOCKERHUB_USERNAME")}/robalo-controller:{gitVersionOutput.SemVer}",
+    $"{EnvironmentVariable("DOCKERHUB_USERNAME")}/robalo-controller:latest"
+};
+
+    foreach (var tag in tags)
+    {
+        DockerPush(tag);
+    }
+});
+
 
 Task("PublishController")
 .IsDependentOn("Build")
