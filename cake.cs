@@ -12,7 +12,6 @@ var configuration = Argument("configuration", "Release");
 
 
 Task("Build")
-.IsDependentOn("UnitTests")
 .Does(() =>
 {
     var solutionFile = GetFiles("*.sln*").SingleOrDefault() ?? throw new Exception("Expected a single solution file to build");
@@ -43,6 +42,7 @@ Task("PublishController")
 });
 
 Task("IntegrationTests")
+.IsDependentOn("Build")
 .Does(() =>
     {
         foreach (var project in GetFiles("./**/*IntegrationTests.csproj"))
@@ -55,6 +55,7 @@ Task("IntegrationTests")
     });
 
 Task("UnitTests")
+.IsDependentOn("Build")
 .Does(() =>
 {
     foreach (var project in GetFiles("./**/*UnitTests.csproj"))
