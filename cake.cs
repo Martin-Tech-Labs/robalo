@@ -1,9 +1,12 @@
 #!/usr/bin/env dotnet
 #:sdk Cake.Sdk@6.3.0
 #:package Spectre.Console@0.57.2
+#:package Cake.Docker@1.5.0
 
 var target = Argument("target", "Build");
 var configuration = Argument("configuration", "Release");
+
+Lazy<GitVersionOutput> lazyGitVersionOutput = new(GetGitVersion);
 
 
 //////////////////////////////////////////////////////////////////////
@@ -17,7 +20,7 @@ Task("Build")
     var solutionFile = GetFiles("*.sln*").SingleOrDefault() ?? throw new Exception("Expected a single solution file to build");
     AnsiConsole.MarkupLine($"[blue]Building solution:[/] [yellow]{solutionFile.GetFilename().ToString().ToUpperInvariant()}[/]");
 
-    var gitVersionOutput = GetGitVersion();
+    var gitVersionOutput = lazyGitVersionOutput.Value;
 
     DotNetBuild(solutionFile.FullPath, new DotNetBuildSettings
     {
@@ -27,6 +30,26 @@ Task("Build")
                 .WithProperty("InformationalVersion", gitVersionOutput.InformationalVersion)
                 .WithProperty("IncludeSourceRevisionInInformationalVersion", "false")
     });
+});
+
+Task("BuildContainerController")
+.Does(() =>
+{
+    var gitVersionOutput = lazyGitVersionOutput.Value;
+
+    DockerBuildXBuild(new DockerBuildXBuildSettings
+    {
+        File = "src/Robalo.Controller.Api/Dockerfile",
+        Load = true,
+        
+        Annotation = [
+            $"org.opencontainers.image.revision={gitVersionOutput.Sha}"
+        ],
+
+        Tag = [
+            "robalo-controller:latest",
+             $"robalo-controller:{gitVersionOutput.SemVer}"]
+    }, ".");
 });
 
 Task("PublishController")
@@ -111,7 +134,25 @@ static GitVersionOutput GetGitVersion()
         throw new InvalidOperationException($"GitVersion returned empty {nameof(GitVersionOutput.SemVer)}");
     }
 
-    return new(gitVersionOutput.InformationalVersion, gitVersionOutput.SemVer);
+    if (string.IsNullOrWhiteSpace(gitVersionOutput?.Sha))
+    {
+        throw new InvalidOperationException($"GitVersion returned empty {nameof(GitVersionOutput.Sha)}");
+    }
+
+    if (string.IsNullOrWhiteSpace(gitVersionOutput?.ShortSha))
+    {
+        throw new InvalidOperationException($"GitVersion returned empty {nameof(GitVersionOutput.ShortSha)}");
+    }
+
+    return new(
+        InformationalVersion: gitVersionOutput.InformationalVersion,
+        SemVer: gitVersionOutput.SemVer,
+        Sha: gitVersionOutput.Sha,
+        ShortSha: gitVersionOutput.ShortSha);
 }
 
-record GitVersionOutput(string InformationalVersion, string SemVer);
+record GitVersionOutput(
+    string InformationalVersion,
+    string SemVer,
+    string Sha,
+    string ShortSha);
