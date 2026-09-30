@@ -18,7 +18,6 @@ Task("Build")
     var solutionFile = GetFiles("*.sln*").SingleOrDefault() ?? throw new Exception("Expected a single solution file to build");
     AnsiConsole.MarkupLine($"[blue]Building solution:[/] [yellow]{solutionFile.GetFilename().ToString().ToUpperInvariant()}[/]");
 
-
     var gitVersionOutput = GetGitVersion();
 
     DotNetBuild(solutionFile.FullPath, new DotNetBuildSettings
@@ -28,6 +27,18 @@ Task("Build")
                 .WithProperty("Version", gitVersionOutput.SemVer)
                 .WithProperty("InformationalVersion", gitVersionOutput.InformationalVersion)
                 .WithProperty("IncludeSourceRevisionInInformationalVersion", "false")
+    });
+});
+
+Task("PublishController")
+.IsDependentOn("Build")
+.Does(() =>
+{
+    DotNetPublish("src/Robalo.Controller.Api/Robalo.Controller.Api.csproj", new DotNetPublishSettings
+    {
+        Configuration = configuration,
+        NoBuild = true,
+        OutputDirectory = "app/publish"
     });
 });
 
