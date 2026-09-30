@@ -1,1 +1,8 @@
-assembly-informational-format: '{FullSemVer}+{Sha}'
+workflow: GitHubFlow/v1
+
+branches:
+  main:
+    mode: ContinuousDeployment
+    label: ''
+
+assembly-informational-format: '{SemVer}+{ShortSha}'
