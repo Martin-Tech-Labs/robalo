@@ -1,0 +1,35 @@
+# Build and publish outputs
+**/[Bb]in/
+**/[Oo]bj/
+app/
+artifacts/
+
+# Dependencies restored inside the build
+**/node_modules/
+tools/
+
+# Test results, coverage, and logs
+**/[Tt]est[Rr]esults/
+**/CodeCoverage/
+**/coverage/
+**/*.trx
+**/*.binlog
+**/*.log
+
+# Local environment files (keep example templates)
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.sample
+
+# Editor, agent, and OS files
+.vs/
+.vscode/
+.idea/
+.ai/
+.gemini/
+.codex/
+.agents/
+**/.DS_Store
+
+# Keep .git: cake.cs runs GitVersion inside the build container.
