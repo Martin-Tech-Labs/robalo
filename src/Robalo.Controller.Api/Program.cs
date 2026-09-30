@@ -74,7 +74,8 @@ app.MapGet("/_system/env", (IHostEnvironment hostEnvironment) =>
     return Results.Json(environmentInfo, new JsonSerializerOptions
     {
         WriteIndented = true,
-        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
     });
 });
 try
