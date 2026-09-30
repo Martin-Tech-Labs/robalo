@@ -5,8 +5,14 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "🍰 Cake",
+            "type": "dotnet",
+            "request": "launch",
+            "projectPath": "${workspaceFolder}/cake.cs"
+        },
+        {
             "internalConsoleOptions": "openOnSessionStart",
-            "name": "Acceptance",
+            "name": "👮‍♂️ Acceptance",
             "program": "${workspaceFolder}/node_modules/mocha/bin/mocha.js",
             "request": "launch",
             "type": "node",
@@ -17,7 +23,7 @@
             ],
         },
         {
-            "name": "Controller",
+            "name": "1️⃣ Controller",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "Build Controller",
