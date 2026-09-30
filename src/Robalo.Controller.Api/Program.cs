@@ -1,11 +1,20 @@
+using System.Diagnostics;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 using OpenTelemetry.Metrics;
 using Robalo.Common.Health;
+using Robalo.Controller.Api;
+
+var startTimeUtc = Process.GetCurrentProcess().StartTime.ToUniversalTime();
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddEnvironmentVariables("ROBALO_");
 
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
+    .Enrich.WithProperty("Version", Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.ToString() ?? string.Empty)
     .CreateLogger();
 
 // Add services to the container.
@@ -42,8 +51,32 @@ app.MapGet("/_system/ping", () => Results.Text("pong"));
 app.MapHealthChecks("/_system/health", new()
 {
     ResponseWriter = static (context, report) =>
-        context.Response.WriteAsJsonAsync(report.Entries.ToDictionary(e => e.Key, e => e.Value.Description))
+        context.Response.WriteAsJsonAsync(
+            report.Entries.ToDictionary(e => e.Key, e => e.Value.Description),
+            new JsonSerializerOptions(JsonSerializerDefaults.Web)
+            {
+                WriteIndented = true
+            })
+});
 
+app.MapGet("/_system/env", (IHostEnvironment hostEnvironment) =>
+{
+    var environmentInfo = new EnvironmentInfo(
+        ApplicationName: hostEnvironment?.ApplicationName,
+        Version: Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion,
+        OS: $"{RuntimeInformation.OSDescription} ({RuntimeInformation.OSArchitecture})",
+        Machine: Environment.MachineName,
+        Environment: hostEnvironment?.EnvironmentName,
+        Runtime: RuntimeInformation.FrameworkDescription,
+        RunningInContainer: Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER")?.Equals("true", StringComparison.InvariantCultureIgnoreCase) ?? false,
+        UptimeSeconds: (long)(DateTime.UtcNow - startTimeUtc).TotalSeconds);
+
+    return Results.Json(environmentInfo, new JsonSerializerOptions
+    {
+        WriteIndented = true,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+    });
 });
 try
 {

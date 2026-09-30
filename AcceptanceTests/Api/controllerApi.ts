@@ -13,6 +13,9 @@ const ControllerApi = {
     health() {
         return request(Config.ControllerUrl).get('/_system/health');
     },
+    env() {
+        return request(Config.ControllerUrl).get('/_system/env');
+    },
 };
 
 export default ControllerApi;

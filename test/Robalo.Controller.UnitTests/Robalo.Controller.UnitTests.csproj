@@ -15,7 +15,7 @@
     <Using Include="Xunit" />
     <Using Include="Xunit" />
     <Using Include="AutoFixture" />
-    <Using Include="FluentAssertions" />
+    <Using Include="Shouldly" />
   </ItemGroup>
 
   <ItemGroup>
