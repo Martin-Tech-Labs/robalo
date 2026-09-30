@@ -18,16 +18,16 @@ Task("Build")
     var solutionFile = GetFiles("*.sln*").SingleOrDefault() ?? throw new Exception("Expected a single solution file to build");
     AnsiConsole.MarkupLine($"[blue]Building solution:[/] [yellow]{solutionFile.GetFilename().ToString().ToUpperInvariant()}[/]");
 
-    DotNetToolRestore();
 
-    DotNetToolExecute("GitVersion.Tool", new DotNetToolExecuteSettings
-    {
-
-    });
+    var gitVersionOutput = GetGitVersion();
 
     DotNetBuild(solutionFile.FullPath, new DotNetBuildSettings
     {
-        Configuration = configuration
+        Configuration = configuration,
+        MSBuildSettings = new DotNetMSBuildSettings()
+                .WithProperty("Version", gitVersionOutput.SemVer)
+                .WithProperty("InformationalVersion", gitVersionOutput.InformationalVersion)
+                .WithProperty("IncludeSourceRevisionInInformationalVersion", "false")
     });
 });
 
@@ -66,14 +66,15 @@ Task("Test")
 RunTarget(target);
 
 
-
-static void GetVersion()
+static GitVersionOutput GetGitVersion()
 {
+    DotNetToolRestore();
+
     var exitCode = StartProcess(
-    "dotnet",
+    "dnx",
     new ProcessSettings
     {
-        Arguments = "tool run GitVersion.Tool /output json",
+        Arguments = "GitVersion.Tool /output json",
         RedirectStandardOutput = true
     },
     out IEnumerable<string> output);
@@ -84,6 +85,21 @@ static void GetVersion()
     }
 
     var json = string.Join(Environment.NewLine, output);
+    var gitVersionOutput = JsonSerializer.Deserialize<GitVersionOutput>(json);
+
+    var informationalVersion = gitVersionOutput?.InformationalVersion;
+
+    if (string.IsNullOrWhiteSpace(gitVersionOutput?.InformationalVersion))
+    {
+        throw new InvalidOperationException($"GitVersion returned empty {nameof(GitVersionOutput.InformationalVersion)}");
+    }
+
+    if (string.IsNullOrWhiteSpace(gitVersionOutput?.SemVer))
+    {
+        throw new InvalidOperationException($"GitVersion returned empty {nameof(GitVersionOutput.SemVer)}");
+    }
+
+    return new(gitVersionOutput.InformationalVersion, gitVersionOutput.SemVer);
 }
 
-record GitVersion(string InformationalVersion);
+record GitVersionOutput(string InformationalVersion, string SemVer);
