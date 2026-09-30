@@ -8,6 +8,6 @@ public class Test
     public void Test1()
     {
         var testString = _fixture.Create<string>();
-        testString.Should().NotBeNullOrEmpty();
+        testString.ShouldNotBeNullOrWhiteSpace();
     }
 }
