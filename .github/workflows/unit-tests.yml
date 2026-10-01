@@ -41,3 +41,12 @@ jobs:
           name: unit-test-results-${{ matrix.os }}
           path: TestResults/
           if-no-files-found: error
+
+      - name: Publish test results
+        if: always()
+        uses: dorny/test-reporter@v3
+        with:
+          name: unit-test-results-${{ matrix.os }}
+          path: "*.trx"
+          reporter: dotnet-trx
+          use-actions-summary: true
