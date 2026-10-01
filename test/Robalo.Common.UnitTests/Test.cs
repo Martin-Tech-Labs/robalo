@@ -8,7 +8,6 @@ public class Test
     public void When_testing_something_2()
     {
         var testString = _fixture.Create<string>();
-        testString = "";
         testString.ShouldNotBeNullOrWhiteSpace();
     }
 }
