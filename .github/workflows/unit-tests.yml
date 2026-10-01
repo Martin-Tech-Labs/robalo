@@ -46,6 +46,7 @@ jobs:
         if: always()
         uses: dorny/test-reporter@v3
         with:
+          artifact: unit-test-results-${{ matrix.os }}
           name: unit-test-results-${{ matrix.os }}
           path: "*.trx"
           reporter: dotnet-trx
