@@ -3,7 +3,7 @@
 #:package Spectre.Console@0.57.2
 #:package Cake.Docker@1.5.0
 
-var target = Argument("target", "Build");
+var target = Argument("target", "UnitTests");
 var configuration = Argument("configuration", "Release");
 
 Lazy<GitVersionOutput> lazyGitVersionOutput = new(GetGitVersion);
@@ -99,9 +99,14 @@ Task("IntegrationTests")
     {
         foreach (var project in GetFiles("./**/*IntegrationTests.csproj"))
         {
+            AnsiConsole.MarkupLine($"[blue]Running unit tests for project:[/] [yellow]{project.GetFilename().ToString().ToUpperInvariant()}[/]");
             DotNetTest(project.FullPath, new DotNetTestSettings
             {
-                Configuration = configuration
+                Configuration = configuration,
+                ArgumentCustomization = args => args
+                    .Append("--report-xunit-trx")
+                    .Append("--report-xunit-trx-filename")
+                    .AppendQuoted($"{project.GetFilenameWithoutExtension()}.trx")
             });
         }
     });
@@ -112,9 +117,14 @@ Task("UnitTests")
 {
     foreach (var project in GetFiles("./**/*UnitTests.csproj"))
     {
+        AnsiConsole.MarkupLine($"[blue]Running unit tests for project:[/] [yellow]{project.GetFilename().ToString().ToUpperInvariant()}[/]");
         DotNetTest(project.FullPath, new DotNetTestSettings
         {
-            Configuration = configuration
+            Configuration = configuration,
+            ArgumentCustomization = args => args
+                   .Append("--report-xunit-trx")
+                   .Append("--report-xunit-trx-filename")
+                   .AppendQuoted($"{project.GetFilenameWithoutExtension()}.trx")
         });
     }
 });

@@ -1,0 +1,46 @@
+name: Build
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Unit Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          # Cake uses GitVersion.
+          fetch-depth: 0
+
+      - name: Install .NET SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Unit Tests
+        run: dotnet run cake.cs -- --configuration=Release
+
+      - name: Create test report
+        if: always()
+        uses: dorny/test-reporter@v3
+        with:
+          name: Unit Test Results
+          path: "TestResults/*.trx"
+          reporter: dotnet-trx
+          use-actions-summary: true
+          report-title: Unit Tests Results 
+  

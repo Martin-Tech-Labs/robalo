@@ -7,5 +7,6 @@
     <Project Path="test/Robalo.Controller.IntegrationTests/Robalo.Controller.IntegrationTests.csproj" />
     <Project Path="test/Robalo.Controller.UnitTests/Robalo.Controller.UnitTests.csproj" />
     <Project Path="test/Robalo.Tests.Common/Robalo.Tests.Common.csproj" />
+    <Project Path="test/Robalo.Common.UnitTests/Robalo.Common.UnitTests.csproj" />
   </Folder>
 </Solution>

@@ -1,0 +1,109 @@
+# name: Deploy
+
+# on:
+#   workflow_run:
+#     workflows: [Build, Integration Tests, Acceptance Tests]
+#     types: [completed]
+#     branches: [main]
+#   workflow_dispatch:
+
+# permissions:
+#   contents: read
+#   actions: read
+
+# # Serialize publishing so concurrent completions cannot race the latest tag.
+# concurrency:
+#   group: dockerhub-controller-deploy
+#   cancel-in-progress: false
+
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
+#     timeout-minutes: 30
+#     steps:
+#       - name: Verify all workflows passed for this main commit
+#         id: gate
+#         uses: actions/github-script@v8
+#         with:
+#           script: |
+#             const manual = context.eventName === 'workflow_dispatch';
+#             const source = context.payload.workflow_run;
+#             const sha = manual ? context.sha : source.head_sha;
+#             core.setOutput('ready', 'false');
+
+#             async function stop(message) {
+#               core.notice(message);
+#               await core.summary.addHeading('Deployment not started').addRaw(message).write();
+#               if (manual) core.setFailed(message);
+#             }
+
+#             if (manual && context.ref !== 'refs/heads/main') {
+#               await stop('Manual deployment must be run from main.');
+#               return;
+#             }
+#             if (!manual && (
+#               source.head_branch !== 'main' ||
+#               source.head_repository.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
+#               !['push', 'workflow_dispatch'].includes(source.event)
+#             )) {
+#               await stop('Only main push or manual test runs can trigger deployment.');
+#               return;
+#             }
+
+#             const {data: main} = await github.rest.repos.getBranch({...context.repo, branch: 'main'});
+#             if (main.commit.sha !== sha) {
+#               await stop('This commit is no longer the head of main.');
+#               return;
+#             }
+
+#             const passed = [];
+#             for (const workflow_id of ['build.yml', 'integration-tests.yml', 'acceptance-tests.yml']) {
+#               const {data} = await github.rest.actions.listWorkflowRuns({
+#                 ...context.repo, workflow_id, branch: 'main', head_sha: sha, per_page: 100
+#               });
+#               const run = data.workflow_runs
+#                 .filter(run => ['push', 'workflow_dispatch'].includes(run.event) && run.head_sha === sha)
+#                 .sort((a, b) => b.id - a.id)[0];
+#               if (!run || run.status !== 'completed' || run.conclusion !== 'success') {
+#                 await stop(`${workflow_id} has not passed for ${sha}.`);
+#                 return;
+#               }
+#               passed.push(run);
+#             }
+
+#             core.setOutput('sha', sha);
+#             core.setOutput('ready', 'true');
+#             await core.summary.addHeading('Deployment checks passed')
+#               .addRaw(`All required workflows passed for ${sha}.\n\n`)
+#               .addList(passed.map(run => `${run.name}: ${run.html_url}`)).write();
+
+#       - name: Checkout verified commit
+#         if: steps.gate.outputs.ready == 'true'
+#         uses: actions/checkout@v7
+#         with:
+#           ref: ${{ steps.gate.outputs.sha }}
+#           fetch-depth: 0
+
+#       - name: Install .NET SDK
+#         if: steps.gate.outputs.ready == 'true'
+#         uses: actions/setup-dotnet@v5
+#         with:
+#           global-json-file: global.json
+
+#       - name: Set up Docker Buildx
+#         if: steps.gate.outputs.ready == 'true'
+#         uses: docker/setup-buildx-action@v3
+
+#       - name: Build and push Controller image with Cake
+#         if: steps.gate.outputs.ready == 'true'
+#         env:
+#           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+#           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+#         run: |
+#           test -n "$DOCKERHUB_USERNAME" || { echo 'DOCKERHUB_USERNAME is required.'; exit 1; }
+#           test -n "$DOCKERHUB_TOKEN" || { echo 'DOCKERHUB_TOKEN is required.'; exit 1; }
+#           dotnet run cake.cs -- --target=PushContainerController --configuration=Release
+
+#       - name: Log out of Docker Hub
+#         if: always() && steps.gate.outputs.ready == 'true'
+#         run: docker logout
