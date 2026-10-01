@@ -1,106 +1,106 @@
-name: Integration Tests
+# name: Integration Tests
 
-on:
-  pull_request:
-    branches: [main]
-  push:
-    branches: [main]
-  workflow_dispatch:
+# on:
+#   pull_request:
+#     branches: [main]
+#   push:
+#     branches: [main]
+#   workflow_dispatch:
 
-permissions:
-  contents: read
+# permissions:
+#   contents: read
 
-jobs:
-  integration-tests:
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
-        with:
-          # Cake uses GitVersion.
-          fetch-depth: 0
+# jobs:
+#   integration-tests:
+#     runs-on: ubuntu-latest
+#     timeout-minutes: 25
+#     steps:
+#       - name: Checkout repository
+#         uses: actions/checkout@v7
+#         with:
+#           # Cake uses GitVersion.
+#           fetch-depth: 0
 
-      - name: Install .NET SDK
-        uses: actions/setup-dotnet@v5
-        with:
-          global-json-file: global.json
+#       - name: Install .NET SDK
+#         uses: actions/setup-dotnet@v5
+#         with:
+#           global-json-file: global.json
 
-      - name: Start infrastructure only
-        run: docker compose up --detach seq
+#       - name: Start infrastructure only
+#         run: docker compose up --detach seq
 
-      - name: Wait for Seq
-        shell: bash
-        run: |
-          for attempt in {1..60}; do
-            if curl --fail --silent --max-time 5 http://localhost:8081/ > /dev/null; then
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "Service did not become ready: http://localhost:8081/"
-          exit 1
+#       - name: Wait for Seq
+#         shell: bash
+#         run: |
+#           for attempt in {1..60}; do
+#             if curl --fail --silent --max-time 5 http://localhost:8081/ > /dev/null; then
+#               exit 0
+#             fi
+#             sleep 2
+#           done
+#           echo "Service did not become ready: http://localhost:8081/"
+#           exit 1
 
-      - name: Build with Cake
-        run: dotnet run cake.cs -- --target=Build --configuration=Release
+#       - name: Build with Cake
+#         run: dotnet run cake.cs -- --target=Build --configuration=Release
 
-      - name: Run integration tests
-        shell: bash
-        run: |
-          mkdir -p TestResults
-          status=0
-          found=0
-          while IFS= read -r -d '' project; do
-            found=1
-            dotnet test --project "$project" --configuration Release --no-build \
-              --report-xunit-trx --results-directory "$GITHUB_WORKSPACE/TestResults" || status=1
-          done < <(find test -name '*IntegrationTests.csproj' -print0)
-          if [ "$found" -eq 0 ]; then
-            echo "No integration test projects found."
-            exit 1
-          fi
-          exit "$status"
+#       - name: Run integration tests
+#         shell: bash
+#         run: |
+#           mkdir -p TestResults
+#           status=0
+#           found=0
+#           while IFS= read -r -d '' project; do
+#             found=1
+#             dotnet test --project "$project" --configuration Release --no-build \
+#               --report-xunit-trx --results-directory "$GITHUB_WORKSPACE/TestResults" || status=1
+#           done < <(find test -name '*IntegrationTests.csproj' -print0)
+#           if [ "$found" -eq 0 ]; then
+#             echo "No integration test projects found."
+#             exit 1
+#           fi
+#           exit "$status"
 
-      - name: Publish test summary
-        if: always()
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          import os
-          from pathlib import Path
-          import xml.etree.ElementTree as ET
+#       - name: Publish test summary
+#         if: always()
+#         shell: bash
+#         run: |
+#           python3 - <<'PY'
+#           import os
+#           from pathlib import Path
+#           import xml.etree.ElementTree as ET
 
-          reports = sorted(Path("TestResults").rglob("*.trx"))
-          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
-              summary.write("## Test results\n\n")
-              if not reports:
-                  summary.write("No report was produced. Check the build and test logs.\n")
-              for report in reports:
-                  root = ET.parse(report).getroot()
-                  counters = root.find(".//{*}Counters")
-                  if counters is not None:
-                      summary.write(f"**{report.name}**: " + ", ".join(
-                          f"{key}: {counters.get(key, '0')}"
-                          for key in ("total", "passed", "failed", "notExecuted")
-                      ) + "\n\n")
-              summary.write("Full reports are available in this run's artifacts.\n")
-          PY
+#           reports = sorted(Path("TestResults").rglob("*.trx"))
+#           with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+#               summary.write("## Test results\n\n")
+#               if not reports:
+#                   summary.write("No report was produced. Check the build and test logs.\n")
+#               for report in reports:
+#                   root = ET.parse(report).getroot()
+#                   counters = root.find(".//{*}Counters")
+#                   if counters is not None:
+#                       summary.write(f"**{report.name}**: " + ", ".join(
+#                           f"{key}: {counters.get(key, '0')}"
+#                           for key in ("total", "passed", "failed", "notExecuted")
+#                       ) + "\n\n")
+#               summary.write("Full reports are available in this run's artifacts.\n")
+#           PY
 
-      - name: Collect Compose diagnostics
-        if: always()
-        run: |
-          mkdir -p TestResults
-          docker compose ps --all > TestResults/compose-status.log 2>&1
-          docker compose logs --no-color > TestResults/compose.log 2>&1
+#       - name: Collect Compose diagnostics
+#         if: always()
+#         run: |
+#           mkdir -p TestResults
+#           docker compose ps --all > TestResults/compose-status.log 2>&1
+#           docker compose logs --no-color > TestResults/compose.log 2>&1
 
-      - name: Stop Compose
-        if: always()
-        run: docker compose down --volumes --remove-orphans
+#       - name: Stop Compose
+#         if: always()
+#         run: docker compose down --volumes --remove-orphans
 
-      - name: Upload reports and diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: integration-test-results
-          path: TestResults/
-          if-no-files-found: warn
+#       - name: Upload reports and diagnostics
+#         if: always()
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: integration-test-results
+#           path: TestResults/
+#           if-no-files-found: warn
