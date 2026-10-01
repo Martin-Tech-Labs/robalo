@@ -3,7 +3,7 @@
 #:package Spectre.Console@0.57.2
 #:package Cake.Docker@1.5.0
 
-var target = Argument("target", "Build");
+var target = Argument("target", "UnitTests");
 var configuration = Argument("configuration", "Release");
 
 Lazy<GitVersionOutput> lazyGitVersionOutput = new(GetGitVersion);
