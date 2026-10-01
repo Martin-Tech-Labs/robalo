@@ -1,4 +1,4 @@
-namespace Robalo.Controller.IntegrationTests;
+namespace Robalo.Controller.UnitTests;
 
 public class Test
 {
