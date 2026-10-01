@@ -103,7 +103,10 @@ Task("IntegrationTests")
             DotNetTest(project.FullPath, new DotNetTestSettings
             {
                 Configuration = configuration,
-                ArgumentCustomization = args => args.Append("--report-xunit-trx")
+                ArgumentCustomization = args => args
+                    .Append("--report-xunit-trx")
+                    .Append("--report-xunit-trx-filename")
+                    .AppendQuoted($"{project.GetFilenameWithoutExtension()}.trx")
             });
         }
     });
@@ -118,7 +121,10 @@ Task("UnitTests")
         DotNetTest(project.FullPath, new DotNetTestSettings
         {
             Configuration = configuration,
-            ArgumentCustomization = args => args.Append("--report-xunit-trx")
+            ArgumentCustomization = args => args
+                   .Append("--report-xunit-trx")
+                   .Append("--report-xunit-trx-filename")
+                   .AppendQuoted($"{project.GetFilenameWithoutExtension()}.trx")
         });
     }
 });

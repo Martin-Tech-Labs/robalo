@@ -35,11 +35,11 @@ jobs:
       - name: Unit Tests
         run: dotnet run cake.cs -- --configuration=Release
 
-      - name: Publish test results
+      - name: Create test report
         if: always()
         uses: dorny/test-reporter@v3
         with:
-          name: unit-test-results-${{ matrix.os }}
+          name: Unit Test Results (${{ matrix.os }})
           path: "TestResults/*.trx"
           reporter: dotnet-trx
           use-actions-summary: false
