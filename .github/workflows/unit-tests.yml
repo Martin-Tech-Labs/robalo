@@ -42,4 +42,4 @@ jobs:
           name: unit-test-results-${{ matrix.os }}
           path: "TestResults/*.trx"
           reporter: dotnet-trx
-          use-actions-summary: true
+          use-actions-summary: false
