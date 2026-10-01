@@ -99,6 +99,7 @@ Task("IntegrationTests")
     {
         foreach (var project in GetFiles("./**/*IntegrationTests.csproj"))
         {
+            AnsiConsole.MarkupLine($"[blue]Running unit tests for project:[/] [yellow]{project.GetFilename().ToString().ToUpperInvariant()}[/]");
             DotNetTest(project.FullPath, new DotNetTestSettings
             {
                 Configuration = configuration,
@@ -113,6 +114,7 @@ Task("UnitTests")
 {
     foreach (var project in GetFiles("./**/*UnitTests.csproj"))
     {
+        AnsiConsole.MarkupLine($"[blue]Running unit tests for project:[/] [yellow]{project.GetFilename().ToString().ToUpperInvariant()}[/]");
         DotNetTest(project.FullPath, new DotNetTestSettings
         {
             Configuration = configuration,
