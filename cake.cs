@@ -101,7 +101,8 @@ Task("IntegrationTests")
         {
             DotNetTest(project.FullPath, new DotNetTestSettings
             {
-                Configuration = configuration
+                Configuration = configuration,
+                ArgumentCustomization = args => args.Append("--report-xunit-trx")
             });
         }
     });
@@ -114,7 +115,8 @@ Task("UnitTests")
     {
         DotNetTest(project.FullPath, new DotNetTestSettings
         {
-            Configuration = configuration
+            Configuration = configuration,
+            ArgumentCustomization = args => args.Append("--report-xunit-trx")
         });
     }
 });
