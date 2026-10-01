@@ -9,7 +9,6 @@ on:
 
 permissions:
   contents: read
-  checks: write
 
 jobs:
   build:
@@ -35,32 +34,12 @@ jobs:
       - name: Unit Tests
         run: dotnet run cake.cs -- --configuration=Release
 
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: unit-test-results-${{ matrix.os }}
-          path: "TestResults/*.trx"
-
-  test-report:
-    name: Unit Test Results
-    needs: build
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
-
-      - name: Download test results
-        uses: actions/download-artifact@v4
-        with:
-          pattern: unit-test-results-*
-          path: TestResults
-
       - name: Create test report
         uses: dorny/test-reporter@v3
         with:
           name: Unit Test Results
-          path: "TestResults/**/*.trx"
+          path: "TestResults/*.trx"
           reporter: dotnet-trx
           use-actions-summary: true
+          report-title: Unit Tests Results 
+  
