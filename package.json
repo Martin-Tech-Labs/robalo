@@ -7,7 +7,8 @@
   "mocha": {
     "spec": [
       "AcceptanceTests/Scenarios/*.ts"
-    ]
+    ],
+    "reporter":"github-actions"
   },
   "devDependencies": {
     "@types/chai": "^5.2.3",
