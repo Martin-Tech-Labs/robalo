@@ -8,5 +8,6 @@
     <Project Path="test/Robalo.Controller.UnitTests/Robalo.Controller.UnitTests.csproj" />
     <Project Path="test/Robalo.Tests.Common/Robalo.Tests.Common.csproj" />
     <Project Path="test/Robalo.Common.UnitTests/Robalo.Common.UnitTests.csproj" />
+    <Project Path="test/Robalo.Common.IntegrationTests/Robalo.Common.IntegrationTests.csproj" />
   </Folder>
 </Solution>
