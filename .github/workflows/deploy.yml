@@ -1,9 +1,12 @@
 name: Deploy
 
 on:
-  pull_request:
-    branches: [main]
-  push:
+  workflow_run:
+    workflows:
+      - Unit Tests
+      - Integration Tests
+      - Acceptance Tests
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
