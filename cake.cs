@@ -56,9 +56,26 @@ Task("BuildContainerController")
 Task("DockerLogin")
 .Does(() =>
 {
-    DockerLogin(
-     username: EnvironmentVariable("DOCKERHUB_USERNAME"),
-     password: EnvironmentVariable("DOCKERHUB_TOKEN"));
+    var startInfo = new System.Diagnostics.ProcessStartInfo("docker")
+    {
+        UseShellExecute = false,
+        RedirectStandardInput = true
+    };
+
+    startInfo.ArgumentList.Add("login");
+    startInfo.ArgumentList.Add("--username");
+    startInfo.ArgumentList.Add(EnvironmentVariable("DOCKERHUB_USERNAME"));
+    startInfo.ArgumentList.Add("--password-stdin");
+
+    using var process = System.Diagnostics.Process.Start(startInfo)
+        ?? throw new Exception("Could not start Docker.");
+
+    process.StandardInput.WriteLine(EnvironmentVariable("DOCKERHUB_TOKEN"));
+    process.StandardInput.Close();
+    process.WaitForExit();
+
+    if (process.ExitCode != 0)
+        throw new Exception("Docker login failed.");
 });
 
 
