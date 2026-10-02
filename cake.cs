@@ -2,6 +2,7 @@
 #:sdk Cake.Sdk@6.3.0
 #:package Spectre.Console@0.57.2
 #:package Cake.Docker@1.5.0
+#:package Cake.Npm@5.1.0
 
 var target = Argument("target", "UnitTests");
 var configuration = Argument("configuration", "Release");
@@ -132,6 +133,13 @@ Task("UnitTests")
 Task("Test")
     .IsDependentOn("UnitTests")
     .IsDependentOn("IntegrationTests");
+
+Task("AcceptanceTests")
+.Does(() =>
+{
+    NpmCi();
+    NpmRunScript("test");
+});
 
 //////////////////////////////////////////////////////////////////////
 // EXECUTION
