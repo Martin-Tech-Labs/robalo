@@ -16,7 +16,7 @@ describe('1 - Scenario: System Endpoints', () => {
             response.headers['content-type'].should.include('text/plain');
         });
 
-        it('And I verify the response body is ping', () => { response.text.should.equal("pong") });
+        it('And I verify the response body is ping', () => { response.text.should.equal("pdong") });
     })
 
     describe('Health endpoint', () => {
