@@ -146,6 +146,8 @@ Task("IntegrationTests")
                 ArgumentCustomization = args => args
                     .Append("--report-xunit-trx")
                     .Append("--report-xunit-trx-filename")
+                    .Append("--coverage")
+                    .Append("--coverage-output-format cobertura")
                     .AppendQuoted($"{project.GetFilenameWithoutExtension()}.trx")
             });
         }
@@ -164,6 +166,8 @@ Task("UnitTests")
             ArgumentCustomization = args => args
                    .Append("--report-xunit-trx")
                    .Append("--report-xunit-trx-filename")
+                   .Append("--coverage")
+                   .Append("--coverage-output-format cobertura")
                    .AppendQuoted($"{project.GetFilenameWithoutExtension()}.trx")
         });
     }
