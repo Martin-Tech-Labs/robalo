@@ -1,5 +1,8 @@
 workflow: GitHubFlow/v1
 
+strategies:
+  - Mainline
+
 branches:
   main:
     mode: ContinuousDeployment

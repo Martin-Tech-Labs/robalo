@@ -70,10 +70,32 @@ Task("PushContainerController")
     var gitVersionOutput = lazyGitVersionOutput.Value;
 
     var tags = new[]
- {
-    $"{EnvironmentVariable("DOCKERHUB_USERNAME")}/robalo-controller:{gitVersionOutput.SemVer}",
-    $"{EnvironmentVariable("DOCKERHUB_USERNAME")}/robalo-controller:latest"
-};
+    {
+        $"{EnvironmentVariable("DOCKERHUB_USERNAME")}/robalo-controller:{gitVersionOutput.SemVer}",
+        $"{EnvironmentVariable("DOCKERHUB_USERNAME")}/robalo-controller:latest"
+    };
+
+    // Check permissions by checking out an existing image with tag last
+    if (!DockerBuildXImageToolsInspect(tags.Last()).Any())
+    {
+        throw new Exception("Cannot an image with tag latest in the Registry");
+    }
+
+    IEnumerable<string>? result = null;
+    try
+    {
+        result = DockerBuildXImageToolsInspect(tags.First());
+    }
+    catch
+    {
+
+    }
+
+    // Check permissions by checking out an existing image with tag last
+    if (result?.Any() == true)
+    {
+        throw new Exception($"Image with tag {tags.First()} already exists in the Repository.");
+    }
 
     foreach (var tag in tags)
     {
