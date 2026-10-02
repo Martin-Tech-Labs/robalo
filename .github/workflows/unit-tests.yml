@@ -1,4 +1,4 @@
-name: Build
+name: Unit Tests
 
 on:
   pull_request:
@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   build:
-    name: Unit Tests (${{ matrix.os }})
+    name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     strategy:
