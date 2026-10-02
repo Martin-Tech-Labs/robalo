@@ -147,6 +147,11 @@ Task("IntegrationTests")
                     .Append("--report-xunit-trx")
                     .Append("--report-xunit-trx-filename")
                     .AppendQuoted($"{project.GetFilenameWithoutExtension()}.trx")
+                    .Append("--coverage")
+                    .Append("--coverage-output-format cobertura")
+                    .Append("--coverage-output")
+                    .AppendQuoted($"{project.GetFilenameWithoutExtension()}.cobertura.xml")
+                    .Append("--no-artifact-post-processing")
             });
         }
     });
@@ -165,6 +170,11 @@ Task("UnitTests")
                    .Append("--report-xunit-trx")
                    .Append("--report-xunit-trx-filename")
                    .AppendQuoted($"{project.GetFilenameWithoutExtension()}.trx")
+                   .Append("--coverage")
+                   .Append("--coverage-output-format cobertura")
+                   .Append("--coverage-output")
+                   .AppendQuoted($"{project.GetFilenameWithoutExtension()}.cobertura.xml")
+                   .Append("--no-artifact-post-processing")
         });
     }
 });

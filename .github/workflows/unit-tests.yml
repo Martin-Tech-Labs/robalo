@@ -42,4 +42,16 @@ jobs:
           reporter: dotnet-trx
           use-actions-summary: true
           report-title: Unit Tests Results 
-  
+
+      - name: Generate coverage report
+        if: always()
+        uses: danielpalme/ReportGenerator-GitHub-Action@5.5.11
+        with:
+          reports: "TestResults/*.cobertura.xml"
+          targetdir: CoverageReport
+          reporttypes: "Html;MarkdownSummaryGithub"
+        
+      - name: Publish coverage summary
+        if: always()
+        shell: bash
+        run: cat CoverageReport/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
