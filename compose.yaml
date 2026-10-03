@@ -9,12 +9,6 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_HTTP_PORTS: 5010
       ROBALO_Serilog__WriteTo__1__args__serverURL: http://seq:5341
-    healthcheck:
-      test: wget -q -O /dev/null http://localhost:5010/_system/health || exit 1
-      interval: 15s
-      timeout: 10s
-      retries: 2
-      start_period: 5s
 
   seq:
     image: datalust/seq:2026.1.17182

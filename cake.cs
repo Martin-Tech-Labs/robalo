@@ -33,6 +33,26 @@ Task("Build")
     });
 });
 
+Task("ScanContainerController")
+.Does(() =>
+{
+    var gitVersionOutput = lazyGitVersionOutput.Value;
+
+    var tag = $"{EnvironmentVariable("DOCKERHUB_USERNAME")}/robalo-controller:{gitVersionOutput.SemVer}";
+
+    var exitCode = StartProcess("trivy", new ProcessSettings
+    {
+        Arguments = new ProcessArgumentBuilder()
+        .Append("image")
+        .Append("--scanners vuln")
+        .Append("--exit-code 0")
+        .AppendQuoted(tag)
+    });
+
+    if (exitCode != 0)
+        throw new Exception("Trivy scan could not complete.");
+});
+
 Task("BuildContainerController")
 .Does(() =>
 {
@@ -78,9 +98,11 @@ Task("DockerLogin")
         throw new Exception("Docker login failed.");
 });
 
+Task("BuildAndPushContainerController")
+.IsDependentOn("BuildContainerController")
+.IsDependentOn("PushContainerController");
 
 Task("PushContainerController")
-.IsDependentOn("BuildContainerController")
 .IsDependentOn("DockerLogin")
 .Does(() =>
 {
@@ -103,6 +125,7 @@ Task("PushContainerController")
     {
         result = DockerBuildXImageToolsInspect(tags.First());
     }
+    // Expected to throw if an image is not found (and this is exactly what we are checking)
     catch
     {
 
