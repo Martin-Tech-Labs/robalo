@@ -33,6 +33,51 @@ Task("Build")
     });
 });
 
+Task("ScanContainerController")
+.Does(() =>
+{
+    var gitVersionOutput = lazyGitVersionOutput.Value;
+
+    EnsureDirectoryExists("trivy");
+
+    var exitCode = StartProcess("trivy", new ProcessSettings
+    {
+        Arguments = new ProcessArgumentBuilder()
+        .Append("image")
+        .Append("--scanners vuln")
+        .Append("--exit-code 0")
+        .Append("--format json")
+        .Append($"--output trivy/robalo-controller.json")
+        .AppendQuoted($"robalo-controller:{gitVersionOutput.SemVer}")
+    });
+
+    if (exitCode != 0)
+        throw new Exception("Trivy scan could not complete.");
+
+    exitCode = StartProcess("trivy", new ProcessSettings
+    {
+        Arguments = new ProcessArgumentBuilder()
+            .Append("convert")
+            .Append("--format sarif")
+            .Append($"--output trivy/robalo-controller.sarif")
+            .AppendQuoted($"trivy/robalo-controller.json")
+    });
+
+    if (exitCode != 0)
+        throw new Exception("Trivy convert to table could not complete.");
+
+    exitCode = StartProcess("trivy", new ProcessSettings
+    {
+        Arguments = new ProcessArgumentBuilder()
+            .Append("convert")
+            .Append("--scanners vuln")
+            .Append("--format table")
+            .AppendQuoted($"trivy/robalo-controller.json")
+    });
+    if (exitCode != 0)
+        throw new Exception("Trivy convert to SARIF could not complete.");
+});
+
 Task("BuildContainerController")
 .Does(() =>
 {
@@ -48,8 +93,8 @@ Task("BuildContainerController")
         ],
 
         Tag = [
-            $"{EnvironmentVariable("DOCKERHUB_USERNAME")}/robalo-controller:{gitVersionOutput.SemVer}",
-            $"{EnvironmentVariable("DOCKERHUB_USERNAME")}/robalo-controller:latest"]
+            $"robalo-controller:{gitVersionOutput.SemVer}",
+            $"robalo-controller:latest"]
     }, ".");
 });
 
@@ -78,9 +123,11 @@ Task("DockerLogin")
         throw new Exception("Docker login failed.");
 });
 
+Task("BuildAndPushContainerController")
+.IsDependentOn("BuildContainerController")
+.IsDependentOn("PushContainerController");
 
 Task("PushContainerController")
-.IsDependentOn("BuildContainerController")
 .IsDependentOn("DockerLogin")
 .Does(() =>
 {
@@ -91,6 +138,9 @@ Task("PushContainerController")
         $"{EnvironmentVariable("DOCKERHUB_USERNAME")}/robalo-controller:{gitVersionOutput.SemVer}",
         $"{EnvironmentVariable("DOCKERHUB_USERNAME")}/robalo-controller:latest"
     };
+
+    DockerTag($"robalo-controller:{gitVersionOutput.SemVer}", tags.First());
+    DockerTag($"robalo-controller:{gitVersionOutput.SemVer}", tags.Last());
 
     // Check permissions by checking out an existing image with tag last
     if (!DockerBuildXImageToolsInspect(tags.Last()).Any())
@@ -103,6 +153,7 @@ Task("PushContainerController")
     {
         result = DockerBuildXImageToolsInspect(tags.First());
     }
+    // Expected to throw if an image is not found (and this is exactly what we are checking)
     catch
     {
 
