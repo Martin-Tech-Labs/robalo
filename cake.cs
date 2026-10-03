@@ -38,15 +38,13 @@ Task("ScanContainerController")
 {
     var gitVersionOutput = lazyGitVersionOutput.Value;
 
-    var tag = $"{EnvironmentVariable("DOCKERHUB_USERNAME")}/robalo-controller:{gitVersionOutput.SemVer}";
-
     var exitCode = StartProcess("trivy", new ProcessSettings
     {
         Arguments = new ProcessArgumentBuilder()
         .Append("image")
         .Append("--scanners vuln")
         .Append("--exit-code 0")
-        .AppendQuoted(tag)
+        .AppendQuoted("/robalo-controller:{gitVersionOutput.SemVer}")
     });
 
     if (exitCode != 0)
@@ -68,8 +66,8 @@ Task("BuildContainerController")
         ],
 
         Tag = [
-            $"{EnvironmentVariable("DOCKERHUB_USERNAME")}/robalo-controller:{gitVersionOutput.SemVer}",
-            $"{EnvironmentVariable("DOCKERHUB_USERNAME")}/robalo-controller:latest"]
+            $"robalo-controller:{gitVersionOutput.SemVer}",
+            $"robalo-controller:latest"]
     }, ".");
 });
 
@@ -113,6 +111,9 @@ Task("PushContainerController")
         $"{EnvironmentVariable("DOCKERHUB_USERNAME")}/robalo-controller:{gitVersionOutput.SemVer}",
         $"{EnvironmentVariable("DOCKERHUB_USERNAME")}/robalo-controller:latest"
     };
+
+    DockerTag($"robalo-controller:{gitVersionOutput.SemVer}", tags.First());
+    DockerTag($"robalo-controller:{gitVersionOutput.SemVer}", tags.Last());
 
     // Check permissions by checking out an existing image with tag last
     if (!DockerBuildXImageToolsInspect(tags.Last()).Any())
