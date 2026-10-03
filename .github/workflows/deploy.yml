@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  security-events: write
 
 jobs:
   unit-tests:
@@ -49,6 +50,13 @@ jobs:
 
       - name: Scan Docker
         run: dotnet run cake.cs -- --target=ScanContainerController --configuration=Release
+
+      - name: Publish Trivy findings
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy-image
 
       - name: Push Docker
         if: github.ref == 'refs/heads/main'

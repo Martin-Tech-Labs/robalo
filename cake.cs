@@ -44,6 +44,8 @@ Task("ScanContainerController")
         .Append("image")
         .Append("--scanners vuln")
         .Append("--exit-code 0")
+        .Append("--format sarif")
+        .Append("--output trivy-results.sarif")
         .AppendQuoted("/robalo-controller:{gitVersionOutput.SemVer}")
     });
 
