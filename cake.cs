@@ -38,19 +38,44 @@ Task("ScanContainerController")
 {
     var gitVersionOutput = lazyGitVersionOutput.Value;
 
+    EnsureDirectoryExists("trivy");
+
     var exitCode = StartProcess("trivy", new ProcessSettings
     {
         Arguments = new ProcessArgumentBuilder()
         .Append("image")
         .Append("--scanners vuln")
         .Append("--exit-code 0")
-        .Append("--format sarif")
-        .Append("--output trivy-results.sarif")
-        .AppendQuoted("/robalo-controller:{gitVersionOutput.SemVer}")
+        .Append("--format json")
+        .Append($"--output trivy/robalo-controller.json")
+        .AppendQuoted($"robalo-controller:{gitVersionOutput.SemVer}")
     });
 
     if (exitCode != 0)
         throw new Exception("Trivy scan could not complete.");
+
+    exitCode = StartProcess("trivy", new ProcessSettings
+    {
+        Arguments = new ProcessArgumentBuilder()
+            .Append("convert")
+            .Append("--format sarif")
+            .Append($"--output trivy/robalo-controller.sarif")
+            .AppendQuoted($"trivy/robalo-controller.json")
+    });
+
+    if (exitCode != 0)
+        throw new Exception("Trivy convert to table could not complete.");
+
+    exitCode = StartProcess("trivy", new ProcessSettings
+    {
+        Arguments = new ProcessArgumentBuilder()
+            .Append("convert")
+            .Append("--scanners vuln")
+            .Append("--format table")
+            .AppendQuoted($"trivy/robalo-controller.json")
+    });
+    if (exitCode != 0)
+        throw new Exception("Trivy convert to SARIF could not complete.");
 });
 
 Task("BuildContainerController")
