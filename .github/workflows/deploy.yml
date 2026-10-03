@@ -9,7 +9,6 @@ on:
 
 permissions:
   contents: read
-  security-events: write
 
 jobs:
   unit-tests:
@@ -22,6 +21,9 @@ jobs:
     uses: ./.github/workflows/acceptance-tests.yml
 
   deploy:
+    permissions:
+      contents: read
+      security-events: write
     needs: [unit-tests, integration-tests, acceptance-tests]
     name: Publish Controller
     runs-on: ${{ matrix.os }}
