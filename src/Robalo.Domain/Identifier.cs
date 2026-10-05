@@ -3,7 +3,7 @@ using SimpleBase;
 
 namespace Robalo.Domain;
 
-public sealed partial class Identifier
+public sealed partial class Identifier : IEquatable<Identifier>
 {
     public string Id { get; }
     public Guid Uuid { get; }
@@ -62,4 +62,12 @@ public sealed partial class Identifier
             uuid: uuid,
             prefix: prefix);
     }
+
+    public override string ToString() => Id;
+
+    public bool Equals(Identifier? other) => other?.Id == Id;
+
+    public override bool Equals(object? obj) => obj is Identifier other && other.Id == Id;
+
+    public override int GetHashCode() => StringComparer.Ordinal.GetHashCode(Id);
 }
