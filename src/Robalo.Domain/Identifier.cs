@@ -5,21 +5,26 @@ namespace Robalo.Domain;
 
 public sealed partial class Identifier : IEquatable<Identifier>
 {
+    public enum IdentifierType
+    {
+        Thread, Message
+    }
+
+    private const string ThreadIdPrefix = "trd";
+    private const string MessageIdPrefix = "msg";
+
     public string Id { get; }
     public Guid Uuid { get; }
-    public string Prefix { get; }
+    public IdentifierType Type { get; }
 
     [GeneratedRegex(@"\A[a-z]{3}_[a-z2-7]{26}\z")]
     private static partial Regex _regexId { get; }
 
-    [GeneratedRegex(@"\A[a-z]{3}\z")]
-    private static partial Regex _regexPrefix { get; }
-
-    private Identifier(string id, Guid uuid, string prefix)
+    Identifier(string id, Guid uuid, IdentifierType type)
     {
         Id = id;
         Uuid = uuid;
-        Prefix = prefix;
+        Type = type;
     }
 
     public static Identifier FromId(string? id)
@@ -37,21 +42,24 @@ public sealed partial class Identifier : IEquatable<Identifier>
             throw new ArgumentException("Empty value", nameof(id));
         }
 
+        var type = id[..3] switch
+        {
+            ThreadIdPrefix => IdentifierType.Thread,
+            MessageIdPrefix => IdentifierType.Message,
+            _ => throw new ArgumentException("Unknown prefix", nameof(id))
+        };
+
         return new(
             id: id,
             uuid: uuid,
-            prefix: id[..3]);
+            type: type);
     }
 
-    public static Identifier FromUuid(string? prefix, Guid uuid)
+    public static Identifier ThreadIdFromUuid(Guid guid) => FromUuid(ThreadIdPrefix, guid, IdentifierType.Thread);
+    public static Identifier MessageIdFromUuid(Guid guid) => FromUuid(MessageIdPrefix, guid, IdentifierType.Message);
+
+    static Identifier FromUuid(string prefix, Guid uuid, IdentifierType type)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(prefix, nameof(prefix));
-
-        if (!_regexPrefix.IsMatch(prefix))
-        {
-            throw new ArgumentException("Wrong format", nameof(prefix));
-        }
-
         if (uuid == Guid.Empty)
         {
             throw new ArgumentException("Empty value", nameof(uuid));
@@ -60,8 +68,17 @@ public sealed partial class Identifier : IEquatable<Identifier>
         return new(
             id: $"{prefix}_{Base32.Rfc4648.Encode(bytes: uuid.ToByteArray(), padding: false).ToLowerInvariant()}",
             uuid: uuid,
-            prefix: prefix);
+            type: type);
     }
+
+
+    public static Identifier NewThreadId() => NewIdentifier(ThreadIdPrefix, Guid.NewGuid(), IdentifierType.Thread);
+    public static Identifier NewMessageId() => NewIdentifier(MessageIdPrefix, Guid.NewGuid(), IdentifierType.Message);
+
+    static Identifier NewIdentifier(string prefix, Guid guid, IdentifierType type) => new(
+          id: $"{prefix}_{Base32.Rfc4648.Encode(bytes: guid.ToByteArray(), padding: false).ToLowerInvariant()}",
+          uuid: guid,
+          type: type);
 
     public override string ToString() => Id;
 
