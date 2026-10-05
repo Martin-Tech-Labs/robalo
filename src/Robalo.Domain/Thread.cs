@@ -31,6 +31,7 @@ public sealed class Thread : AggregateRoot
 
             _messages.Add(new Message(
                 Id: @event.Id,
+                Source: MessageSource.User,
                 Content: @event.Content,
                 CreatedOn: @event.AddedOn));
         });
