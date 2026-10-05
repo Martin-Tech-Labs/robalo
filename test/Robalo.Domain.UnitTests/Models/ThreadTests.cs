@@ -162,4 +162,25 @@ public class ThreadTests
         thread.Messages.Count.ShouldBe(2);
         thread.PendingEvents.ShouldBeEmpty();
     }
+
+    [Fact]
+    public void UpdateTitle_ShouldUpdateTitle()
+    {
+        var thread = Thread.NewThread(Identifier.NewThreadId(), _fixture.Create<DateTimeOffset>());
+        var title = _fixture.Create<string>();
+        var modifiedOn = thread.ModifiedOn;
+        thread.UpdateTitle(title);
+        thread.Title.ShouldBe(title);
+        thread.NewVersion.ShouldNotBe(thread.OldVersion);
+        thread.ModifiedOn.ShouldBe(modifiedOn);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    public void UpdateTitle_ShouldThrowOnBlankTitle(string title)
+    {
+        var thread = Thread.NewThread(Identifier.NewThreadId(), _fixture.Create<DateTimeOffset>());
+        Should.Throw<ArgumentException>(() => thread.UpdateTitle(title));
+    }
 }
