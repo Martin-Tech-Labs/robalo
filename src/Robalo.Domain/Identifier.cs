@@ -84,7 +84,7 @@ public sealed partial class Identifier : IEquatable<Identifier>
 
     public bool Equals(Identifier? other) => other?.Id == Id;
 
-    public override bool Equals(object? obj) => obj is Identifier other && other.Id == Id;
+    public override bool Equals(object? obj) => obj is Identifier other && other.Equals(this);
 
     public override int GetHashCode() => StringComparer.Ordinal.GetHashCode(Id);
 }
