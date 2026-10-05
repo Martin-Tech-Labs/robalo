@@ -4,52 +4,67 @@ namespace Robalo.Domain;
 
 public sealed class Thread : AggregateRoot
 {
-    public Version OldVersion { get; private set; }
-    public Version NewVersion { get; private set; }
     public DateTimeOffset CreatedOn { get; }
-    public DateTimeOffset ModifiedOn { get; private set; }
-    public Identifier Id { get; }
+    public DateTimeOffset ModifiedOn => _messages.LastOrDefault()?.CreatedOn ?? CreatedOn;
 
     readonly List<Message> _messages = [];
 
-    public string? Title { get; }
+    public IReadOnlyList<Message> Messages => _messages;
 
-    Thread(Identifier id, Version version)
+    public string? Title { get; private set; }
+
+    Thread(Identifier id, Version version, DateTimeOffset createdOn) : base(id, version)
     {
-        OldVersion = NewVersion = version;
-        Id = id;
-
+        CreatedOn = createdOn;
         When<UserMessageAdded>(@event =>
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(@event.Content);
+            if (@event.Id.Type != Identifier.IdentifierType.Message)
+            {
+                throw new InvalidOperationException("Invalid id");
+            }
+
+            if (@event.AddedOn < ModifiedOn)
+            {
+                throw new InvalidOperationException("Invalid date");
+            }
+
             _messages.Add(new Message(
                 Id: @event.Id,
                 Content: @event.Content,
-                CreatedOn: @event.AddedOn))
-        );
+                CreatedOn: @event.AddedOn));
+        });
     }
 
-    public static Thread NewThread(Identifier threadId)
+    public static Thread NewThread(Identifier threadId, DateTimeOffset createdOn)
     {
         if (threadId.Type != Identifier.IdentifierType.Thread)
         {
             throw new ArgumentOutOfRangeException(nameof(threadId), "Invalid id");
         }
-        return new(threadId, Version.NewVersion());
+
+        if (createdOn == default)
+        {
+            throw new ArgumentOutOfRangeException(nameof(createdOn), "Invalid date");
+        }
+
+        return new(threadId, Version.NewVersion(), createdOn);
     }
 
     public Thread AddUserMessage(Identifier messageId, string content, DateTimeOffset addedOn)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(content);
-        if (messageId.Type != Identifier.IdentifierType.Message)
-        {
-            throw new ArgumentException("Invalid id", nameof(messageId));
-        }
-
-        if (addedOn < ModifiedOn)
-        {
-            throw new ArgumentOutOfRangeException(nameof(addedOn), "Invalid date");
-        }
-
         Apply(new UserMessageAdded(messageId, content, addedOn));
+
+        NewVersion = Version.NewVersion();
+        return this;
+    }
+
+    public Thread UpdateTitle(string title)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(title);
+        Title = title;
+
+        NewVersion = Version.NewVersion();
         return this;
     }
 }
