@@ -1,6 +1,6 @@
 using Robalo.Domain.Events;
 
-namespace Robalo.Domain;
+namespace Robalo.Domain.Models;
 
 public sealed class Thread : AggregateRoot
 {
@@ -9,7 +9,7 @@ public sealed class Thread : AggregateRoot
 
     readonly List<Message> _messages = [];
 
-    public IReadOnlyList<Message> Messages => _messages;
+    public IReadOnlyList<Message> Messages => _messages.AsReadOnly();
 
     public string? Title { get; private set; }
 

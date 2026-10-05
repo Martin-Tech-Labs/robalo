@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using SimpleBase;
 
-namespace Robalo.Domain;
+namespace Robalo.Domain.Models;
 
 public sealed partial class Identifier : IEquatable<Identifier>
 {

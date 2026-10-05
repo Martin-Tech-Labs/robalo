@@ -1,14 +1,15 @@
-namespace Robalo.Domain;
+namespace Robalo.Domain.Models;
 
 public closed class AggregateRoot
 {
     public Identifier Id { get; }
     public Version OldVersion { get; protected set; }
     public Version NewVersion { get; protected set; }
+
+    public IReadOnlyList<object> PendingEvents => _pendingEvents.AsReadOnly<object>();
+
     readonly Dictionary<Type, Action<object>> _eventHandlers = [];
     readonly List<object> _pendingEvents = [];
-
-    public IReadOnlyList<object> PendingEvents => _pendingEvents;
 
     protected AggregateRoot(Identifier id, Version version)
     {

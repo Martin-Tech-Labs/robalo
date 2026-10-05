@@ -1,4 +1,4 @@
-namespace Robalo.Domain;
+namespace Robalo.Domain.Models;
 
 public enum MessageSource
 {
