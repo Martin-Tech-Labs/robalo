@@ -21,12 +21,12 @@ public sealed class Thread : AggregateRoot
             ArgumentException.ThrowIfNullOrWhiteSpace(@event.Content);
             if (@event.Id.Type != Identifier.IdentifierType.Message)
             {
-                throw new InvalidOperationException("Invalid id");
+                throw new ArgumentException("Invalid id", nameof(@event));
             }
 
             if (@event.AddedOn < ModifiedOn)
             {
-                throw new InvalidOperationException("Invalid date");
+                throw new ArgumentException("Invalid date", nameof(@event));
             }
 
             _messages.Add(new Message(

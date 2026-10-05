@@ -1,6 +1,6 @@
 namespace Robalo.Domain.Models;
 
-public closed class AggregateRoot
+public abstract class AggregateRoot
 {
     public Identifier Id { get; }
     public Version OldVersion { get; protected set; }
