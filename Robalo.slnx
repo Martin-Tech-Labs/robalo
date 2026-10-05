@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/Robalo.Common/Robalo.Common.csproj" />
     <Project Path="src/Robalo.Controller.Api/Robalo.Controller.Api.csproj" />
+    <Project Path="src/Robalo.Domain/Robalo.Domain.csproj" />
   </Folder>
   <Folder Name="/test/">
     <Project Path="test/Robalo.Controller.IntegrationTests/Robalo.Controller.IntegrationTests.csproj" />
