@@ -2,10 +2,11 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Robalo.Common.Models;
 
-public record None
+public struct None
 {
-    public override string ToString() => nameof(None);
+    public override readonly string ToString() => nameof(None);
 }
+
 public record Some<T>(T Value) where T : notnull
 {
     public static implicit operator Some<T>(T value) => new(value);
@@ -16,6 +17,7 @@ public record Some<T>(T Value) where T : notnull
 
 public readonly union Option<T>(None, Some<T>) where T : notnull
 {
+    public bool HasValue => this is Some<T>;
     public static implicit operator Option<T>(T value) => new Some<T>(value);
 
     public static bool operator ==(Option<T> option, T value) =>
@@ -53,11 +55,11 @@ public readonly union Option<T>(None, Some<T>) where T : notnull
         Some<T> some => EqualityComparer<T>.Default.GetHashCode(some.Value),
         _ => 0
     };
-    
+
     public override string ToString() => this switch
     {
         Some<T> some => some.ToString(),
-        None none => none.ToString()
+        _ => nameof(None)
     };
 }
 

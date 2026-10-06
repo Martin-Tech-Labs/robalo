@@ -2,7 +2,7 @@ using Robalo.Domain.Events;
 
 namespace Robalo.Domain.Models;
 
-public sealed class Thread : AggregateRoot
+public sealed class Thread : AggregateRoot<Thread>
 {
     public DateTimeOffset CreatedOn { get; }
     public DateTimeOffset ModifiedOn => _messages.LastOrDefault()?.CreatedOn ?? CreatedOn;
@@ -29,6 +29,8 @@ public sealed class Thread : AggregateRoot
                 throw new ArgumentException("Invalid date", nameof(@event));
             }
 
+            NewVersion = Version.NewVersion();
+
             _messages.Add(new Message(
                 Id: @event.Id,
                 Source: MessageSource.User,
@@ -52,13 +54,8 @@ public sealed class Thread : AggregateRoot
         return new(threadId, Version.NewVersion(), createdOn);
     }
 
-    public Thread AddUserMessage(Identifier messageId, string content, DateTimeOffset addedOn)
-    {
+    public Thread AddUserMessage(Identifier messageId, string content, DateTimeOffset addedOn) =>
         Apply(new UserMessageAdded(messageId, content, addedOn));
-
-        NewVersion = Version.NewVersion();
-        return this;
-    }
 
     public Thread UpdateTitle(string title)
     {

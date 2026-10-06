@@ -2,7 +2,7 @@ using Robalo.Common.Models;
 
 namespace Robalo.Domain.Models;
 
-public abstract class AggregateRoot(Identifier id, Version version)
+public abstract class AggregateRoot<TSelf>(Identifier id, Version version) where TSelf : AggregateRoot<TSelf>
 {
     public Identifier Id { get; } = id;
     public Option<Version> OldVersion { get; protected set; } = new None();
@@ -22,7 +22,7 @@ public abstract class AggregateRoot(Identifier id, Version version)
         _eventHandlers[typeof(TEvent)] = obj => actionType((TEvent)obj);
     }
 
-    public void Apply<TEvent>(TEvent @event) where TEvent : notnull
+    public TSelf Apply<TEvent>(TEvent @event) where TEvent : notnull
     {
         if (_eventHandlers.TryGetValue(@event.GetType(), out var action))
         {
@@ -33,11 +33,20 @@ public abstract class AggregateRoot(Identifier id, Version version)
         {
             throw new InvalidOperationException($"Registration for event {@event.GetType().Name}");
         }
+
+        return (TSelf)this;
     }
 
-    public void MarkAggregateAsSynchronized()
+    public TSelf MarkAggregateAsSynchronized(Option<Version> version = default)
     {
         _pendingEvents.Clear();
-        OldVersion = NewVersion;
+
+        _ = version switch
+        {
+            Some<Version> some => OldVersion = NewVersion = some,
+            _ => OldVersion = NewVersion
+        };
+
+        return (TSelf)this;
     }
 }
