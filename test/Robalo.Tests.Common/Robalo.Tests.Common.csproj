@@ -18,5 +18,9 @@
     <PackageReference Include="xunit.v3.extensibility.core" Version="4.0.1" />
   </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="../../src/Robalo.Common/Robalo.Common.csproj" />
+    </ItemGroup>
+
 
 </Project>

@@ -1,21 +1,17 @@
+using Robalo.Common.Models;
+
 namespace Robalo.Domain.Models;
 
-public abstract class AggregateRoot
+public abstract class AggregateRoot(Identifier id, Version version)
 {
-    public Identifier Id { get; }
-    public Version OldVersion { get; protected set; }
-    public Version NewVersion { get; protected set; }
+    public Identifier Id { get; } = id;
+    public Option<Version> OldVersion { get; protected set; } = new None();
+    public Version NewVersion { get; protected set; } = version;
 
     public IReadOnlyList<object> PendingEvents => _pendingEvents.AsReadOnly<object>();
 
     readonly Dictionary<Type, Action<object>> _eventHandlers = [];
     readonly List<object> _pendingEvents = [];
-
-    protected AggregateRoot(Identifier id, Version version)
-    {
-        Id = id;
-        OldVersion = NewVersion = version;
-    }
 
     protected void When<TEvent>(Action<TEvent> actionType)
     {

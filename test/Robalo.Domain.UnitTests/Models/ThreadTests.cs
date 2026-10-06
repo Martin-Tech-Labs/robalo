@@ -1,6 +1,7 @@
 using Robalo.Domain.Events;
 using Robalo.Domain.Models;
 using Thread = Robalo.Domain.Models.Thread;
+using Robalo.Tests.Common;
 
 namespace Robalo.Domain.UnitTests.Models;
 
@@ -33,7 +34,7 @@ public class ThreadTests
         thread.Messages.ShouldBeEmpty();
         thread.PendingEvents.ShouldBeEmpty();
         thread.NewVersion.ShouldNotBeNull();
-        thread.OldVersion.ShouldBe(thread.NewVersion);
+        thread.OldVersion.ShouldBeNone();
     }
 
     [Fact]
