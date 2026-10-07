@@ -106,9 +106,14 @@ public sealed class InMemoryThreadRepository : IThreadRepository
         return new Updated();
     }
 
-    public async Task<Option<IAsyncEnumerable<Message>>> GetMessages(Thread thread, CancellationToken cancellationToken)
+    public async Task<Option<IAsyncEnumerable<Message>>> GetMessages(Identifier identifier, CancellationToken cancellationToken)
     {
-        var threadOrNone = GetThreadOrNone(thread.Id);
+        if (identifier.Type != Identifier.IdentifierType.Thread)
+        {
+            throw new ArgumentException("Wrong identifier type", nameof(identifier));
+        }
+        
+        var threadOrNone = GetThreadOrNone(identifier);
 
         return threadOrNone switch
         {
