@@ -26,7 +26,8 @@ Task("Build")
     DotNetBuild(solutionFile.FullPath, new DotNetBuildSettings
     {
         Configuration = configuration,
-        MSBuildSettings = new DotNetMSBuildSettings()
+        ArgumentCustomization = args => args.Append("--no-incremental"),
+        MSBuildSettings = new DotNetMSBuildSettings { TreatAllWarningsAs = MSBuildTreatAllWarningsAs.Error }
                 .WithProperty("Version", gitVersionOutput.SemVer)
                 .WithProperty("InformationalVersion", gitVersionOutput.InformationalVersion)
                 .WithProperty("IncludeSourceRevisionInInformationalVersion", "false")
