@@ -4,6 +4,7 @@ namespace Robalo.Common.Models;
 
 public struct None
 {
+    public static None Default => new();
     public override readonly string ToString() => nameof(None);
 }
 
