@@ -1,6 +1,7 @@
 using Robalo.Domain.Events;
 using Robalo.Domain.Models;
 using Thread = Robalo.Domain.Models.Thread;
+using Version = Robalo.Domain.Models.Version;
 using Robalo.Tests.Common;
 
 namespace Robalo.Domain.UnitTests.Models;
@@ -159,6 +160,24 @@ public class ThreadTests
         thread.MarkAggregateAsSynchronized();
         thread.OldVersion.ShouldBe(newVersion);
         thread.OldVersion.ShouldBe(thread.NewVersion);
+
+        thread.Messages.Count.ShouldBe(2);
+        thread.PendingEvents.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void MarkAggregateAsSynchronized_ShouldOverrideVersionIfProvided()
+    {
+        var versionToOverride = Version.NewVersion();
+        var createdOn = _fixture.Create<DateTimeOffset>();
+        var thread = Thread.NewThread(Identifier.NewThreadId(), createdOn);
+
+        thread.AddUserMessage(Identifier.NewMessageId(), _fixture.Create<string>(), createdOn);
+        thread.AddUserMessage(Identifier.NewMessageId(), _fixture.Create<string>(), createdOn);       
+
+        thread.MarkAggregateAsSynchronized(versionToOverride);
+        thread.OldVersion.ShouldBe(versionToOverride);
+        thread.NewVersion.ShouldBe(versionToOverride);
 
         thread.Messages.Count.ShouldBe(2);
         thread.PendingEvents.ShouldBeEmpty();
