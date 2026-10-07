@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Robalo.Common.Models;
 using SimpleBase;
 
 namespace Robalo.Domain.Models;
@@ -25,6 +26,18 @@ public sealed partial class Identifier : IEquatable<Identifier>
         Id = id;
         Uuid = uuid;
         Type = type;
+    }
+
+    public static Option<Identifier> TryGetFromId(string? id)
+    {
+        try
+        {
+            return FromId(id);
+        }
+        catch
+        {
+            return None.Default;
+        }
     }
 
     public static Identifier FromId(string? id)

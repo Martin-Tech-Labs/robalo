@@ -9,7 +9,7 @@ public sealed class InvalidBindingFilter(
 {
     public void OnActionExecuting(ActionExecutingContext context)
     {
-        if (context.ModelState.IsValid)
+        if (context.ModelState.ErrorCount == 0)
             return;
 
         var problem = problemDetailsFactory.CreateProblemDetails(

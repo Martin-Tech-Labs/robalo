@@ -7,6 +7,8 @@ using System.Text.Json.Serialization;
 using FluentValidation;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Formatters;
+using Microsoft.Extensions.Options;
 using OpenTelemetry.Metrics;
 using Robalo.Common.Health;
 using Robalo.Common.Models;
@@ -71,7 +73,13 @@ builder.Services.AddProblemDetails(options =>
 });
 
 builder.Services
-    .AddControllers(configure => configure.Filters.Add<InvalidBindingFilter>(int.MinValue))
+    .AddControllers(options =>
+    {
+        options.Filters.Add<InvalidBindingFilter>(int.MinValue);
+
+        var formatter = options.OutputFormatters.OfType<SystemTextJsonOutputFormatter>().Single();
+        formatter.SupportedMediaTypes.Insert(0, "application/hal+json");
+    })
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;

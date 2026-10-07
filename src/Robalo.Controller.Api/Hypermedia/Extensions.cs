@@ -12,8 +12,8 @@ public static class Extensions
             scheme: context.Request.Scheme,
             host: context.Request.Host,
             pathBase: context.Request.PathBase,
-            path: path));
+            path: "/"));
 
-        return baseUri.AsLink();
+        return new Uri(baseUri, path.TrimStart('/')).AsLink();
     }
 }

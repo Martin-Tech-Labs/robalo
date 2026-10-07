@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Robalo.Common.Extensions;
 using Robalo.Common.Models;
 using Robalo.Common.Services;
 using Robalo.Controller.Api.Hypermedia;
@@ -62,25 +63,40 @@ public class ThreadsController : ControllerBase
 
         IActionResult GetCreatedResult()
         {
-            var resource = new ThreadResource(
-                thread.CreatedOn,
-                thread.ModifiedOn,
-                thread.Title,
-                thread.Id.Id,
-                new ThreadLinks(
-                    Self: HttpContext.LinkToPath($"/threads/{thread.Id}"),
-                    Messages: HttpContext.LinkToPath($"/threads/{thread.Id}/messages"),
-                    Events: HttpContext.LinkToPath($"/events?thread_id={thread.Id}")));
-
-
+            var resource = GetThreadResource(thread);
             return new CreatedResult(resource._Links.Self.Href.AbsoluteUri, resource);
         }
     }
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> Get(string id)
+    public async Task<IActionResult> GetThread(string id, CancellationToken cancellationToken)
     {
-        _logger.Information("Getting..");
-        return Ok("Hi there");
+        var threadIdOrNone = Identifier.TryGetFromId(id);
+        if (!threadIdOrNone.HasValue)
+        {
+            return NotFound();
+        }
+
+        if (threadIdOrNone.ValueOrFailure.Type != Identifier.IdentifierType.Thread)
+        {
+            return NotFound();
+        }
+
+        var threadOrNone = await _threadRepository.GetThread(threadIdOrNone.ValueOrFailure, cancellationToken);
+        return threadOrNone switch
+        {
+            Some<Thread> some => Ok(GetThreadResource(some.Value)),
+            _ => NotFound()
+        };
     }
+
+    ThreadResource GetThreadResource(Thread thread) => new(
+                  thread.CreatedOn,
+                  thread.ModifiedOn,
+                  thread.Title,
+                  thread.Id.Id,
+                  new ThreadLinks(
+                      Self: HttpContext.LinkToPath($"/threads/{thread.Id}"),
+                      Messages: HttpContext.LinkToPath($"/threads/{thread.Id}/messages"),
+                      Events: HttpContext.LinkToPath($"/events?thread_id={thread.Id}")));
 }
