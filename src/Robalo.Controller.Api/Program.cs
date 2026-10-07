@@ -3,7 +3,9 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using FluentValidation;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using OpenTelemetry.Metrics;
 using Robalo.Common.Health;
@@ -72,8 +74,14 @@ builder.Services
     .AddControllers(configure => configure.Filters.Add<InvalidBindingFilter>(int.MinValue))
     .AddJsonOptions(options =>
     {
-        // options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
+        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     });
+
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+});
 
 builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
@@ -84,8 +92,13 @@ builder.Services.AddScoped<IValidator<CreateThreadApiRequest>, CreateThreadApiRe
 
 var app = builder.Build();
 app.UseSerilogRequestLogging();
+app.UseForwardedHeaders();
 
-
+var pathBase = Environment.GetEnvironmentVariable("ASPNETCORE_PATHBASE");
+if (!string.IsNullOrWhiteSpace(pathBase))
+{
+    app.UsePathBase(pathBase);
+}
 
 app.MapControllers();
 
@@ -138,10 +151,4 @@ finally
 {
     Log.Information("Shutting down Robalo.Controller.Api");
     Log.CloseAndFlush();
-}
-
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
 }

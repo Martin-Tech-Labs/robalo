@@ -16,7 +16,7 @@ public sealed class InvalidBindingFilter(
             context.HttpContext,
             statusCode: StatusCodes.Status400BadRequest,
             title: "Malformed request body.",
-            detail: "The request body is not valid JSON and cannot be parsed.");
+            detail: "invalid_json");
 
         context.Result = new BadRequestObjectResult(problem);
     }
