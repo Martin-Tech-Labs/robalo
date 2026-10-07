@@ -4,8 +4,6 @@ using Robalo.Common.Models;
 using Robalo.Domain.Events;
 using Robalo.Domain.Models;
 using Serilog;
-using Thread = Robalo.Domain.Models.Thread;
-using Version = Robalo.Domain.Models.Version;
 
 namespace Robalo.Domain.Repositories;
 

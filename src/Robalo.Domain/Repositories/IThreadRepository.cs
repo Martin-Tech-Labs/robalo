@@ -1,6 +1,5 @@
 using Robalo.Common.Models;
 using Robalo.Domain.Models;
-using Thread = Robalo.Domain.Models.Thread;
 
 namespace Robalo.Domain.Repositories;
 
