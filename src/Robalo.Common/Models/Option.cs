@@ -5,7 +5,6 @@ namespace Robalo.Common.Models;
 public struct None
 {
     public static None Default => new();
-    public override readonly string ToString() => nameof(None);
 }
 
 public record Some<T>(T Value) where T : notnull
@@ -33,6 +32,10 @@ public readonly union Option<T>(None, Some<T>) where T : notnull
     public static bool operator !=(Option<T> option, T value) => !(option == value);
     public static bool operator !=(T value, Option<T> option) => !(option == value);
 
+    public static bool operator ==(Option<T> left, Option<T> right) => left.Equals(right);
+
+    public static bool operator !=(Option<T> left, Option<T> right) => !left.Equals(right);
+
     public override bool Equals([NotNullWhen(true)] object? obj)
     {
         if (obj is Option<T> other)
@@ -44,7 +47,7 @@ public readonly union Option<T>(None, Some<T>) where T : notnull
                     Some<T> thisSome => EqualityComparer<T>.Default.Equals(thisSome.Value, someOther.Value),
                     _ => false
                 },
-                _ => this is None
+                _ => this is None || Value is null
             };
         }
 
@@ -62,9 +65,4 @@ public readonly union Option<T>(None, Some<T>) where T : notnull
         Some<T> some => some.ToString(),
         _ => nameof(None)
     };
-}
-
-public static class OptionExtensions
-{
-    public static Option<T> Some<T>(this T value) where T : notnull => new Some<T>(value);
 }

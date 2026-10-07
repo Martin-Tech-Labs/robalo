@@ -12,4 +12,7 @@ public static class OptionExtensions
             _ => throw new InvalidOperationException("Cannot get Value for None")
         };
     }
+
+    public static Option<T> AsOption<T>(this None none) where T : notnull => none;
+    public static Option<T> Some<T>(this T value) where T : notnull => value;
 }
