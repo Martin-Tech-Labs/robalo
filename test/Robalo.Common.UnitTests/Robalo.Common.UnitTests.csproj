@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Robalo.Tests.Common\Robalo.Tests.Common.csproj" />
+    <ProjectReference Include="..\..\src\Robalo.Common\Robalo.Common.csproj" />
   </ItemGroup>
 
   <ItemGroup>

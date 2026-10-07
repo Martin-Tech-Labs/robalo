@@ -9,6 +9,12 @@ namespace Robalo.Domain.Events;
 /// <param name="Content">Content of the message</param>
 /// <param name="AddedOn">Timestamp of the message</param>
 public record UserMessageAdded(
-    Identifier Id, 
-    string Content, 
-    DateTimeOffset AddedOn);
+    Identifier Id,
+    string Content,
+    DateTimeOffset AddedOn)
+{
+    public static UserMessageAdded FromMessage(Message message) => new(
+        Id: message.Id,
+        Content: message.Content,
+        AddedOn: message.CreatedOn);
+}
