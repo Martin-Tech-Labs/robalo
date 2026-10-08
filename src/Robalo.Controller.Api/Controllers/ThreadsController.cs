@@ -68,6 +68,22 @@ public class ThreadsController : ControllerBase
         };
     }
 
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteThread(string id, CancellationToken cancellationToken)
+    {
+        var threadIdOrNone = ThreadIdentifier.TryGetFromId(id);
+        if (!threadIdOrNone.HasValue)
+        {
+            return NotFound();
+        }
+
+        return await _threadRepository.DeleteThread(threadIdOrNone.ValueOrFailure, cancellationToken) switch
+        {
+            Success => NoContent(),
+            NotFound _ => NotFound()
+        };
+    }
+
     [HttpGet("{id}/messages/{number}")]
     public async Task<IActionResult> GetMessage(string id, int number, CancellationToken cancellationToken)
     {
