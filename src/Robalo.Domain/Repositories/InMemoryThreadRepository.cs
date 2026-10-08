@@ -34,29 +34,27 @@ public sealed class InMemoryThreadRepository : IThreadRepository
 
     public async Task<Option<Thread>> GetThread(ThreadIdentifier identifier, CancellationToken cancellationToken)
     {
-        return GetThreadOrNone(identifier) switch
+        lock (_lock)
         {
-            None none => none,
-            Some<ThreadStorage> threadStorage =>
-                Thread.NewThread(identifier, threadStorage.Value.CreatedOn)
-                .ForEach(items: threadStorage.Value.Events, action: (t, i) => t.AddUserMessage(i.Content, i.AddedOn))
-                .DoIfNotNullOrWhiteSpace(threadStorage.Value.Title, (thr, title) => thr.UpdateTitle(title))
-                .MarkAggregateAsSynchronized(threadStorage.Value.Version)
-        };
+            return GetThreadOrNone(identifier) switch
+            {
+                None none => none,
+                Some<ThreadStorage> threadStorage =>
+                    Thread.NewThread(identifier, threadStorage.Value.CreatedOn)
+                    .ForEach(items: threadStorage.Value.Events, action: (t, i) => t.AddUserMessage(i.Content, i.AddedOn))
+                    .DoIfNotNullOrWhiteSpace(threadStorage.Value.Title, (thr, title) => thr.UpdateTitle(title))
+                    .MarkAggregateAsSynchronized(threadStorage.Value.Version)
+            };
+        }
     }
 
     public async Task<UpdateResult> SaveThread(Thread thread, CancellationToken cancellationToken)
     {
+        // No changes
         if (thread.OldVersion == thread.NewVersion)
         {
             return new NoChanges();
         }
-
-        var threadStorage = new ThreadStorage(
-            Title: thread.Title,
-            Version: thread.NewVersion,
-            CreatedOn: thread.CreatedOn,
-            Events: [.. thread.Messages.MapEach(UserMessageAdded.FromMessage)]);
 
         // Create
         if (!thread.OldVersion.HasValue)
@@ -68,7 +66,11 @@ public sealed class InMemoryThreadRepository : IThreadRepository
                     return new ConcurrencyConflict();
                 }
 
-                _threads[thread.Id] = threadStorage;
+                _threads[thread.Id] = new(
+                          Title: thread.Title,
+                          Version: thread.NewVersion,
+                          CreatedOn: thread.CreatedOn,
+                          Events: [.. thread.Messages.MapEach(UserMessageAdded.FromMessage)]);
             }
 
             thread.MarkAggregateAsSynchronized();
@@ -89,7 +91,15 @@ public sealed class InMemoryThreadRepository : IThreadRepository
                 return new ConcurrencyConflict();
             }
 
-            _threads[thread.Id] = threadStorage;
+            var threadStorage = threadOrNone.ValueOrFailure;
+
+            _threads[thread.Id] = threadStorage with
+            {
+                Title = thread.Title,
+                Version = thread.NewVersion,
+            };
+
+            threadStorage.Events.AddRange(thread.PendingEvents.Select(e => (UserMessageAdded)e));
         }
 
         thread.MarkAggregateAsSynchronized();
@@ -106,12 +116,19 @@ public sealed class InMemoryThreadRepository : IThreadRepository
             Some<ThreadStorage> some => GetEnumerable(some.Value.Events, cancellationToken).Some()
         };
 
-        static async IAsyncEnumerable<Message> GetEnumerable(IEnumerable<UserMessageAdded> events, [EnumeratorCancellation] CancellationToken cancellationToken)
+        async IAsyncEnumerable<Message> GetEnumerable(List<UserMessageAdded> events, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
+            var count = events.Count;
             var counter = 0;
-            foreach (var item in events)
+            for (var i = 0; i < count; i++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                UserMessageAdded item;
+                lock (_lock)
+                {
+                    item = events[i];
+                }
+
                 yield return Message.FromUserMessageAdded(item, ++counter);
             }
         }

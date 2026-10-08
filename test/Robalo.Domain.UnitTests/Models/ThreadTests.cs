@@ -28,7 +28,6 @@ public class ThreadTests
         thread.PendingEvents.ShouldBeEmpty();
         thread.NewVersion.ShouldNotBeNull();
         thread.OldVersion.ShouldBeNone();
-        thread.LastMessageNumber.ShouldBe(0);
     }
 
     [Fact]
@@ -72,7 +71,6 @@ public class ThreadTests
         thread.Messages.Single().Number.ShouldBe(1);
         thread.Messages.Single().Source.ShouldBe(MessageSource.User);
 
-        thread.LastMessageNumber.ShouldBe(1);
 
         thread.NewVersion.ShouldNotBe(thread.OldVersion);
         thread.OldVersion.ShouldBe(oldVersion);
@@ -112,8 +110,6 @@ public class ThreadTests
         thread.Messages.Count.ShouldBe(2);
         thread.Messages[0].Number.ShouldBe(1);
         thread.Messages[1].Number.ShouldBe(2);
-
-        thread.LastMessageNumber.ShouldBe(2);
 
         thread.NewVersion.ShouldNotBe(thread.OldVersion);
         thread.NewVersion.ShouldNotBe(newVersion1);
@@ -169,8 +165,6 @@ public class ThreadTests
         thread.Messages[0].Number.ShouldBe(101);
         thread.Messages[1].Number.ShouldBe(102);
 
-        thread.LastMessageNumber.ShouldBe(102);
-
         thread.NewVersion.ShouldNotBe(thread.OldVersion);
         thread.NewVersion.ShouldNotBe(newVersion1);
         thread.OldVersion.ShouldBe(oldVersion);
@@ -203,8 +197,6 @@ public class ThreadTests
 
         thread.Messages.Count.ShouldBe(2);
         thread.PendingEvents.ShouldBeEmpty();
-
-        thread.LastMessageNumber.ShouldBe(2);
     }
 
     [Fact]

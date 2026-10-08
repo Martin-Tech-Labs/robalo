@@ -9,12 +9,8 @@ public sealed class Version : IEquatable<Version>
     public static Version NewVersion() => new(Guid.NewGuid());
     public static Version FromVersionString(string versionString)
     {
-        if (Guid.TryParseExact(versionString, "N", out var guid))
+        if (Guid.TryParseExact(versionString, "N", out var guid) && guid != Guid.Empty)
         {
-            if (guid == Guid.Empty)
-            {
-                throw new ArgumentException("Wrong format");
-            }
             return new(guid);
         }
 

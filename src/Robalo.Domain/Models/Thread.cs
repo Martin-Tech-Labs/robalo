@@ -9,15 +9,17 @@ public sealed class Thread : AggregateRoot<Thread>
 
     readonly List<Message> _messages = [];
 
-    public IReadOnlyList<Message> Messages => _messages.AsReadOnly();
+    public IReadOnlyList<Message> Messages { get; }
 
     public string? Title { get; private set; }
 
-    public long LastMessageNumber { get; private set; }
+    int _lastMessageNumber;
 
     Thread(ThreadIdentifier id, Version version, DateTimeOffset createdOn) : base(id, version)
     {
         CreatedOn = createdOn;
+        Messages = _messages.AsReadOnly();
+        
         When<UserMessageAdded>(@event =>
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(@event.Content);
@@ -30,7 +32,7 @@ public sealed class Thread : AggregateRoot<Thread>
             NewVersion = Version.NewVersion();
 
             _messages.Add(new Message(
-                Number: ++LastMessageNumber,
+                Number: ++_lastMessageNumber,
                 Source: MessageSource.User,
                 Content: @event.Content,
                 CreatedOn: @event.AddedOn));
@@ -47,26 +49,16 @@ public sealed class Thread : AggregateRoot<Thread>
         return new(threadId, Version.NewVersion(), createdOn);
     }
 
-    public Thread SetLastMessageNumber(long lastMessageNumber)
+    public Thread SetLastMessageNumber(int lastMessageNumber)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(lastMessageNumber, 0);
 
-        if (_messages.Count != 0)
+        if (_messages.Count != 0 || _lastMessageNumber != 0 || OldVersion.HasValue)
         {
             throw new InvalidOperationException("Not supported");
         }
 
-        if (LastMessageNumber != 0)
-        {
-            throw new InvalidOperationException("Not supported");
-        }
-
-        if (OldVersion.HasValue)
-        {
-            throw new InvalidOperationException("Not supported");
-        }
-
-        LastMessageNumber = lastMessageNumber;
+        _lastMessageNumber = lastMessageNumber;
 
         return this;
     }
