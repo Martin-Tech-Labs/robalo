@@ -106,6 +106,35 @@ public sealed class InMemoryThreadRepository : IThreadRepository
         return new Updated();
     }
 
+    public async Task<Option<Message>> GetMessage(ThreadIdentifier identifier, int messageNumber, CancellationToken cancellationToken)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(messageNumber, 1);
+
+        var threadOrNone = GetThreadOrNone(identifier);
+
+        return threadOrNone switch
+        {
+            None none => none,
+            Some<ThreadStorage> some => GetMessage(some.Value, messageNumber)
+        };
+
+        Option<Message> GetMessage(ThreadStorage thread, int messageNumber)
+        {
+            if (thread.Events.Count < messageNumber)
+            {
+                return None.Default;
+            }
+
+            UserMessageAdded userMessageAdded;
+
+            lock (_lock)
+            {
+                userMessageAdded = thread.Events[messageNumber - 1];
+            }
+            return Message.FromUserMessageAdded(userMessageAdded, messageNumber);
+        }
+    }
+
     public async Task<Option<IAsyncEnumerable<Message>>> GetMessages(ThreadIdentifier identifier, CancellationToken cancellationToken)
     {
         var threadOrNone = GetThreadOrNone(identifier);
@@ -118,9 +147,8 @@ public sealed class InMemoryThreadRepository : IThreadRepository
 
         async IAsyncEnumerable<Message> GetEnumerable(List<UserMessageAdded> events, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            var count = events.Count;
             var counter = 0;
-            for (var i = 0; i < count; i++)
+            for (var i = 0; i < events.Count; i++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 UserMessageAdded item;

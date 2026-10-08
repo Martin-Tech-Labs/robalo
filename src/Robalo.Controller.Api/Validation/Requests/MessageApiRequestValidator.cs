@@ -3,9 +3,9 @@ using Robalo.Controller.Api.Requests;
 
 namespace Robalo.Controller.Api.Validation.Requests;
 
-public class CreateThreadApiRequestValidator : AbstractValidator<CreateThreadApiRequest>
+public class MessageApiRequestValidator : AbstractValidator<MessageApiRequest>
 {
-    public CreateThreadApiRequestValidator()
+    public MessageApiRequestValidator()
     {
         RuleFor(x => x.Content)
         .Cascade(CascadeMode.Stop)

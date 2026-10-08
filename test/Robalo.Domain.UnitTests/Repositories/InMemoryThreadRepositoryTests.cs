@@ -6,6 +6,7 @@ using Robalo.Common.Models;
 using Robalo.Common.Extensions;
 using Robalo.Domain.Events;
 
+
 namespace Robalo.Domain.UnitTests.Repositories;
 
 public class InMemoryThreadRepositoryTests
@@ -417,5 +418,67 @@ public class InMemoryThreadRepositoryTests
         messagesOrNone.HasValue.ShouldBeTrue();
         var messages = await messagesOrNone.ValueOrFailure.ToArrayAsync(TestContext.Current.CancellationToken);
         messages.ShouldBeEquivalentTo(expectedMessages.ToArray());
+    }
+
+    [Fact]
+    public async Task GetMessage_ShouldReturnNone_OrNonExistingThread()
+    {
+        var result = await _sut.GetMessage(ThreadIdentifier.NewIdentifier(), 1, TestContext.Current.CancellationToken);
+        result.ShouldBeNone();
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(0)]
+    public async Task GetMessage_ShouldThrow_IfMessageNumberNotPositive(int number)
+    {
+        await Should.ThrowAsync<ArgumentOutOfRangeException>(_sut.GetMessage(ThreadIdentifier.NewIdentifier(), number, TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task GetMessage_ShouldReturnNone_OnThreadWithNoMessages()
+    {
+        var thread = Thread.NewThread(ThreadIdentifier.NewIdentifier(), _fixture.Create<DateTimeOffset>());
+        await _sut.SaveThread(thread, TestContext.Current.CancellationToken);
+
+        var result = await _sut.GetMessage(thread.Id, 1, TestContext.Current.CancellationToken);
+        result.ShouldBeNone();
+    }
+
+    [Fact]
+    public async Task GetMessage_ShouldReturnNone_OnMessageNumberAboveCount()
+    {
+        var thread = Thread.NewThread(ThreadIdentifier.NewIdentifier(), _fixture.Create<DateTimeOffset>());
+
+        thread.AddUserMessage(_fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1));
+        thread.AddUserMessage(_fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1));
+        thread.AddUserMessage(_fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1));
+
+        await _sut.SaveThread(thread, TestContext.Current.CancellationToken);
+
+        var result = await _sut.GetMessage(thread.Id, 4, TestContext.Current.CancellationToken);
+        result.ShouldBeNone();
+    }
+
+    [Theory]
+    [InlineData(1, 0)]
+    [InlineData(2, 1)]
+    [InlineData(3, 2)]
+    public async Task GetMessage_ShouldReturnExpectedMessage(int messageNumber, int index)
+    {
+        var thread = Thread.NewThread(ThreadIdentifier.NewIdentifier(), _fixture.Create<DateTimeOffset>());
+        var expectedMessages = new Message[]
+        {
+            new(1, MessageSource.User, _fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1)),
+            new(2, MessageSource.User, _fixture.Create<string>(), thread.ModifiedOn.AddSeconds(2)),
+            new(3, MessageSource.User, _fixture.Create<string>(), thread.ModifiedOn.AddSeconds(3)),
+        };
+
+        thread.ForEach(expectedMessages, (t, e) => thread.AddUserMessage(e.Content, e.CreatedOn));
+        await _sut.SaveThread(thread, TestContext.Current.CancellationToken);
+
+        var result = await _sut.GetMessage(thread.Id, messageNumber, TestContext.Current.CancellationToken);
+        result.HasValue.ShouldBeTrue();
+        result.ValueOrFailure.ShouldBe(expectedMessages[index]);
     }
 }

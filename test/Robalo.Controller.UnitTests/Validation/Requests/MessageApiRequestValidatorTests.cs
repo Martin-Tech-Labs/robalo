@@ -3,9 +3,9 @@ using Robalo.Controller.Api.Validation.Requests;
 
 namespace Robalo.Controller.UnitTests.Validation.Requests;
 
-public class CreateThreadApiRequestValidatorTests
+public class MessageApiRequestValidatorTests
 {
-    private readonly CreateThreadApiRequestValidator _sut = new();
+    private readonly MessageApiRequestValidator _sut = new();
     private readonly Fixture _fixture = new();
 
     [Theory]
@@ -14,7 +14,7 @@ public class CreateThreadApiRequestValidatorTests
     [InlineData(null, "content_must_be_provided")]
     public void Validate_ShouldReturn_ExpectedError(string? content, string error)
     {
-        var request = new CreateThreadApiRequest(content);
+        var request = new MessageApiRequest(content);
         var result = _sut.Validate(request);
 
         result.IsValid.ShouldBeFalse();
@@ -25,7 +25,7 @@ public class CreateThreadApiRequestValidatorTests
     [Fact]
     public void Validate_ShouldReturn_ExpectedError_On_Content_Max_Length_Exceeded()
     {
-        var request = new CreateThreadApiRequest(new string('a', 101));
+        var request = new MessageApiRequest(new string('a', 101));
         var result = _sut.Validate(request);
 
         result.IsValid.ShouldBeFalse();
@@ -36,7 +36,7 @@ public class CreateThreadApiRequestValidatorTests
     [Fact]
     public void Validate_ShouldReturn_Valid_On_Content_Max_Length()
     {
-        var request = new CreateThreadApiRequest(new string('a', 100));
+        var request = new MessageApiRequest(new string('a', 100));
         var result = _sut.Validate(request);
 
         result.IsValid.ShouldBeTrue();
@@ -46,7 +46,7 @@ public class CreateThreadApiRequestValidatorTests
     [Fact]
     public void Validate_ShouldReturn_Valid_On_Normal_Content()
     {
-        var request = new CreateThreadApiRequest(_fixture.Create<string>());
+        var request = new MessageApiRequest(_fixture.Create<string>());
         var result = _sut.Validate(request);
 
         result.IsValid.ShouldBeTrue();

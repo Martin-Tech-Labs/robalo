@@ -6,5 +6,5 @@ public class DateTimeOffsetProvider : IDateTimeOffsetProvider
 
 public interface IDateTimeOffsetProvider
 {
-    public DateTimeOffset UtcKnow => DateTimeOffset.UtcNow;
+    public DateTimeOffset UtcNow => DateTimeOffset.UtcNow;
 }

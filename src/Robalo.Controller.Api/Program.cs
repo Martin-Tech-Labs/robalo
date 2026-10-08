@@ -96,7 +96,7 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
     options.SuppressModelStateInvalidFilter = true;
 });
 
-builder.Services.AddScoped<IValidator<CreateThreadApiRequest>, CreateThreadApiRequestValidator>();
+builder.Services.AddScoped<IValidator<MessageApiRequest>, MessageApiRequestValidator>();
 
 var app = builder.Build();
 app.UseSerilogRequestLogging();
