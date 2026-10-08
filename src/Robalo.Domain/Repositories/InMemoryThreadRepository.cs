@@ -9,7 +9,7 @@ namespace Robalo.Domain.Repositories;
 
 public sealed class InMemoryThreadRepository : IThreadRepository
 {
-    private record ThreadStorage(
+    private sealed record ThreadStorage(
         string? Title,
         Version Version,
         DateTimeOffset CreatedOn,

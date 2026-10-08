@@ -23,7 +23,7 @@ public class ThreadIdentifierTests
         var id1 = ThreadIdentifier.NewIdentifier();
         var id2 = ThreadIdentifier.NewIdentifier();
 
-        id1.Id.Equals(id2.Id, StringComparison.InvariantCultureIgnoreCase).ShouldBeFalse();
+        id1.Id.Equals(id2.Id, StringComparison.OrdinalIgnoreCase).ShouldBeFalse();
         id1.Uuid.ShouldNotBe(id2.Uuid);
 
         id1.Equals(id2).ShouldBeFalse();
@@ -37,7 +37,7 @@ public class ThreadIdentifierTests
         var id1 = ThreadIdentifier.NewIdentifier();
         var id2 = ThreadIdentifier.FromUuid(id1.Uuid);
 
-        id1.Id.Equals(id2.Id, StringComparison.InvariantCultureIgnoreCase).ShouldBeTrue();
+        id1.Id.Equals(id2.Id, StringComparison.OrdinalIgnoreCase).ShouldBeTrue();
         id1.Uuid.ShouldBe(id2.Uuid);
         id1.GetHashCode().ShouldBe(id2.GetHashCode());
 
@@ -50,7 +50,7 @@ public class ThreadIdentifierTests
         var id1 = ThreadIdentifier.NewIdentifier();
         var id2 = ThreadIdentifier.FromId(id1.Id);
 
-        id1.Id.Equals(id2.Id, StringComparison.InvariantCultureIgnoreCase).ShouldBeTrue();
+        id1.Id.Equals(id2.Id, StringComparison.OrdinalIgnoreCase).ShouldBeTrue();
         id1.Uuid.ShouldBe(id2.Uuid);
         id1.GetHashCode().ShouldBe(id2.GetHashCode());
 

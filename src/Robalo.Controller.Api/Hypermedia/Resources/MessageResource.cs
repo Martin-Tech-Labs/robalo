@@ -6,6 +6,6 @@ public record MessageResource(
     string Source,
     string ThreadId,
     long MessageNumber,
-    MessageLinks _Links) : HalResource<MessageLinks>(_Links);
+    MessageLinks Links) : HalResource<MessageLinks>(Links);
 
 public record MessageLinks(Link Self, Link Thread, Link Events) : Links(Self);

@@ -5,7 +5,7 @@ namespace Robalo.Domain.Models;
 public abstract class AggregateRoot<TSelf> where TSelf : AggregateRoot<TSelf>
 {
     public ThreadIdentifier Id { get; }
-    public Option<Version> OldVersion { get; protected set; } = new None();
+    public Option<Version> OldVersion { get; protected set; } = None.Default;
     public Version NewVersion { get; protected set; }
 
     public IReadOnlyList<object> PendingEvents { get; }
@@ -15,7 +15,8 @@ public abstract class AggregateRoot<TSelf> where TSelf : AggregateRoot<TSelf>
 
     public AggregateRoot(ThreadIdentifier id, Version version)
     {
-        Id = id; NewVersion = version;
+        Id = id; 
+        NewVersion = version;
         PendingEvents = _pendingEvents.AsReadOnly();
     }
 

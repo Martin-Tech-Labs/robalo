@@ -123,7 +123,7 @@ app.MapHealthChecks("/_system/health", new()
             new JsonSerializerOptions(JsonSerializerDefaults.Web)
             {
                 WriteIndented = true
-            })
+            }, context.RequestAborted)
 });
 
 app.MapGet("/_system/env", (IHostEnvironment hostEnvironment) =>
@@ -135,7 +135,7 @@ app.MapGet("/_system/env", (IHostEnvironment hostEnvironment) =>
         Machine: Environment.MachineName,
         Environment: hostEnvironment?.EnvironmentName,
         Runtime: RuntimeInformation.FrameworkDescription,
-        RunningInContainer: Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER")?.Equals("true", StringComparison.InvariantCultureIgnoreCase) ?? false,
+        RunningInContainer: Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER")?.Equals("true", StringComparison.OrdinalIgnoreCase) ?? false,
         UptimeSeconds: (long)(DateTime.UtcNow - startTimeUtc).TotalSeconds);
 
     return Results.Json(environmentInfo, new JsonSerializerOptions

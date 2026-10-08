@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Robalo.Controller.Api.Hypermedia.Resources;
 
 public record ThreadResource(
@@ -5,6 +7,6 @@ public record ThreadResource(
     DateTimeOffset ModifiedOn,
     string? Title,
     string ThreadId,
-    ThreadLinks _Links) : HalResource<ThreadLinks>(_Links);
+    ThreadLinks Links) : HalResource<ThreadLinks>(Links);
 
 public record ThreadLinks(Link Self, Link Messages, Link Events) : Links(Self);
