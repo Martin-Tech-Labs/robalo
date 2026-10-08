@@ -1,5 +1,4 @@
 using System.Text.RegularExpressions;
-using Microsoft.VisualBasic;
 using Robalo.Common.Models;
 using SimpleBase;
 
@@ -8,7 +7,6 @@ namespace Robalo.Domain.Models;
 public sealed partial class ThreadIdentifier : IEquatable<ThreadIdentifier>
 {
     private const string ThreadIdPrefix = "trd";
-
     public string Id { get; }
     public Guid Uuid { get; }
 
@@ -27,7 +25,7 @@ public sealed partial class ThreadIdentifier : IEquatable<ThreadIdentifier>
         {
             return FromId(id);
         }
-        catch
+        catch (ArgumentException)
         {
             return None.Default;
         }
@@ -48,11 +46,8 @@ public sealed partial class ThreadIdentifier : IEquatable<ThreadIdentifier>
             throw new ArgumentException("Empty value", nameof(id));
         }
 
-        return new(
-            id: id,
-            uuid: uuid);
+        return new(id: id, uuid: uuid);
     }
-
 
     public static ThreadIdentifier FromUuid(Guid uuid)
     {
@@ -66,13 +61,7 @@ public sealed partial class ThreadIdentifier : IEquatable<ThreadIdentifier>
             uuid: uuid);
     }
 
-    public static ThreadIdentifier NewIdentifier()
-    {
-        var guid = Guid.NewGuid();
-        return new(
-          id: $"{ThreadIdPrefix}_{Base32.Rfc4648.Encode(bytes: guid.ToByteArray(), padding: false).ToLowerInvariant()}",
-          uuid: guid);
-    }
+    public static ThreadIdentifier NewIdentifier() => FromUuid(Guid.NewGuid());
 
     public override string ToString() => Id;
 

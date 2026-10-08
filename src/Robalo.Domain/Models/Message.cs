@@ -3,7 +3,7 @@ using Robalo.Domain.Events;
 namespace Robalo.Domain.Models;
 
 public record Message(
-    long Number,
+    int Number,
     MessageSource Source,
     string Content,
     DateTimeOffset CreatedOn)

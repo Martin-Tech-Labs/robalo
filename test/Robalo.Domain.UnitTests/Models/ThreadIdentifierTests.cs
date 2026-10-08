@@ -3,7 +3,7 @@ namespace Robalo.Domain.UnitTests.Models;
 using Robalo.Domain.Models;
 using SimpleBase;
 
-public class IdentifierTests
+public class ThreadIdentifierTests
 {
     private readonly Fixture _fixture = new();
 
