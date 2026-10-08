@@ -68,7 +68,7 @@ public class ThreadsController : ControllerBase
         };
     }
 
-    [HttpGet("/{id}/messages/{number}")]
+    [HttpGet("{id}/messages/{number}")]
     public async Task<IActionResult> GetMessage(string id, int number, CancellationToken cancellationToken)
     {
         var threadIdOrNone = ThreadIdentifier.TryGetFromId(id);
@@ -82,7 +82,11 @@ public class ThreadsController : ControllerBase
             return NotFound();
         }
 
-        var messagesOrNone = await _threadRepository.GetMessages(threadIdOrNone.id)
+        return await _threadRepository.GetMessage(threadIdOrNone.ValueOrFailure, number, cancellationToken) switch
+        {
+            None => NotFound(),
+            Some<Message> some => GetMessageResource(some.Value, threadIdOrNone.ValueOrFailure).AsOk()
+        };
     }
 
     [HttpPost("{id}/messages")]
