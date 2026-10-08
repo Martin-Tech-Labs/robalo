@@ -16,7 +16,7 @@ public abstract class AggregateRoot<TSelf> where TSelf : AggregateRoot<TSelf>
     public AggregateRoot(ThreadIdentifier id, Version version)
     {
         Id = id; NewVersion = version;
-        PendingEvents = _pendingEvents.AsReadOnly<object>();
+        PendingEvents = _pendingEvents.AsReadOnly();
     }
 
     protected void When<TEvent>(Action<TEvent> actionType)
