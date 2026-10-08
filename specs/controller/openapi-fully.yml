@@ -1,0 +1,708 @@
+openapi: 3.2.1
+info:
+  title: Robalo Controller API
+  version: 0.1.0
+  description: Controller API
+servers:
+  - url: http://localhost:8080
+    description: Local development
+security:
+  - bearerAuth: []
+tags:
+  - name: Threads
+  - name: Messages
+  - name: Events
+paths:
+  /threads:
+    post:
+      tags:
+        - Threads
+      operationId: createThread
+      summary: Create a thread with its first user message
+      description: Create a thread with its first user message.
+      responses:
+        '201':
+          description: Thread and initial message created. Follow the messages link to retrieve the message.
+          headers:
+            Location:
+              description: URI of the created thread.
+              schema:
+                type: string
+                format: uri-reference
+          content:
+            application/hal+json:
+              schema:
+                type: object
+                required: &ref_4
+                  - created_on
+                  - modified_on
+                  - title
+                  - thread_id
+                  - _links
+                properties: &ref_5
+                  created_on:
+                    type: string
+                    format: date-time
+                  modified_on:
+                    type: string
+                    format: date-time
+                  title:
+                    type: string
+                  thread_id:
+                    type: string
+                  _links:
+                    type: object
+                    required:
+                      - self
+                      - messages
+                      - events
+                    properties:
+                      self:
+                        type: object
+                        required: &ref_0
+                          - href
+                        properties: &ref_1
+                          href:
+                            type: string
+                            format: uri-reference
+                      messages:
+                        type: object
+                        required: *ref_0
+                        properties: *ref_1
+                      events:
+                        type: object
+                        required: *ref_0
+                        properties: *ref_1
+              examples:
+                default:
+                  value: &ref_6
+                    created_on: '2027-06-05T12:34:56Z'
+                    modified_on: '2027-06-05T12:34:56Z'
+                    title: Hello
+                    thread_id: thd_123
+                    _links:
+                      self:
+                        href: /threads/thd_123
+                      messages:
+                        href: /threads/thd_123/messages
+                      events:
+                        href: /events?thread=thd_123
+        '400':
+          description: Invalid request.
+          content: &ref_13
+            application/problem+json:
+              schema:
+                type: object
+                description: Problem Details for HTTP APIs (RFC 9457), served as application/problem+json. Standard fields are optional. Problem types may define extension properties.
+                externalDocs: &ref_2
+                  url: https://www.rfc-editor.org/rfc/rfc9457.html
+                properties: &ref_3
+                  type:
+                    type: string
+                    format: uri-reference
+                    default: about:blank
+                    description: URI reference identifying the problem type.
+                  title:
+                    type: string
+                    description: Short human-readable summary of the problem type, stable across occurrences except for localization.
+                  status:
+                    type: integer
+                    minimum: 100
+                    maximum: 599
+                    description: HTTP status code for this occurrence; must match the response status.
+                  detail:
+                    type: string
+                    description: Human-readable explanation specific to this occurrence.
+                  instance:
+                    type: string
+                    format: uri-reference
+                    description: URI reference identifying this specific problem occurrence.
+        '401':
+          description: Missing or invalid Controller access token.
+          content: &ref_7
+            application/problem+json:
+              schema:
+                type: object
+                description: Problem Details for HTTP APIs (RFC 9457), served as application/problem+json. Standard fields are optional. Problem types may define extension properties.
+                externalDocs: *ref_2
+                properties: *ref_3
+          headers: &ref_8
+            WWW-Authenticate:
+              schema:
+                type: string
+              example: Bearer
+        '422':
+          description: The request was well-formed but was unable to be followed due to semantic errors.
+          content: &ref_23
+            application/problem+json:
+              schema:
+                type: object
+                description: Problem Details for HTTP APIs (RFC 9457), served as application/problem+json. Standard fields are optional. Problem types may define extension properties.
+                externalDocs: *ref_2
+                properties: *ref_3
+              examples:
+                validationError:
+                  value:
+                    title: validation_error
+                    status: 422
+                    detail: content_is_required
+                    instance: /threads/thd_123/messages
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: Optional client-generated key for retrying a creation request. Reuse the same key and payload for retries. Within the authenticated caller and target endpoint, a repeated request with a retained key returns the original result without creating another resource. Reusing the key with a different payload returns 409. Key retention duration is not yet defined.
+          schema: &ref_14
+            type: string
+            minLength: 1
+      requestBody:
+        required: true
+        description: A user message, also used as the initial message when creating a thread.
+        content: &ref_15
+          application/json:
+            schema:
+              type: object
+              required: &ref_25
+                - content
+              properties: &ref_26
+                content:
+                  type: string
+                  minLength: 1
+                  maxLength: 32000
+                  description: The user's message (prompt).
+              additionalProperties: false
+            examples:
+              default:
+                value:
+                  content: Hello world
+  /threads/{threadId}:
+    parameters:
+      - name: threadId
+        in: path
+        required: true
+        description: Thread identifier.
+        schema: &ref_10
+          type: string
+        example: thd_123
+    get:
+      tags:
+        - Threads
+      operationId: getThread
+      summary: Get thread metadata
+      responses:
+        '200':
+          description: Thread metadata.
+          content: &ref_21
+            application/hal+json:
+              schema:
+                type: object
+                required: *ref_4
+                properties: *ref_5
+              examples:
+                default:
+                  value: *ref_6
+        '401':
+          description: Missing or invalid Controller access token.
+          content: *ref_7
+          headers: *ref_8
+        '404':
+          description: Resource or pagination link not found or inaccessible to the caller.
+          content: &ref_9
+            application/problem+json:
+              schema:
+                type: object
+                description: Problem Details for HTTP APIs (RFC 9457), served as application/problem+json. Standard fields are optional. Problem types may define extension properties.
+                externalDocs: *ref_2
+                properties: *ref_3
+    delete:
+      tags:
+        - Threads
+      operationId: deleteThread
+      summary: Delete a thread and its message history
+      responses:
+        '204':
+          description: Thread and its message history deleted. No response body.
+        '401':
+          description: Missing or invalid Controller access token.
+          content: *ref_7
+          headers: *ref_8
+        '404':
+          description: Resource or pagination link not found or inaccessible to the caller.
+          content: *ref_9
+  /threads/{threadId}/messages:
+    parameters:
+      - name: threadId
+        in: path
+        required: true
+        description: Thread identifier.
+        schema: *ref_10
+        example: thd_123
+    get:
+      tags:
+        - Messages
+      operationId: getMessages
+      summary: Get the latest batch of messages
+      description: The server chooses the batch size. Clients follow the returned links unchanged. The initial request selects the latest messages; next selects older messages and prev newer messages. Array order is unspecified. The cursor-based self link anchors the selected batch so new messages do not shift it; it does not preserve deleted or edited messages. first retrieves the latest batch and last the oldest. next and prev are omitted when no corresponding batch exists.
+      responses:
+        '200':
+          description: A batch of messages with navigation links.
+          content: &ref_16
+            application/hal+json:
+              schema:
+                type: object
+                required: &ref_27
+                  - _embedded
+                  - _links
+                properties: &ref_28
+                  _embedded:
+                    type: object
+                    required:
+                      - messages
+                    properties:
+                      messages:
+                        type: array
+                        items:
+                          type: object
+                          required: &ref_11
+                            - content
+                            - created_on
+                            - source
+                            - thread_id
+                            - message_number
+                            - _links
+                          properties: &ref_12
+                            content:
+                              type: string
+                            created_on:
+                              type: string
+                              format: date-time
+                            source:
+                              type: string
+                              enum:
+                                - user
+                                - llm
+                                - controller
+                            thread_id:
+                              type: string
+                            message_number:
+                              type: integer
+                            _links:
+                              type: object
+                              required:
+                                - self
+                                - thread
+                              properties:
+                                self:
+                                  type: object
+                                  required: *ref_0
+                                  properties: *ref_1
+                                thread:
+                                  type: object
+                                  required: *ref_0
+                                  properties: *ref_1
+                  _links:
+                    type: object
+                    required:
+                      - self
+                      - thread
+                      - events
+                      - first
+                      - last
+                    properties:
+                      self:
+                        type: object
+                        required: *ref_0
+                        properties: *ref_1
+                      thread:
+                        type: object
+                        required: *ref_0
+                        properties: *ref_1
+                      events:
+                        type: object
+                        required: *ref_0
+                        properties: *ref_1
+                      next:
+                        type: object
+                        required: *ref_0
+                        properties: *ref_1
+                      prev:
+                        type: object
+                        required: *ref_0
+                        properties: *ref_1
+                      first:
+                        type: object
+                        required: *ref_0
+                        properties: *ref_1
+                      last:
+                        type: object
+                        required: *ref_0
+                        properties: *ref_1
+              examples:
+                default:
+                  value:
+                    _embedded:
+                      messages:
+                        - content: Hello world
+                          created_on: '2027-06-05T12:34:56Z'
+                          source: user
+                          thread_id: thd_123
+                          message_number: '123'
+                          _links:
+                            self:
+                              href: /threads/thd_123/messages/123
+                            thread:
+                              href: /threads/thd_123
+                        - content: Hi there
+                          created_on: '2027-06-05T12:35:56Z'
+                          source: llm
+                          thread_id: thd_123
+                          message_number: '124'
+                          _links:
+                            self:
+                              href: /threads/thd_123/messages/124
+                            thread:
+                              href: /threads/thd_123
+                    _links:
+                      self:
+                        href: /threads/thd_123/messages/query/crs_123
+                      thread:
+                        href: /threads/thd_123
+                      events:
+                        href: /events?thread=thd_123
+                      next:
+                        href: /threads/thd_123/messages/query/crs_234
+                      prev:
+                        href: /threads/thd_123/messages/query/crs_456
+                      first:
+                        href: /threads/thd_123/messages
+                      last:
+                        href: /threads/thd_123/messages/query/crs_678
+        '401':
+          description: Missing or invalid Controller access token.
+          content: *ref_7
+          headers: *ref_8
+        '404':
+          description: Resource or pagination link not found or inaccessible to the caller.
+          content: *ref_9
+    post:
+      tags:
+        - Messages
+      operationId: createUserMessage
+      summary: Add a user message to a thread
+      description: Messages can be submitted while processing is active. The Controller processes work sequentially within the thread.
+      responses:
+        '201':
+          description: User message stored. This does not mean LLM processing has completed; subscribe to events for subsequent messages.
+          headers:
+            Location:
+              description: URI of the created message.
+              schema:
+                type: string
+                format: uri-reference
+          content:
+            application/hal+json:
+              schema:
+                allOf: &ref_17
+                  - type: object
+                    required: *ref_11
+                    properties: *ref_12
+                  - type: object
+                    properties:
+                      _links:
+                        type: object
+                        required:
+                          - events
+                        properties:
+                          events:
+                            type: object
+                            required: *ref_0
+                            properties: *ref_1
+              examples:
+                default:
+                  value: &ref_18
+                    content: Hello world
+                    created_on: '2027-06-05T12:34:56Z'
+                    source: user
+                    thread_id: thd_123
+                    message_number: '12'
+                    _links:
+                      self:
+                        href: /threads/thd_123/messages/12
+                      thread:
+                        href: /threads/thd_123
+                      events:
+                        href: /events?thread=thd_123
+        '400':
+          description: Invalid request.
+          content: *ref_13
+        '401':
+          description: Missing or invalid Controller access token.
+          content: *ref_7
+          headers: *ref_8
+        '404':
+          description: Resource or pagination link not found or inaccessible to the caller.
+          content: *ref_9
+        '409':
+          description: The idempotency key was already used for a different request.
+          content: &ref_24
+            application/problem+json:
+              schema:
+                type: object
+                description: Problem Details for HTTP APIs (RFC 9457), served as application/problem+json. Standard fields are optional. Problem types may define extension properties.
+                externalDocs: *ref_2
+                properties: *ref_3
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: Optional client-generated key for retrying a creation request. Reuse the same key and payload for retries. Within the authenticated caller and target endpoint, a repeated request with a retained key returns the original result without creating another resource. Reusing the key with a different payload returns 409. Key retention duration is not yet defined.
+          schema: *ref_14
+      requestBody:
+        required: true
+        description: A user message, also used as the initial message when creating a thread.
+        content: *ref_15
+  /threads/{threadId}/messages/query/{cursor}:
+    parameters:
+      - name: threadId
+        in: path
+        required: true
+        description: Thread identifier.
+        schema: *ref_10
+        example: thd_123
+      - name: cursor
+        in: path
+        required: true
+        description: Opaque server-issued pagination value. Follow returned links without interpreting or modifying it. Links are not guaranteed to remain valid indefinitely.
+        schema: &ref_20
+          type: string
+        example: crs_123
+    get:
+      tags:
+        - Messages
+      operationId: getMessageBatch
+      summary: Follow an opaque message pagination link
+      description: The server chooses the batch size. Clients follow the returned links unchanged. The initial request selects the latest messages; next selects older messages and prev newer messages. Array order is unspecified. The cursor-based self link anchors the selected batch so new messages do not shift it; it does not preserve deleted or edited messages. first retrieves the latest batch and last the oldest. next and prev are omitted when no corresponding batch exists.
+      responses:
+        '200':
+          description: A batch of messages with navigation links.
+          content: *ref_16
+        '401':
+          description: Missing or invalid Controller access token.
+          content: *ref_7
+          headers: *ref_8
+        '404':
+          description: Resource or pagination link not found or inaccessible to the caller.
+          content: *ref_9
+  /threads/{threadId}/messages/{messageNumber}:
+    parameters:
+      - name: threadId
+        in: path
+        required: true
+        description: Thread identifier.
+        schema: *ref_10
+        example: thd_123
+      - name: messageNumber
+        in: path
+        required: true
+        description: Message identifier.
+        schema: &ref_19
+          type: integer
+        example: 123
+    get:
+      tags:
+        - Messages
+      operationId: getMessage
+      summary: Get a message
+      responses:
+        '200':
+          description: Message representation.
+          content: &ref_22
+            application/hal+json:
+              schema:
+                allOf: *ref_17
+              examples:
+                default:
+                  value: *ref_18
+        '401':
+          description: Missing or invalid Controller access token.
+          content: *ref_7
+          headers: *ref_8
+        '404':
+          description: Resource or pagination link not found or inaccessible to the caller.
+          content: *ref_9
+    delete:
+      tags:
+        - Messages
+      operationId: deleteMessage
+      summary: Delete a message from history
+      responses:
+        '204':
+          description: Message deleted. No response body.
+        '401':
+          description: Missing or invalid Controller access token.
+          content: *ref_7
+          headers: *ref_8
+        '404':
+          description: Resource or pagination link not found or inaccessible to the caller.
+          content: *ref_9
+  /events:
+    get:
+      tags:
+        - Events
+      operationId: getEvents
+      summary: Stream newly created messages as NDJSON
+      description: Without a thread filter, stream messages from all threads accessible to the caller. With a thread filter, stream only that thread. Each batch includes the subscription self link and each message includes its thread link. This is NDJSON, not SSE; no SSE framing is used. Replay and reconnection semantics are not yet defined.
+      responses:
+        '200':
+          description: An open-ended stream of message batches. Each line is a complete JSON object conforming to itemSchema.
+          content:
+            application/x-ndjson:
+              examples:
+                messageBatch:
+                  summary: One batch serialized as a single NDJSON line.
+                  serializedValue: |
+                    {"_embedded":{"messages":[{"content":"Hello world","created_on":"2027-06-05T12:34:56Z","source":"user","thread_id":"thd_123","message_number":"123","_links":{"self":{"href":"/threads/thd_123/messages/123"},"thread":{"href":"/threads/thd_123"}}},{"content":"Hi there","created_on":"2027-06-05T12:35:56Z","source":"llm","thread_id":"thd_123","message_number":"124","_links":{"self":{"href":"/threads/thd_123/messages/124"},"thread":{"href":"/threads/thd_123"}}}]},"_links":{"self":{"href":"/events?thread=thd_123"}}}
+              itemSchema:
+                type: object
+                description: A batch of messages delivered through the event stream.
+                required: &ref_29
+                  - _embedded
+                  - _links
+                properties: &ref_30
+                  _embedded:
+                    type: object
+                    required:
+                      - messages
+                    properties:
+                      messages:
+                        type: array
+                        items:
+                          type: object
+                          required: *ref_11
+                          properties: *ref_12
+                  _links:
+                    type: object
+                    required:
+                      - self
+                    properties:
+                      self:
+                        type: object
+                        required: *ref_0
+                        properties: *ref_1
+        '400':
+          description: Invalid request.
+          content: *ref_13
+        '401':
+          description: Missing or invalid Controller access token.
+          content: *ref_7
+          headers: *ref_8
+        '404':
+          description: Resource or pagination link not found or inaccessible to the caller.
+          content: *ref_9
+      parameters:
+        - name: thread
+          in: query
+          required: false
+          description: Restrict the subscription to this thread.
+          schema:
+            type: string
+          example: thd_123
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Controller access token. Use HTTPS outside local development. Resources are scoped to the authenticated caller; inaccessible resources return 404. LLM credentials are managed separately in the OS keyring.
+  parameters:
+    ThreadId:
+      name: threadId
+      in: path
+      required: true
+      description: Thread identifier.
+      schema: *ref_10
+      example: thd_123
+    MessageNumber:
+      name: messageNumber
+      in: path
+      required: true
+      description: Message identifier.
+      schema: *ref_19
+      example: 123
+    Cursor:
+      name: cursor
+      in: path
+      required: true
+      description: Opaque server-issued pagination value. Follow returned links without interpreting or modifying it. Links are not guaranteed to remain valid indefinitely.
+      schema: *ref_20
+      example: crs_123
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: Optional client-generated key for retrying a creation request. Reuse the same key and payload for retries. Within the authenticated caller and target endpoint, a repeated request with a retained key returns the original result without creating another resource. Reusing the key with a different payload returns 409. Key retention duration is not yet defined.
+      schema: *ref_14
+  requestBodies:
+    UserMessage:
+      required: true
+      description: A user message, also used as the initial message when creating a thread.
+      content: *ref_15
+  responses:
+    Thread:
+      description: Thread metadata.
+      content: *ref_21
+    Message:
+      description: Message representation.
+      content: *ref_22
+    Messages:
+      description: A batch of messages with navigation links.
+      content: *ref_16
+    UnprocessableEntity:
+      description: The request was well-formed but was unable to be followed due to semantic errors.
+      content: *ref_23
+    BadRequest:
+      description: Invalid request.
+      content: *ref_13
+    Unauthorized:
+      description: Missing or invalid Controller access token.
+      content: *ref_7
+      headers: *ref_8
+    NotFound:
+      description: Resource or pagination link not found or inaccessible to the caller.
+      content: *ref_9
+    Conflict:
+      description: The idempotency key was already used for a different request.
+      content: *ref_24
+  schemas:
+    message-request:
+      type: object
+      required: *ref_25
+      properties: *ref_26
+      additionalProperties: false
+    link:
+      type: object
+      required: *ref_0
+      properties: *ref_1
+    thread-response:
+      type: object
+      required: *ref_4
+      properties: *ref_5
+    problem-details:
+      type: object
+      description: Problem Details for HTTP APIs (RFC 9457), served as application/problem+json. Standard fields are optional. Problem types may define extension properties.
+      externalDocs: *ref_2
+      properties: *ref_3
+    message:
+      type: object
+      required: *ref_11
+      properties: *ref_12
+    get-messages-response:
+      type: object
+      required: *ref_27
+      properties: *ref_28
+    message-response:
+      allOf: *ref_17
+    get-events-response:
+      type: object
+      description: A batch of messages delivered through the event stream.
+      required: *ref_29
+      properties: *ref_30
