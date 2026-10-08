@@ -15,7 +15,7 @@ public sealed class InMemoryThreadRepository : IThreadRepository
         DateTimeOffset CreatedOn,
         List<UserMessageAdded> Events);
 
-    private readonly Dictionary<Identifier, ThreadStorage> _threads = [];
+    private readonly Dictionary<ThreadIdentifier, ThreadStorage> _threads = [];
     private readonly Lock _lock = new();
     private readonly ILogger _logger;
 
@@ -24,32 +24,22 @@ public sealed class InMemoryThreadRepository : IThreadRepository
         _logger = logger.ForContext(GetType());
     }
 
-    public async Task<SuccessOrNotFound> DeleteThread(Identifier identifier, CancellationToken cancellationToken)
+    public async Task<SuccessOrNotFound> DeleteThread(ThreadIdentifier identifier, CancellationToken cancellationToken)
     {
-        if (identifier.Type != Identifier.IdentifierType.Thread)
-        {
-            throw new ArgumentException("Wrong identifier type", nameof(identifier));
-        }
-
         lock (_lock)
         {
             return _threads.Remove(identifier) ? new Success() : new NotFound();
         }
     }
 
-    public async Task<Option<Thread>> GetThread(Identifier identifier, CancellationToken cancellationToken)
+    public async Task<Option<Thread>> GetThread(ThreadIdentifier identifier, CancellationToken cancellationToken)
     {
-        if (identifier.Type != Identifier.IdentifierType.Thread)
-        {
-            throw new ArgumentException("Wrong identifier type", nameof(identifier));
-        }
-
         return GetThreadOrNone(identifier) switch
         {
             None none => none,
             Some<ThreadStorage> threadStorage =>
                 Thread.NewThread(identifier, threadStorage.Value.CreatedOn)
-                .ForEach(items: threadStorage.Value.Events, action: (t, i) => t.AddUserMessage(i.Id, i.Content, i.AddedOn))
+                .ForEach(items: threadStorage.Value.Events, action: (t, i) => t.AddUserMessage(i.Content, i.AddedOn))
                 .DoIfNotNullOrWhiteSpace(threadStorage.Value.Title, (thr, title) => thr.UpdateTitle(title))
                 .MarkAggregateAsSynchronized(threadStorage.Value.Version)
         };
@@ -106,13 +96,8 @@ public sealed class InMemoryThreadRepository : IThreadRepository
         return new Updated();
     }
 
-    public async Task<Option<IAsyncEnumerable<Message>>> GetMessages(Identifier identifier, CancellationToken cancellationToken)
+    public async Task<Option<IAsyncEnumerable<Message>>> GetMessages(ThreadIdentifier identifier, CancellationToken cancellationToken)
     {
-        if (identifier.Type != Identifier.IdentifierType.Thread)
-        {
-            throw new ArgumentException("Wrong identifier type", nameof(identifier));
-        }
-        
         var threadOrNone = GetThreadOrNone(identifier);
 
         return threadOrNone switch
@@ -123,21 +108,22 @@ public sealed class InMemoryThreadRepository : IThreadRepository
 
         static async IAsyncEnumerable<Message> GetEnumerable(IEnumerable<UserMessageAdded> events, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
+            var counter = 0;
             foreach (var item in events)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                yield return Message.FromUserMessageAdded(item);
+                yield return Message.FromUserMessageAdded(item, ++counter);
             }
         }
     }
 
-    Option<ThreadStorage> GetThreadOrNone(Identifier identifier)
+    Option<ThreadStorage> GetThreadOrNone(ThreadIdentifier identifier)
     {
         lock (_lock)
         {
             if (_threads.TryGetValue(identifier, out var threadStorage))
             {
-                return threadStorage with { Events = [.. threadStorage.Events] };
+                return threadStorage;
             }
         }
 

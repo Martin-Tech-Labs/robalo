@@ -37,8 +37,8 @@ public class ThreadsController : ControllerBase
     {
         var utcNow = _dateTimeOffsetProvider.UtcKnow;
 
-        var thread = Thread.NewThread(Identifier.NewThreadId(), utcNow)
-         .AddUserMessage(Identifier.NewMessageId(), request.Content!, utcNow);
+        var thread = Thread.NewThread(ThreadIdentifier.NewIdentifier(), utcNow)
+         .AddUserMessage(request.Content!, utcNow);
 
         var result = await _threadRepository.SaveThread(thread, cancellationToken);
 
@@ -71,13 +71,8 @@ public class ThreadsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetThread(string id, CancellationToken cancellationToken)
     {
-        var threadIdOrNone = Identifier.TryGetFromId(id);
+        var threadIdOrNone = ThreadIdentifier.TryGetFromId(id);
         if (!threadIdOrNone.HasValue)
-        {
-            return NotFound();
-        }
-
-        if (threadIdOrNone.ValueOrFailure.Type != Identifier.IdentifierType.Thread)
         {
             return NotFound();
         }

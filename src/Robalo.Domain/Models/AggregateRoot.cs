@@ -2,9 +2,9 @@ using Robalo.Common.Models;
 
 namespace Robalo.Domain.Models;
 
-public abstract class AggregateRoot<TSelf>(Identifier id, Version version) where TSelf : AggregateRoot<TSelf>
+public abstract class AggregateRoot<TSelf>(ThreadIdentifier id, Version version) where TSelf : AggregateRoot<TSelf>
 {
-    public Identifier Id { get; } = id;
+    public ThreadIdentifier Id { get; } = id;
     public Option<Version> OldVersion { get; protected set; } = new None();
     public Version NewVersion { get; protected set; } = version;
 
