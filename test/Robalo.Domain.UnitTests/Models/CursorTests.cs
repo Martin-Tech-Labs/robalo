@@ -7,22 +7,31 @@ public class CursorTests
 {
     private readonly Fixture _fixture = new();
 
-    [Fact]
-    public void Create_ShouldThrow_OnInvalidLimit()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(11_000)]
+    public void Create_ShouldThrow_OnInvalidLimit(int limit)
     {
-        Should.Throw<ArgumentOutOfRangeException>(() => Cursor.Create(limit: 0, reference: 1));
+        Should.Throw<ArgumentOutOfRangeException>(() => Cursor.Create(limit: limit, reference: 1));
     }
 
-    [Fact]
-    public void Create_ShouldThrow_OnInvalidLimit_ForCursorLast()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(11_000)]
+    public void Create_ShouldThrow_OnInvalidLimit_ForCursorLast(int limit)
     {
-        Should.Throw<ArgumentOutOfRangeException>(() => Cursor.Last(limit: 0));
+        Should.Throw<ArgumentOutOfRangeException>(() => Cursor.Last(limit: limit));
     }
 
-    [Fact]
-    public void Create_ShouldThrow_OnInvalidLimit_ForCursorFirst()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(11_000)]
+    public void Create_ShouldThrow_OnInvalidLimit_ForCursorFirst(int limit)
     {
-        Should.Throw<ArgumentOutOfRangeException>(() => Cursor.First(limit: 0));
+        Should.Throw<ArgumentOutOfRangeException>(() => Cursor.First(limit: limit));
     }
 
     [Fact]
