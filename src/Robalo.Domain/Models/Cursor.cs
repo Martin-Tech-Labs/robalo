@@ -59,7 +59,7 @@ public sealed partial record Cursor
         }
 
         var limit = int.Parse(components[0], NumberStyles.None, CultureInfo.InvariantCulture);
-        if (limit < 1 && limit > _maxLimit)
+        if (limit < 1 || limit > _maxLimit)
         {
             throw new ArgumentException($"Invalid cursor: Limit must be greater than zero and less than {_maxLimit}", nameof(cursorString));
         }

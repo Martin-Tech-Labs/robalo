@@ -5,6 +5,7 @@ using Robalo.Tests.Common;
 using Robalo.Common.Models;
 using Robalo.Common.Extensions;
 using Robalo.Domain.Events;
+using System.Data.Common;
 
 
 namespace Robalo.Domain.UnitTests.Repositories;
@@ -480,5 +481,130 @@ public class InMemoryThreadRepositoryTests
         var result = await _sut.GetMessage(thread.Id, messageNumber, TestContext.Current.CancellationToken);
         result.HasValue.ShouldBeTrue();
         result.ValueOrFailure.ShouldBe(expectedMessages[index]);
+    }
+
+    [Fact]
+    public async Task QueryMessages_ShouldReturnNone_OnNonExistingThread()
+    {
+        var result = await _sut.QueryMessages(ThreadIdentifier.NewIdentifier(), Cursor.First(20), TestContext.Current.CancellationToken);
+        result.ShouldBeNone();
+    }
+
+    [Fact]
+    public async Task QueryMessages_ShouldReturnNone_OnDeletedThread()
+    {
+        var thread = Thread.NewThread(ThreadIdentifier.NewIdentifier(), _fixture.Create<DateTimeOffset>());
+        await _sut.SaveThread(thread, TestContext.Current.CancellationToken);
+
+        (await _sut.DeleteThread(thread.Id, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Success>();
+
+        var result = await _sut.QueryMessages(thread.Id, Cursor.First(20), TestContext.Current.CancellationToken);
+        result.ShouldBeNone();
+    }
+
+    [Fact]
+    public async Task QueryMessages_ShouldReturnEmptyEmpty_OnThreadWithNoMessages()
+    {
+        var thread = Thread.NewThread(ThreadIdentifier.NewIdentifier(), _fixture.Create<DateTimeOffset>());
+        await _sut.SaveThread(thread, TestContext.Current.CancellationToken);
+
+        var result = await _sut.QueryMessages(thread.Id, Cursor.First(20), TestContext.Current.CancellationToken);
+        result.HasValue.ShouldBeTrue();
+
+        var queryResult = result.ValueOrFailure;
+
+        queryResult.Messages.ShouldNotBeNull();
+        queryResult.Messages.ShouldBeEmpty();
+        queryResult.Prev.ShouldBeNone();
+        queryResult.Next.ShouldBeNone();
+        queryResult.Self.ShouldBeNone();
+    }
+
+
+    [Theory]
+    [InlineData(10, 2, null, new[] { 9, 10 }, new[] { 7, 8 }, new int[] { })]
+    [InlineData(10, 3, 9, new[] { 9, 10 }, new[] { 6, 7, 8 }, new int[] { })]
+    [InlineData(10, 2, 1, new[] { 1, 2 }, new int[] { }, new int[] { 3, 4 })]
+    [InlineData(10, 3, 4, new[] { 4, 5, 6 }, new int[] { 1, 2, 3 }, new int[] { 7, 8, 9 })]
+    [InlineData(10, 5, 6, new[] { 6, 7, 8, 9, 10 }, new int[] { 1, 2, 3, 4, 5 }, new int[] { })]
+    [InlineData(10, 5, 16, new int[] { }, new int[] { }, new int[] { })]
+    [InlineData(10, 10, null, new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, new int[] { }, new int[] { })]
+    [InlineData(10, 20, null, new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, new int[] { }, new int[] { })]
+    public async Task QueryMessages_ShouldProduceExpectedResult(
+        int numOfMessages,
+        int limit,
+        int? reference,
+        int[] expectedMessageNumbers,
+        int[] expectedMessageNumbersPrev,
+        int[] expectedMessageNumbersNext)
+    {
+        var thread = Thread.NewThread(ThreadIdentifier.NewIdentifier(), _fixture.Create<DateTimeOffset>());
+
+        for (var i = 1; i <= numOfMessages; i++)
+        {
+            thread.AddUserMessage($"Message_{i}", thread.ModifiedOn.AddSeconds(1));
+        }
+
+        (await _sut.SaveThread(thread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
+
+        var cursor = reference.HasValue ? Cursor.Create(limit, reference.Value) : Cursor.Last(limit);
+        var result = await _sut.QueryMessages(thread.Id, cursor, TestContext.Current.CancellationToken);
+        result.HasValue.ShouldBeTrue();
+
+        var queryResult = result.ValueOrFailure;
+
+        if (expectedMessageNumbers.Length > 0)
+        {
+            queryResult.Messages.ShouldNotBeNull();
+            queryResult.Messages.ShouldNotBeEmpty();
+
+            queryResult.Messages.Count.ShouldBe(expectedMessageNumbers.Length);
+
+            var expectedMessages = GenerateExpectedMessages(expectedMessageNumbers);
+
+            queryResult.Messages.ToList().ShouldBeEquivalentTo(expectedMessages);
+
+            queryResult.Self.HasValue.ShouldBeTrue();
+
+            var queryResultSelf = await _sut.QueryMessages(thread.Id, queryResult.Self.ValueOrFailure, TestContext.Current.CancellationToken);
+            queryResultSelf.ValueOrFailure.Messages.ShouldBeEquivalentTo(expectedMessages);
+        }
+        else
+        {
+            queryResult.Self.ShouldBeNone();
+            queryResult.Messages.ShouldBeEmpty();
+        }
+
+
+        if (expectedMessageNumbersPrev.Length > 0)
+        {
+            queryResult.Prev.HasValue.ShouldBeTrue();
+            var queryResultPrev = await _sut.QueryMessages(thread.Id, queryResult.Prev.ValueOrFailure, TestContext.Current.CancellationToken);
+
+            queryResultPrev.ValueOrFailure.Messages.ShouldBeEquivalentTo(GenerateExpectedMessages(expectedMessageNumbersPrev));
+        }
+        else
+        {
+            queryResult.Prev.ShouldBeNone();
+        }
+
+        if (expectedMessageNumbersNext.Length > 0)
+        {
+            queryResult.Next.HasValue.ShouldBeTrue();
+            var queryResultNext = await _sut.QueryMessages(thread.Id, queryResult.Next.ValueOrFailure, TestContext.Current.CancellationToken);
+
+            queryResultNext.ValueOrFailure.Messages.ShouldBeEquivalentTo(GenerateExpectedMessages(expectedMessageNumbersNext));
+        }
+        else
+        {
+            queryResult.Next.ShouldBeNone();
+
+        }
+
+
+        List<Message> GenerateExpectedMessages(int[] messageNumbers) =>
+           [.. messageNumbers.Select(i => new Message(i, MessageSource.User, $"Message_{i}", thread.CreatedOn.AddSeconds(i)))];
+
+
     }
 }

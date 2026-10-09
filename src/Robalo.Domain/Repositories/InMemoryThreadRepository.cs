@@ -1,4 +1,3 @@
-using System.Diagnostics.Tracing;
 using System.Runtime.CompilerServices;
 using Robalo.Common.Extensions;
 using Robalo.Common.Models;
