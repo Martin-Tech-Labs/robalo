@@ -28,7 +28,7 @@ namespace Robalo.Domain.Models;
 // 2. Cursor for next: 2, Ref=2, AscendingExcl
 // 3. Cursor for prev: N/A
 
-public sealed partial class Cursor
+public sealed partial record Cursor
 {
     public int Limit { get; }
     public int Reference { get; }
@@ -63,7 +63,7 @@ public sealed partial class Cursor
         };
 
 
-        var cursorString = _prefix + Base32.Rfc4648.Encode($"{limit}{_separator}{reference}{_separator}{(int)cursorDirection}".AsBytesUtf8(), padding: false);
+        var cursorString = _prefix + Base32.Rfc4648.Encode($"{limit}{_separator}{reference}{_separator}{(int)cursorDirection}".AsBytesUtf8(), padding: false).ToLowerInvariant();
 
         return new(limit, reference, cursorDirection, cursorString);
     }
