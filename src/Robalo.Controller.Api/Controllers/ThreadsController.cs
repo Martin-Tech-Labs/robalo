@@ -20,6 +20,8 @@ public class ThreadsController : ControllerBase
     private readonly IDateTimeOffsetProvider _dateTimeOffsetProvider;
     private readonly ProblemDetailsFactory _problemDetailsFactory;
 
+    private const int _queryLimit = 10;
+
     public ThreadsController(
         ILogger logger,
         IThreadRepository threadRepository,
@@ -83,6 +85,29 @@ public class ThreadsController : ControllerBase
             NotFound _ => NotFound()
         };
     }
+
+    // [HttpGet("{id}/messages")]
+    // public async Task<IActionResult> GetMessages(
+    //     string id,
+    //     CancellationToken cancellationToken)
+    // {
+    //     var threadIdOrNone = ThreadIdentifier.TryGetFromId(id);
+    //     if (!threadIdOrNone.HasValue)
+    //     {
+    //         return NotFound();
+    //     }
+
+    //     return await _threadRepository.QueryMessages(threadIdOrNone.ValueOrFailure, cancellationToken) switch
+    //     {
+    //         None => NotFound(),
+    //         Some<IAsyncEnumerable<Message>> messages => NotFound()
+    //     };
+
+    //     void test(IAsyncEnumerable<Message> messages)
+    //     {
+    //         // messages.
+    //     }
+    // }
 
     [HttpGet("{id}/messages/{number}")]
     public async Task<IActionResult> GetMessage(string id, int number, CancellationToken cancellationToken)

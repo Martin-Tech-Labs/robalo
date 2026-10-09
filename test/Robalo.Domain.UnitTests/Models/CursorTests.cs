@@ -1,4 +1,5 @@
 using Robalo.Domain.Models;
+using Robalo.Tests.Common;
 
 namespace Robalo.Domain.UnitTests.Models;
 
@@ -9,19 +10,25 @@ public class CursorTests
     [Fact]
     public void Create_ShouldThrow_OnInvalidLimit()
     {
-        Should.Throw<ArgumentOutOfRangeException>(() => Cursor.Create(limit: 0, reference: 1, cursorDirection: _fixture.Create<CursorDirection>()));
+        Should.Throw<ArgumentOutOfRangeException>(() => Cursor.Create(limit: 0, reference: 1));
+    }
+
+    [Fact]
+    public void Create_ShouldThrow_OnInvalidLimit_ForCursorLast()
+    {
+        Should.Throw<ArgumentOutOfRangeException>(() => Cursor.Last(limit: 0));
+    }
+
+    [Fact]
+    public void Create_ShouldThrow_OnInvalidLimit_ForCursorFirst()
+    {
+        Should.Throw<ArgumentOutOfRangeException>(() => Cursor.First(limit: 0));
     }
 
     [Fact]
     public void Create_ShouldThrow_OnInvalidReference()
     {
-        Should.Throw<ArgumentOutOfRangeException>(() => Cursor.Create(limit: 1, reference: 0, cursorDirection: _fixture.Create<CursorDirection>()));
-    }
-
-    [Fact]
-    public void Create_ShouldThrow_OnInvalidDirection()
-    {
-        Should.Throw<ArgumentOutOfRangeException>(() => Cursor.Create(limit: 1, reference: 1, (CursorDirection)55));
+        Should.Throw<ArgumentOutOfRangeException>(() => Cursor.Create(limit: 1, reference: -1));
     }
 
     [Fact]
@@ -29,27 +36,72 @@ public class CursorTests
     {
         var limit = _fixture.Create<int>();
         var reference = _fixture.Create<int>();
-        var direction = _fixture.Create<CursorDirection>();
-        var cursor = Cursor.Create(limit: limit, reference: reference, direction);
+        var cursor = Cursor.Create(limit: limit, reference: reference);
 
         cursor.Limit.ShouldBe(limit);
         cursor.Reference.ShouldBe(reference);
-        cursor.Direction.ShouldBe(direction);
+        cursor.CursorString.ShouldNotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public void Create_ShouldCreateValidCursor_WithCursorLast()
+    {
+        var limit = _fixture.Create<int>();
+        var cursor = Cursor.Last(limit: limit);
+
+        cursor.Limit.ShouldBe(limit);
+        cursor.Reference.ShouldBeNone();
+        cursor.CursorString.ShouldNotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public void Create_ShouldCreateValidCursor_WithCursorFirst()
+    {
+        var limit = _fixture.Create<int>();
+        var cursor = Cursor.First(limit: limit);
+
+        cursor.Limit.ShouldBe(limit);
+        cursor.Reference.ShouldBe(1);
         cursor.CursorString.ShouldNotBeNullOrWhiteSpace();
     }
 
     [Fact]
     public void FromCursorString_ShouldRestoreValidCursor()
     {
-        var cursor = Cursor.Create(_fixture.Create<int>(), _fixture.Create<int>(), _fixture.Create<CursorDirection>());
+        var cursor = Cursor.Create(_fixture.Create<int>(), _fixture.Create<int>());
 
         var cursorNew = Cursor.FromCursorString(cursor.CursorString);
         cursorNew.CursorString.ShouldBe(cursor.CursorString);
         cursorNew.Limit.ShouldBe(cursor.Limit);
         cursorNew.Reference.ShouldBe(cursor.Reference);
-        cursorNew.Direction.ShouldBe(cursor.Direction);
 
-        cursorNew.ShouldBe(cursor);    
+        cursorNew.ShouldBe(cursor);
+    }
+
+    [Fact]
+    public void FromCursorString_ShouldRestoreValidCursor_WithCursorLast()
+    {
+        var cursor = Cursor.Last(_fixture.Create<int>());
+
+        var cursorNew = Cursor.FromCursorString(cursor.CursorString);
+        cursorNew.CursorString.ShouldBe(cursor.CursorString);
+        cursorNew.Limit.ShouldBe(cursor.Limit);
+        cursorNew.Reference.ShouldBe(cursor.Reference);
+
+        cursorNew.ShouldBe(cursor);
+    }
+
+    [Fact]
+    public void FromCursorString_ShouldRestoreValidCursor_WithCursorFirst()
+    {
+        var cursor = Cursor.First(_fixture.Create<int>());
+
+        var cursorNew = Cursor.FromCursorString(cursor.CursorString);
+        cursorNew.CursorString.ShouldBe(cursor.CursorString);
+        cursorNew.Limit.ShouldBe(cursor.Limit);
+        cursorNew.Reference.ShouldBe(cursor.Reference);
+
+        cursorNew.ShouldBe(cursor);
     }
 
     [Fact]
