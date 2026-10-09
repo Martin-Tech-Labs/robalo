@@ -13,6 +13,7 @@ public sealed partial record Cursor
 
     private const string _separator = "!";
     private const string _prefix = "crs_";
+    private const int _maxLimit = 10_000;
 
     Cursor(int limit, Option<int> reference, string cursorString)
     {
@@ -24,6 +25,7 @@ public sealed partial record Cursor
     public static Cursor Create(int limit, int reference)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(limit, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(limit, _maxLimit);
         ArgumentOutOfRangeException.ThrowIfLessThan(reference, 1);
 
         var cursorString = _prefix + Base32.Rfc4648.Encode($"{limit}{_separator}{reference}".AsBytesUtf8(), padding: false).ToLowerInvariant();
@@ -33,6 +35,7 @@ public sealed partial record Cursor
     public static Cursor Last(int limit)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(limit, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(limit, _maxLimit);
 
         var cursorString = _prefix + Base32.Rfc4648.Encode($"{limit}".AsBytesUtf8(), padding: false).ToLowerInvariant();
         return new(limit, None.Default, cursorString);
@@ -56,9 +59,9 @@ public sealed partial record Cursor
         }
 
         var limit = int.Parse(components[0], NumberStyles.None, CultureInfo.InvariantCulture);
-        if (limit < 1)
+        if (limit < 1 && limit > _maxLimit)
         {
-            throw new ArgumentException("Invalid cursor: Limit must be greater than zero", nameof(cursorString));
+            throw new ArgumentException($"Invalid cursor: Limit must be greater than zero and less than {_maxLimit}", nameof(cursorString));
         }
 
         if (components.Length == 1)
