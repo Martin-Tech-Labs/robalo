@@ -2,16 +2,23 @@ using Robalo.Common.Models;
 
 namespace Robalo.Domain.Models;
 
-public abstract class AggregateRoot<TSelf>(Identifier id, Version version) where TSelf : AggregateRoot<TSelf>
+public abstract class AggregateRoot<TSelf> where TSelf : AggregateRoot<TSelf>
 {
-    public Identifier Id { get; } = id;
-    public Option<Version> OldVersion { get; protected set; } = new None();
-    public Version NewVersion { get; protected set; } = version;
+    public ThreadIdentifier Id { get; }
+    public Option<Version> OldVersion { get; protected set; } = None.Default;
+    public Version NewVersion { get; protected set; }
 
-    public IReadOnlyList<object> PendingEvents => _pendingEvents.AsReadOnly<object>();
+    public IReadOnlyList<object> PendingEvents { get; }
 
     readonly Dictionary<Type, Action<object>> _eventHandlers = [];
     readonly List<object> _pendingEvents = [];
+
+    public AggregateRoot(ThreadIdentifier id, Version version)
+    {
+        Id = id; 
+        NewVersion = version;
+        PendingEvents = _pendingEvents.AsReadOnly();
+    }
 
     protected void When<TEvent>(Action<TEvent> actionType)
     {
@@ -28,13 +35,10 @@ public abstract class AggregateRoot<TSelf>(Identifier id, Version version) where
         {
             action(@event);
             _pendingEvents.Add(@event);
-        }
-        else
-        {
-            throw new InvalidOperationException($"Registration for event {@event.GetType().Name}");
+            return (TSelf)this;
         }
 
-        return (TSelf)this;
+        throw new InvalidOperationException($"Missing registration for event {@event.GetType().Name}");
     }
 
     public TSelf MarkAggregateAsSynchronized(Option<Version> version = default)

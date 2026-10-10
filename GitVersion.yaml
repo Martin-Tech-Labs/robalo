@@ -8,4 +8,7 @@ branches:
     mode: ContinuousDeployment
     label: ''
 
+  pull-request:
+    is-main-branch: false
+
 assembly-informational-format: '{SemVer}+{ShortSha}'
