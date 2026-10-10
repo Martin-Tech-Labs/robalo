@@ -22,7 +22,7 @@ public sealed partial class ThreadIdentifier : IEquatable<ThreadIdentifier>
     public static implicit operator string(ThreadIdentifier value) => value.ToString();
 
 
-    public static Option<ThreadIdentifier> TryGetFromId(string? id)
+    public static Option<ThreadIdentifier> TryGetFromId(string id)
     {
         try
         {

@@ -258,7 +258,8 @@ static GitVersionOutput GetGitVersion()
     new ProcessSettings
     {
         Arguments = "GitVersion.Tool /output json",
-        RedirectStandardOutput = true
+        RedirectStandardOutput = true,
+        RedirectStandardError = true
     },
     out IEnumerable<string> output);
 
