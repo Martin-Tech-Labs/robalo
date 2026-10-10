@@ -34,7 +34,7 @@ public sealed partial class ThreadIdentifier : IEquatable<ThreadIdentifier>
         }
     }
 
-    public static ThreadIdentifier FromId(string? id)
+    public static ThreadIdentifier FromId(string id)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
 

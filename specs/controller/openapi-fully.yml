@@ -481,7 +481,7 @@ paths:
         - Messages
       operationId: getMessageBatch
       summary: Follow an opaque message pagination link
-      description: The server chooses the batch size. Clients follow the returned links unchanged. The initial request selects the latest messages; next selects older messages and prev newer messages. Array order is unspecified. The cursor-based self link anchors the selected batch so new messages do not shift it; it does not preserve deleted or edited messages. first retrieves the latest batch and last the oldest. next and prev are omitted when no corresponding batch exists.
+      description: The server chooses the batch size. Clients follow the returned links unchanged. The initial request selects the latest messages; next selects newer messages and prev older messages. Array order is unspecified. The cursor-based self link anchors the selected batch so new messages do not shift it. First retrieves the oldest batch and last the newst. next and prev are omitted when no corresponding batch exists.
       responses:
         '200':
           description: A batch of messages with navigation links.

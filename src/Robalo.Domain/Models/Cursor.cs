@@ -53,10 +53,11 @@ public sealed partial record Cursor
         {
             return FromCursorString(cursorString);
         }
-        catch (ArgumentException)
-        {
-            return None.Default;
-        }
+        catch (ArgumentException) { }
+        catch (OverflowException) { }
+        catch (FormatException) { }
+
+        return None.Default;
     }
 
     public static Cursor FromCursorString(string cursorString)
