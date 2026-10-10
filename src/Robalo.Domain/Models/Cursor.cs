@@ -47,6 +47,18 @@ public sealed partial record Cursor
 
     public static implicit operator string(Cursor value) => value.ToString();
 
+    public static Option<Cursor> TryGetFromCursorString(string cursorString)
+    {
+        try
+        {
+            return FromCursorString(cursorString);
+        }
+        catch (ArgumentException)
+        {
+            return None.Default;
+        }
+    }
+
     public static Cursor FromCursorString(string cursorString)
     {
         if (!cursorString.StartsWith(_prefix, StringComparison.Ordinal))

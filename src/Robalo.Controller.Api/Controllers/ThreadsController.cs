@@ -86,23 +86,41 @@ public class ThreadsController : ControllerBase
         };
     }
 
+    [HttpGet("{id}/messages/query/{cursor}")]
+    public async Task<IActionResult> GetMessages(
+        string id,
+        string cursor,
+        CancellationToken cancellationToken)
+    {
+        return Cursor.TryGetFromCursorString(cursor) switch
+        {
+            Some<Cursor> some => await QueryMessages(id, some, cancellationToken),
+            _ => NotFound()
+        };
+    }
+
     [HttpGet("{id}/messages")]
     public async Task<IActionResult> GetMessages(
         string id,
-        CancellationToken cancellationToken)
-    {
-        var threadIdOrNone = ThreadIdentifier.TryGetFromId(id);
-        if (!threadIdOrNone.HasValue)
-        {
-            return NotFound();
-        }
+        CancellationToken cancellationToken) => await QueryMessages(id, Cursor.Last(_queryLimit), cancellationToken);
 
+    private async Task<IActionResult> QueryMessages(string threadId, Cursor cursor, CancellationToken cancellationToken)
+    {
+        return ThreadIdentifier.TryGetFromId(threadId) switch
+        {
+            Some<ThreadIdentifier> some => await QueryMessages(some, cursor, cancellationToken),
+            _ => NotFound()
+        };
+    }
+
+    private async Task<IActionResult> QueryMessages(ThreadIdentifier threadId, Cursor cursor, CancellationToken cancellationToken)
+    {
         return await _threadRepository.QueryMessages(
-            threadIdOrNone.ValueOrFailure,
-            Cursor.Last(_queryLimit), cancellationToken) switch
+            threadId,
+            cursor, cancellationToken) switch
         {
             None => NotFound(),
-            Some<QueryResult> queryResult => GetQueryResource(threadIdOrNone.ValueOrFailure, queryResult).AsOk()
+            Some<QueryResult> queryResult => GetQueryResource(threadId, queryResult).AsOk()
         };
 
         MessageQueryResource GetQueryResource(ThreadIdentifier threadId, QueryResult queryResult)
