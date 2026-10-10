@@ -1,6 +1,6 @@
 namespace Robalo.Controller.Api;
 
-record EnvironmentInfo(
+sealed record EnvironmentInfo(
     string? ApplicationName, 
     string? Version, 
     string? OS, 

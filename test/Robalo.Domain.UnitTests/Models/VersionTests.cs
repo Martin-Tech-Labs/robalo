@@ -21,7 +21,7 @@ public class VersionTests
         var version1 = Version.NewVersion();
         var version2 = Version.NewVersion();
 
-        version1.VersionString.Equals(version2.VersionString, StringComparison.InvariantCultureIgnoreCase).ShouldBeFalse();
+        version1.VersionString.Equals(version2.VersionString, StringComparison.OrdinalIgnoreCase).ShouldBeFalse();
         version1.Equals(version2).ShouldBeFalse();
         version1.GetHashCode().ShouldNotBe(version2.GetHashCode());
     }
@@ -32,7 +32,7 @@ public class VersionTests
         var version1 = Version.NewVersion();
         var version2 = Version.FromVersionString(version1.VersionString);
 
-        version1.VersionString.Equals(version2.VersionString, StringComparison.InvariantCultureIgnoreCase).ShouldBeTrue();
+        version1.VersionString.Equals(version2.VersionString, StringComparison.OrdinalIgnoreCase).ShouldBeTrue();
         version1.Equals(version2).ShouldBeTrue();
         version1.GetHashCode().ShouldBe(version2.GetHashCode());
     }

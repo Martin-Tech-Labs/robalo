@@ -2,15 +2,17 @@
   "type": "module",
   "scripts": {
     "precheck": "tsc --noEmit --strict --module nodenext --target es2022 --erasableSyntaxOnly --verbatimModuleSyntax --allowImportingTsExtensions --types chai AcceptanceTests/Scenarios/*.ts",
-    "test": "npm run precheck && mocha"
+    "test": "npm run precheck && mocha",
+    "generate-spec": "npm exec -- redocly bundle specs/controller/openapi.yml --dereferenced --output specs/controller/openapi-fully.yml"
   },
   "mocha": {
     "spec": [
       "AcceptanceTests/Scenarios/*.ts"
     ],
-    "reporter":"github-actions"
+    "reporter": "github-actions"
   },
   "devDependencies": {
+    "@redocly/cli": "^2.54.2",
     "@types/chai": "^5.2.3",
     "@types/mocha": "^10.0.10",
     "@types/node": "^26.6.3",
