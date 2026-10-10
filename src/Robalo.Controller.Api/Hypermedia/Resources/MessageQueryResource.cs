@@ -4,7 +4,7 @@ namespace Robalo.Controller.Api.Hypermedia.Resources;
 
 public record MessageQueryResource(
     [property: JsonPropertyName("_embedded")]
-    List<MessageResource> Embedded,
+    Embedded Embedded,
     MessageQueryLinks Links) : HalResource<MessageQueryLinks>(Links);
 
 public record MessageQueryLinks(
@@ -13,8 +13,8 @@ public record MessageQueryLinks(
     Link Events,
     Link? Next,
     Link? Prev,
-    Link? First,
-    Link? Last) : Links(Self);
+    Link First,
+    Link Last) : Links(Self);
 
 
 public record Embedded(List<MessageResource> Messages);

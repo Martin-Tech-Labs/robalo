@@ -86,28 +86,44 @@ public class ThreadsController : ControllerBase
         };
     }
 
-    // [HttpGet("{id}/messages")]
-    // public async Task<IActionResult> GetMessages(
-    //     string id,
-    //     CancellationToken cancellationToken)
-    // {
-    //     var threadIdOrNone = ThreadIdentifier.TryGetFromId(id);
-    //     if (!threadIdOrNone.HasValue)
-    //     {
-    //         return NotFound();
-    //     }
+    [HttpGet("{id}/messages")]
+    public async Task<IActionResult> GetMessages(
+        string id,
+        CancellationToken cancellationToken)
+    {
+        var threadIdOrNone = ThreadIdentifier.TryGetFromId(id);
+        if (!threadIdOrNone.HasValue)
+        {
+            return NotFound();
+        }
 
-    //     return await _threadRepository.QueryMessages(threadIdOrNone.ValueOrFailure, cancellationToken) switch
-    //     {
-    //         None => NotFound(),
-    //         Some<IAsyncEnumerable<Message>> messages => NotFound()
-    //     };
+        return await _threadRepository.QueryMessages(
+            threadIdOrNone.ValueOrFailure,
+            Cursor.Last(_queryLimit), cancellationToken) switch
+        {
+            None => NotFound(),
+            Some<QueryResult> queryResult => GetQueryResource(threadIdOrNone.ValueOrFailure, queryResult).AsOk()
+        };
 
-    //     void test(IAsyncEnumerable<Message> messages)
-    //     {
-    //         // messages.
-    //     }
-    // }
+        MessageQueryResource GetQueryResource(ThreadIdentifier threadId, QueryResult queryResult)
+        {
+            return new MessageQueryResource(
+                Embedded: new([.. queryResult.Messages.Select(m => GetMessageResource(m, threadId))]),
+                Links: new MessageQueryLinks(
+                    Self: queryResult.Self switch
+                    {
+                        Some<Cursor> cursor => HttpContext.LinkToCursor(threadId, cursor.Value),
+                        _ => HttpContext.LinkToMessages(threadId)
+                    },
+                    Thread: HttpContext.LinkToThreadId(threadId),
+                    Events: HttpContext.LinkToEventsWithThreadId(threadId),
+                    Next: queryResult.Next.FuncOrDefault(cursor => HttpContext.LinkToCursor(threadId, cursor)),
+                    Prev: queryResult.Prev.FuncOrDefault(cursor => HttpContext.LinkToCursor(threadId, cursor)),
+                    First: HttpContext.LinkToCursor(threadId, Cursor.First(_queryLimit)),
+                    Last: HttpContext.LinkToCursor(threadId, Cursor.Last(_queryLimit)
+            )));
+        }
+    }
 
     [HttpGet("{id}/messages/{number}")]
     public async Task<IActionResult> GetMessage(string id, int number, CancellationToken cancellationToken)
@@ -168,9 +184,9 @@ public class ThreadsController : ControllerBase
                   thread.Title,
                   thread.Id.Id,
                   new ThreadLinks(
-                      Self: HttpContext.LinkToPath($"/threads/{thread.Id}"),
-                      Messages: HttpContext.LinkToPath($"/threads/{thread.Id}/messages"),
-                      Events: HttpContext.LinkToPath($"/events?thread_id={thread.Id}")));
+                      Self: HttpContext.LinkToThreadId(thread.Id),
+                      Messages: HttpContext.LinkToMessages(thread.Id),
+                      Events: HttpContext.LinkToEventsWithThreadId(thread.Id)));
 
     MessageResource GetMessageResource(Message message, ThreadIdentifier threadId) => new(
         message.Content,
@@ -179,9 +195,9 @@ public class ThreadsController : ControllerBase
         threadId.Id,
         message.Number,
         new MessageLinks(
-            Self: HttpContext.LinkToPath($"/threads/{threadId}/messages/{message.Number}"),
-            Thread: HttpContext.LinkToPath($"/threads/{threadId}"),
-            Events: HttpContext.LinkToPath($"/events?thread_id={threadId}")));
+            Self: HttpContext.LinkToMessageNumber(threadId, message.Number),
+            Thread: HttpContext.LinkToThreadId(threadId),
+            Events: HttpContext.LinkToEventsWithThreadId(threadId)));
 
     ConflictObjectResult GetConcurrencyResult(string detail) => new(
         _problemDetailsFactory.CreateProblemDetails(

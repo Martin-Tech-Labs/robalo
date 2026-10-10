@@ -37,11 +37,4 @@ public static class OptionAssertions
     {
         (value is None).ShouldBeTrue($"Expected {value} to be None");
     }
-
-    public static T ValueOr<T>(this Option<T> value, T alternativeValue) where T : notnull =>
-    value switch
-    {
-        Some<T> some => some,
-        _ => alternativeValue
-    };
 }

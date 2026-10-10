@@ -522,6 +522,7 @@ public class InMemoryThreadRepositoryTests
 
 
     [Theory]
+    [InlineData(11, 10, null, new[] { 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 }, new[] { 1 }, new int[] { })]
     [InlineData(10, 2, null, new[] { 9, 10 }, new[] { 7, 8 }, new int[] { })]
     [InlineData(10, 3, 9, new[] { 9, 10 }, new[] { 6, 7, 8 }, new int[] { })]
     [InlineData(10, 2, 1, new[] { 1, 2 }, new int[] { }, new int[] { 3, 4 })]
@@ -548,6 +549,7 @@ public class InMemoryThreadRepositoryTests
         (await _sut.SaveThread(thread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
 
         var cursor = reference.HasValue ? Cursor.Create(limit, reference.Value) : Cursor.Last(limit);
+
         var result = await _sut.QueryMessages(thread.Id, cursor, TestContext.Current.CancellationToken);
         result.HasValue.ShouldBeTrue();
 
@@ -582,6 +584,10 @@ public class InMemoryThreadRepositoryTests
             var queryResultPrev = await _sut.QueryMessages(thread.Id, queryResult.Prev.ValueOrFailure, TestContext.Current.CancellationToken);
 
             queryResultPrev.ValueOrFailure.Messages.ShouldBeEquivalentTo(GenerateExpectedMessages(expectedMessageNumbersPrev));
+
+            var queryNextFromPrev = await _sut.QueryMessages(thread.Id, queryResultPrev.ValueOrFailure.Next.ValueOrFailure, TestContext.Current.CancellationToken);
+
+            queryNextFromPrev.ValueOrFailure.Messages.ShouldBeEquivalentTo(GenerateExpectedMessages(expectedMessageNumbers));
         }
         else
         {
@@ -594,6 +600,10 @@ public class InMemoryThreadRepositoryTests
             var queryResultNext = await _sut.QueryMessages(thread.Id, queryResult.Next.ValueOrFailure, TestContext.Current.CancellationToken);
 
             queryResultNext.ValueOrFailure.Messages.ShouldBeEquivalentTo(GenerateExpectedMessages(expectedMessageNumbersNext));
+
+            var queryPrevFromNext = await _sut.QueryMessages(thread.Id, queryResultNext.ValueOrFailure.Prev.ValueOrFailure, TestContext.Current.CancellationToken);
+
+            queryPrevFromNext.ValueOrFailure.Messages.ShouldBeEquivalentTo(GenerateExpectedMessages(expectedMessageNumbers));
         }
         else
         {
@@ -604,7 +614,5 @@ public class InMemoryThreadRepositoryTests
 
         List<Message> GenerateExpectedMessages(int[] messageNumbers) =>
            [.. messageNumbers.Select(i => new Message(i, MessageSource.User, $"Message_{i}", thread.CreatedOn.AddSeconds(i)))];
-
-
     }
 }

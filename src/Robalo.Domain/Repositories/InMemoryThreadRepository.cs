@@ -197,20 +197,32 @@ public sealed class InMemoryThreadRepository : IThreadRepository
                 return QueryResult.Empty();
             }
 
-            var messages = GetMessages(thread, eventsCount).ToList();
+            var messages = GetMessages(
+                thread: thread,
+                eventsCount: eventsCount,
+                reference: cursor.Reference,
+                limit: cursor.OverrideLimit.ValueOr(cursor.Limit),
+                cancellationToken: cancellationToken).ToList();
+            
             if (messages.Count == 0)
             {
                 throw new InvalidOperationException("Unexpected empty list of messages");
             }
 
-            Cursor self = Cursor.Create(messages.Count, messages[0].Number);
+            Cursor self = Cursor.Create(cursor.Limit, messages[0].Number)
+                .DoIf(cursor => messages.Count < cursor.Limit, cursor => cursor.WithOneOffLimitOverride(messages.Count));
+
+            var prevReference = Math.Max(1, messages[0].Number - cursor.Limit);
+            var prevSize = messages[0].Number - prevReference;
+
             Option<Cursor> prev = messages[0].Number == 1 ?
                 None.Default :
-                Cursor.Create(cursor.Limit, Math.Max(1, messages[0].Number - cursor.Limit));
+                Cursor.Create(limit: cursor.Limit, reference: prevReference)
+                .DoIf(cursor => prevSize < cursor.Limit, cursor => cursor.WithOneOffLimitOverride(prevSize));
 
             Option<Cursor> next = messages[^1].Number == eventsCount ?
                  None.Default :
-                 Cursor.Create(cursor.Limit, messages[^1].Number + 1);
+                 Cursor.Create(limit: cursor.Limit, reference: messages[^1].Number + 1);
 
             return new(
                 Messages: messages,
@@ -219,28 +231,29 @@ public sealed class InMemoryThreadRepository : IThreadRepository
                 Next: next);
         }
 
-        IEnumerable<Message> GetMessages(ThreadStorage thread, int eventsCount)
+
+    }
+
+    IEnumerable<Message> GetMessages(ThreadStorage thread, int eventsCount, Option<int> reference, int limit, CancellationToken cancellationToken)
+    {
+        var startIndex = reference switch
         {
-            var startIndex = cursor.Reference switch
+            Some<int> some => some - 1,
+            _ => Math.Max(0, eventsCount - limit)
+        };
+
+        var endIndex = Math.Min(eventsCount - 1, startIndex + limit - 1);
+
+        for (var i = startIndex; i <= endIndex; i++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            UserMessageAdded userMessageAdded;
+            lock (_lock)
             {
-                Some<int> some => some - 1,
-                _ => Math.Max(0, eventsCount - cursor.Limit )
-            };
-
-            var endIndex = Math.Min(eventsCount - 1, startIndex + cursor.Limit - 1);
-
-
-            for (var i = startIndex; i <= endIndex; i++)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                UserMessageAdded userMessageAdded;
-                lock (_lock)
-                {
-                    userMessageAdded = thread.Events[i];
-                }
-
-                yield return Message.FromUserMessageAdded(userMessageAdded, i + 1);
+                userMessageAdded = thread.Events[i];
             }
+
+            yield return Message.FromUserMessageAdded(userMessageAdded, i + 1);
         }
     }
 }
