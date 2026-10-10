@@ -258,12 +258,25 @@ static GitVersionOutput GetGitVersion()
     new ProcessSettings
     {
         Arguments = "GitVersion.Tool /output json",
-        RedirectStandardOutput = true
+        RedirectStandardOutput = true,
+        RedirectStandardError = true
     },
-    out IEnumerable<string> output);
+    out IEnumerable<string> output,
+    out IEnumerable<string> error);
 
     if (exitCode != 0)
     {
+        AnsiConsole.MarkupLine($"[bold red]Oh, no![/] [yellow]GitVersion failed[/] (exit code [bold]{exitCode}[/]).");
+
+        var stdout = string.Join(Environment.NewLine, output);
+        var stderr = string.Join(Environment.NewLine, error);
+
+        AnsiConsole.WriteLine("Output:");
+        AnsiConsole.WriteLine(string.IsNullOrWhiteSpace(stdout) ? "<nothing>" : stdout);
+
+        AnsiConsole.WriteLine("Error:");
+        AnsiConsole.WriteLine(string.IsNullOrWhiteSpace(stderr) ? "<nothing>" : stderr);
+
         throw new Exception($"GitVersion failed with exit code {exitCode}");
     }
 

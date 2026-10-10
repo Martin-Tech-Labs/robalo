@@ -9,7 +9,7 @@ public static class LambdaExtensions
             yield return map(item);
         }
     }
-    
+
     public static T1 ForEach<T1, T2>(this T1 value, IEnumerable<T2> items, Action<T1, T2> action)
         where T1 : notnull
         where T2 : notnull
@@ -29,6 +29,16 @@ public static class LambdaExtensions
             action(value1, value2);
         }
         return value1;
+    }
+
+    public static T DoIf<T>(this T value, Func<T, bool> predicate, Func<T, T> func)
+        where T : notnull
+    {
+        if (predicate(value))
+        {
+            return func(value);
+        }
+        return value;
     }
 
     public static T Do<T>(this T value, Action<T> action)

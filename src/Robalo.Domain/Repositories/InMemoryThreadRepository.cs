@@ -9,13 +9,13 @@ namespace Robalo.Domain.Repositories;
 
 public sealed class InMemoryThreadRepository : IThreadRepository
 {
-    private record ThreadStorage(
+    private sealed record ThreadStorage(
         string? Title,
         Version Version,
         DateTimeOffset CreatedOn,
         List<UserMessageAdded> Events);
 
-    private readonly Dictionary<Identifier, ThreadStorage> _threads = [];
+    private readonly Dictionary<ThreadIdentifier, ThreadStorage> _threads = [];
     private readonly Lock _lock = new();
     private readonly ILogger _logger;
 
@@ -24,49 +24,37 @@ public sealed class InMemoryThreadRepository : IThreadRepository
         _logger = logger.ForContext(GetType());
     }
 
-    public async Task<SuccessOrNotFound> DeleteThread(Identifier identifier, CancellationToken cancellationToken)
+    public async Task<SuccessOrNotFound> DeleteThread(ThreadIdentifier identifier, CancellationToken cancellationToken)
     {
-        if (identifier.Type != Identifier.IdentifierType.Thread)
-        {
-            throw new ArgumentException("Wrong identifier type", nameof(identifier));
-        }
-
         lock (_lock)
         {
             return _threads.Remove(identifier) ? new Success() : new NotFound();
         }
     }
 
-    public async Task<Option<Thread>> GetThread(Identifier identifier, CancellationToken cancellationToken)
+    public async Task<Option<Thread>> GetThread(ThreadIdentifier identifier, CancellationToken cancellationToken)
     {
-        if (identifier.Type != Identifier.IdentifierType.Thread)
+        lock (_lock)
         {
-            throw new ArgumentException("Wrong identifier type", nameof(identifier));
+            return GetThreadOrNone(identifier) switch
+            {
+                None none => none,
+                Some<ThreadStorage> threadStorage =>
+                    Thread.NewThread(identifier, threadStorage.Value.CreatedOn)
+                    .ForEach(items: threadStorage.Value.Events, action: (t, i) => t.AddUserMessage(i.Content, i.AddedOn))
+                    .DoIfNotNullOrWhiteSpace(threadStorage.Value.Title, (thr, title) => thr.UpdateTitle(title))
+                    .MarkAggregateAsSynchronized(threadStorage.Value.Version)
+            };
         }
-
-        return GetThreadOrNone(identifier) switch
-        {
-            None none => none,
-            Some<ThreadStorage> threadStorage =>
-                Thread.NewThread(identifier, threadStorage.Value.CreatedOn)
-                .ForEach(items: threadStorage.Value.Events, action: (t, i) => t.AddUserMessage(i.Id, i.Content, i.AddedOn))
-                .DoIfNotNullOrWhiteSpace(threadStorage.Value.Title, (thr, title) => thr.UpdateTitle(title))
-                .MarkAggregateAsSynchronized(threadStorage.Value.Version)
-        };
     }
 
     public async Task<UpdateResult> SaveThread(Thread thread, CancellationToken cancellationToken)
     {
+        // No changes
         if (thread.OldVersion == thread.NewVersion)
         {
             return new NoChanges();
         }
-
-        var threadStorage = new ThreadStorage(
-            Title: thread.Title,
-            Version: thread.NewVersion,
-            CreatedOn: thread.CreatedOn,
-            Events: [.. thread.Messages.MapEach(UserMessageAdded.FromMessage)]);
 
         // Create
         if (!thread.OldVersion.HasValue)
@@ -78,7 +66,11 @@ public sealed class InMemoryThreadRepository : IThreadRepository
                     return new ConcurrencyConflict();
                 }
 
-                _threads[thread.Id] = threadStorage;
+                _threads[thread.Id] = new(
+                          Title: thread.Title,
+                          Version: thread.NewVersion,
+                          CreatedOn: thread.CreatedOn,
+                          Events: [.. thread.Messages.MapEach(UserMessageAdded.FromMessage)]);
             }
 
             thread.MarkAggregateAsSynchronized();
@@ -99,20 +91,52 @@ public sealed class InMemoryThreadRepository : IThreadRepository
                 return new ConcurrencyConflict();
             }
 
-            _threads[thread.Id] = threadStorage;
+            var threadStorage = threadOrNone.ValueOrFailure;
+
+            _threads[thread.Id] = threadStorage with
+            {
+                Title = thread.Title,
+                Version = thread.NewVersion,
+            };
+
+            threadStorage.Events.AddRange(thread.PendingEvents.Select(e => (UserMessageAdded)e));
         }
 
         thread.MarkAggregateAsSynchronized();
         return new Updated();
     }
 
-    public async Task<Option<IAsyncEnumerable<Message>>> GetMessages(Identifier identifier, CancellationToken cancellationToken)
+    public async Task<Option<Message>> GetMessage(ThreadIdentifier identifier, int messageNumber, CancellationToken cancellationToken)
     {
-        if (identifier.Type != Identifier.IdentifierType.Thread)
+        ArgumentOutOfRangeException.ThrowIfLessThan(messageNumber, 1);
+
+        var threadOrNone = GetThreadOrNone(identifier);
+
+        return threadOrNone switch
         {
-            throw new ArgumentException("Wrong identifier type", nameof(identifier));
+            None none => none,
+            Some<ThreadStorage> some => GetMessage(some.Value, messageNumber)
+        };
+
+        Option<Message> GetMessage(ThreadStorage thread, int messageNumber)
+        {
+            if (thread.Events.Count < messageNumber)
+            {
+                return None.Default;
+            }
+
+            UserMessageAdded userMessageAdded;
+
+            lock (_lock)
+            {
+                userMessageAdded = thread.Events[messageNumber - 1];
+            }
+            return Message.FromUserMessageAdded(userMessageAdded, messageNumber);
         }
-        
+    }
+
+    public async Task<Option<IAsyncEnumerable<Message>>> GetMessages(ThreadIdentifier identifier, CancellationToken cancellationToken)
+    {
         var threadOrNone = GetThreadOrNone(identifier);
 
         return threadOrNone switch
@@ -121,26 +145,115 @@ public sealed class InMemoryThreadRepository : IThreadRepository
             Some<ThreadStorage> some => GetEnumerable(some.Value.Events, cancellationToken).Some()
         };
 
-        static async IAsyncEnumerable<Message> GetEnumerable(IEnumerable<UserMessageAdded> events, [EnumeratorCancellation] CancellationToken cancellationToken)
+        async IAsyncEnumerable<Message> GetEnumerable(List<UserMessageAdded> events, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            foreach (var item in events)
+            var counter = 0;
+            for (var i = 0; i < events.Count; i++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                yield return Message.FromUserMessageAdded(item);
+                UserMessageAdded item;
+                lock (_lock)
+                {
+                    item = events[i];
+                }
+
+                yield return Message.FromUserMessageAdded(item, ++counter);
             }
         }
     }
 
-    Option<ThreadStorage> GetThreadOrNone(Identifier identifier)
+    Option<ThreadStorage> GetThreadOrNone(ThreadIdentifier identifier)
     {
         lock (_lock)
         {
             if (_threads.TryGetValue(identifier, out var threadStorage))
             {
-                return threadStorage with { Events = [.. threadStorage.Events] };
+                return threadStorage;
             }
         }
 
         return new None();
+    }
+
+    public async Task<Option<QueryResult>> QueryMessages(ThreadIdentifier identifier, Cursor cursor, CancellationToken cancellationToken)
+    {
+        return GetThreadOrNone(identifier) switch
+        {
+            None none => none,
+            Some<ThreadStorage> some => GetQueryResult(some.Value)
+        };
+
+        QueryResult GetQueryResult(ThreadStorage thread)
+        {
+            var eventsCount = thread.Events.Count;
+
+            if (eventsCount == 0)
+            {
+                return QueryResult.Empty();
+            }
+
+            if (cursor.Reference.HasValue && cursor.Reference.ValueOrFailure > eventsCount)
+            {
+                return QueryResult.Empty();
+            }
+
+            var messages = GetMessages(
+                thread: thread,
+                eventsCount: eventsCount,
+                reference: cursor.Reference,
+                limit: cursor.OverrideLimit.ValueOr(cursor.Limit),
+                cancellationToken: cancellationToken).ToList();
+            
+            if (messages.Count == 0)
+            {
+                throw new InvalidOperationException("Unexpected empty list of messages");
+            }
+
+            Cursor self = Cursor.Create(cursor.Limit, messages[0].Number)
+                .DoIf(cursor => messages.Count < cursor.Limit, cursor => cursor.WithOneOffLimitOverride(messages.Count));
+
+            var prevReference = Math.Max(1, messages[0].Number - cursor.Limit);
+            var prevSize = messages[0].Number - prevReference;
+
+            Option<Cursor> prev = messages[0].Number == 1 ?
+                None.Default :
+                Cursor.Create(limit: cursor.Limit, reference: prevReference)
+                .DoIf(cursor => prevSize < cursor.Limit, cursor => cursor.WithOneOffLimitOverride(prevSize));
+
+            Option<Cursor> next = messages[^1].Number == eventsCount ?
+                 None.Default :
+                 Cursor.Create(limit: cursor.Limit, reference: messages[^1].Number + 1);
+
+            return new(
+                Messages: messages,
+                Self: self,
+                Prev: prev,
+                Next: next);
+        }
+
+
+    }
+
+    IEnumerable<Message> GetMessages(ThreadStorage thread, int eventsCount, Option<int> reference, int limit, CancellationToken cancellationToken)
+    {
+        var startIndex = reference switch
+        {
+            Some<int> some => some - 1,
+            _ => Math.Max(0, eventsCount - limit)
+        };
+
+        var endIndex = Math.Min(eventsCount - 1, startIndex + limit - 1);
+
+        for (var i = startIndex; i <= endIndex; i++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            UserMessageAdded userMessageAdded;
+            lock (_lock)
+            {
+                userMessageAdded = thread.Events[i];
+            }
+
+            yield return Message.FromUserMessageAdded(userMessageAdded, i + 1);
+        }
     }
 }

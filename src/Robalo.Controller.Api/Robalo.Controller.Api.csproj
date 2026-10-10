@@ -4,6 +4,7 @@
     <TargetFramework>net11.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <AnalysisMode>Recommended</AnalysisMode>
   </PropertyGroup>
 
   <ItemGroup>
@@ -12,11 +13,15 @@
     <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.19.1-beta.1" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.19.1" />
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
+    <PackageReference Include="FluentValidation" Version="12.1.1" />
+    <PackageReference Include="SharpGrip.FluentValidation.AutoValidation.Mvc" Version="2.0.0" />
+    <PackageReference Include="CancelCop.Analyzer" Version="1.52.51" PrivateAssets="all" />
 
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Robalo.Common\Robalo.Common.csproj" />  
+    <ProjectReference Include="..\Robalo.Domain\Robalo.Domain.csproj" />  
   </ItemGroup>
 
   <ItemGroup>

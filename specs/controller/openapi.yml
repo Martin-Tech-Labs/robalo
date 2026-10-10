@@ -139,10 +139,10 @@ paths:
       operationId: getMessageBatch
       summary: Follow an opaque message pagination link
       description: The server chooses the batch size. Clients follow the returned links unchanged. The
-        initial request selects the latest messages; next selects older messages and prev newer messages.
+        initial request selects the latest messages; next selects newer messages and prev older messages.
         Array order is unspecified. The cursor-based self link anchors the selected batch so new messages
-        do not shift it; it does not preserve deleted or edited messages. first retrieves the latest batch
-        and last the oldest. next and prev are omitted when no corresponding batch exists.
+        do not shift it. First retrieves the oldest batch and last the newst. 
+        next and prev are omitted when no corresponding batch exists.
       responses:
         '200':
           $ref: '#/components/responses/Messages'
@@ -150,10 +150,10 @@ paths:
           $ref: '#/components/responses/NotFound'
         '401':
           $ref: '#/components/responses/Unauthorized'
-  /threads/{threadId}/messages/{messageId}:
+  /threads/{threadId}/messages/{messageNumber}:
     parameters:
     - $ref: '#/components/parameters/ThreadId'
-    - $ref: '#/components/parameters/MessageId'
+    - $ref: '#/components/parameters/MessageNumber'
     get:
       tags:
       - Messages
@@ -197,8 +197,8 @@ paths:
               examples:
                 messageBatch:
                   summary: One batch serialized as a single NDJSON line.
-                  serializedValue: '{"_embedded":{"messages":[{"content":"Hello world","created_on":"2027-06-05T12:34:56Z","source":"user","thread_id":"thd_123","message_id":"msg_123","_links":{"self":{"href":"/threads/thd_123/messages/msg_123"},"thread":{"href":"/threads/thd_123"}}},{"content":"Hi
-                    there","created_on":"2027-06-05T12:35:56Z","source":"llm","thread_id":"thd_123","message_id":"msg_124","_links":{"self":{"href":"/threads/thd_123/messages/msg_124"},"thread":{"href":"/threads/thd_123"}}}]},"_links":{"self":{"href":"/events?thread=thd_123"}}}
+                  serializedValue: '{"_embedded":{"messages":[{"content":"Hello world","created_on":"2027-06-05T12:34:56Z","source":"user","thread_id":"thd_123","message_number":"123","_links":{"self":{"href":"/threads/thd_123/messages/123"},"thread":{"href":"/threads/thd_123"}}},{"content":"Hi
+                    there","created_on":"2027-06-05T12:35:56Z","source":"llm","thread_id":"thd_123","message_number":"124","_links":{"self":{"href":"/threads/thd_123/messages/124"},"thread":{"href":"/threads/thd_123"}}}]},"_links":{"self":{"href":"/events?thread=thd_123"}}}
 
                     '
               itemSchema:
@@ -234,14 +234,14 @@ components:
       schema:
         type: string
       example: thd_123
-    MessageId:
-      name: messageId
+    MessageNumber:
+      name: messageNumber
       in: path
       required: true
       description: Message identifier.
       schema:
-        type: string
-      example: msg_123
+        type: integer
+      example: 123
     Cursor:
       name: cursor
       in: path
