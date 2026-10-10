@@ -8,44 +8,48 @@ namespace Robalo.Domain.Models;
 public sealed partial record Cursor
 {
     public int Limit { get; }
+    public Option<int> OverrideLimit { get; }
     public Option<int> Reference { get; }
     public string CursorString { get; }
 
     private const string _separator = "!";
     private const string _prefix = "crs_";
+    private const string _none = "none";
     private const int _maxLimit = 10_000;
 
-    Cursor(int limit, Option<int> reference, string cursorString)
+    Cursor(int limit, Option<int> referenceOrNone, Option<int> overrideLimitOrNone)
     {
+        ArgumentOutOfRangeException.ThrowIfLessThan(limit, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(limit, _maxLimit);
+
+        overrideLimitOrNone.DoIfSome(overrideLimit => ArgumentOutOfRangeException.ThrowIfGreaterThan(overrideLimit, limit));
+        overrideLimitOrNone.DoIfSome(overrideLimit => ArgumentOutOfRangeException.ThrowIfLessThan(overrideLimit, 1));
+        referenceOrNone.DoIfSome(reference => ArgumentOutOfRangeException.ThrowIfLessThan(reference, 1));
+
         Limit = limit;
-        Reference = reference;
-        CursorString = cursorString;
+        Reference = referenceOrNone;
+        OverrideLimit = overrideLimitOrNone;
+
+        CursorString = _prefix + Base32.Rfc4648.Encode(
+           $"{Limit}{_separator}{Reference.ValueOrString("none")}{_separator}{overrideLimitOrNone.ValueOrString("none")}".AsBytesUtf8(), padding: false).ToLowerInvariant();
     }
 
-    public static Cursor Create(int limit, int reference)
-    {
-        ArgumentOutOfRangeException.ThrowIfLessThan(limit, 1);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(limit, _maxLimit);
-        ArgumentOutOfRangeException.ThrowIfLessThan(reference, 1);
+    public Cursor WithOneOffLimitOverride(int overrideLimit) =>
+        new(limit: Limit, referenceOrNone: Reference, overrideLimitOrNone: overrideLimit);
 
-        var cursorString = _prefix + Base32.Rfc4648.Encode($"{limit}{_separator}{reference}".AsBytesUtf8(), padding: false).ToLowerInvariant();
-        return new(limit, reference, cursorString);
-    }
+    public static Cursor Create(int limit, int reference) =>
+        new(limit, reference, None.Default);
 
-    public static Cursor Last(int limit)
-    {
-        ArgumentOutOfRangeException.ThrowIfLessThan(limit, 1);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(limit, _maxLimit);
-
-        var cursorString = _prefix + Base32.Rfc4648.Encode($"{limit}".AsBytesUtf8(), padding: false).ToLowerInvariant();
-        return new(limit, None.Default, cursorString);
-    }
+    public static Cursor Last(int limit) =>
+         new(limit, None.Default, None.Default);
 
     public static Cursor First(int limit) => Create(limit: limit, reference: 1);
 
+    public static implicit operator string(Cursor value) => value.ToString();
+
     public static Cursor FromCursorString(string cursorString)
     {
-        if (!cursorString.StartsWith(_prefix, StringComparison.Ordinal) || cursorString.Length < _prefix.Length + 1)
+        if (!cursorString.StartsWith(_prefix, StringComparison.Ordinal))
         {
             throw new ArgumentException("Invalid format", nameof(cursorString));
         }
@@ -53,28 +57,17 @@ public sealed partial record Cursor
 
         var components = decodedCursorString.Split(_separator);
 
-        if (components.Length == 0 || components.Length > 2)
+        if (components.Length != 3)
         {
             throw new ArgumentException("Invalid format", nameof(cursorString));
         }
 
         var limit = int.Parse(components[0], NumberStyles.None, CultureInfo.InvariantCulture);
-        if (limit < 1 || limit > _maxLimit)
-        {
-            throw new ArgumentException($"Invalid cursor: Limit must be greater than zero and less than {_maxLimit}", nameof(cursorString));
-        }
+        var reference = (components[1] == _none) ? None.Default : int.Parse(components[1], NumberStyles.None, CultureInfo.InvariantCulture).Some();
+        var overrideLimit = (components[2] == _none) ? None.Default : int.Parse(components[2], NumberStyles.None, CultureInfo.InvariantCulture).Some();
 
-        if (components.Length == 1)
-        {
-            return new(limit, None.Default, cursorString);
-        }
-
-        var reference = int.Parse(components[1], NumberStyles.None, CultureInfo.InvariantCulture);
-        if (reference < 1)
-        {
-            throw new ArgumentException("Invalid cursor: Reference must be greater than zero", nameof(cursorString));
-        }
-
-        return new(limit, reference, cursorString);
+        return new(limit: limit, referenceOrNone: reference, overrideLimitOrNone: overrideLimit);
     }
+
+    public override string ToString() => CursorString;
 }
