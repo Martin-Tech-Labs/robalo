@@ -9,20 +9,20 @@ public sealed class Thread : AggregateRoot<Thread>
 
     readonly List<Message> _messages = [];
 
-    public IReadOnlyList<Message> Messages => _messages.AsReadOnly();
+    public IReadOnlyList<Message> Messages { get; }
 
     public string? Title { get; private set; }
 
-    Thread(Identifier id, Version version, DateTimeOffset createdOn) : base(id, version)
+    int _lastMessageNumber;
+
+    Thread(ThreadIdentifier id, Version version, DateTimeOffset createdOn) : base(id, version)
     {
         CreatedOn = createdOn;
+        Messages = _messages.AsReadOnly();
+        
         When<UserMessageAdded>(@event =>
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(@event.Content);
-            if (@event.Id.Type != Identifier.IdentifierType.Message)
-            {
-                throw new ArgumentException("Invalid id", nameof(@event));
-            }
 
             if (@event.AddedOn < ModifiedOn)
             {
@@ -32,20 +32,15 @@ public sealed class Thread : AggregateRoot<Thread>
             NewVersion = Version.NewVersion();
 
             _messages.Add(new Message(
-                Id: @event.Id,
+                Number: ++_lastMessageNumber,
                 Source: MessageSource.User,
                 Content: @event.Content,
                 CreatedOn: @event.AddedOn));
         });
     }
 
-    public static Thread NewThread(Identifier threadId, DateTimeOffset createdOn)
+    public static Thread NewThread(ThreadIdentifier threadId, DateTimeOffset createdOn)
     {
-        if (threadId.Type != Identifier.IdentifierType.Thread)
-        {
-            throw new ArgumentOutOfRangeException(nameof(threadId), "Invalid id");
-        }
-
         if (createdOn == default)
         {
             throw new ArgumentOutOfRangeException(nameof(createdOn), "Invalid date");
@@ -54,8 +49,22 @@ public sealed class Thread : AggregateRoot<Thread>
         return new(threadId, Version.NewVersion(), createdOn);
     }
 
-    public Thread AddUserMessage(Identifier messageId, string content, DateTimeOffset addedOn) =>
-        Apply(new UserMessageAdded(messageId, content, addedOn));
+    public Thread SetLastMessageNumber(int lastMessageNumber)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(lastMessageNumber, 0);
+
+        if (_messages.Count != 0 || _lastMessageNumber != 0 || OldVersion.HasValue)
+        {
+            throw new InvalidOperationException("Not supported");
+        }
+
+        _lastMessageNumber = lastMessageNumber;
+
+        return this;
+    }
+
+    public Thread AddUserMessage(string content, DateTimeOffset addedOn) =>
+        Apply(new UserMessageAdded(content, addedOn));
 
     public Thread UpdateTitle(string title)
     {

@@ -4,7 +4,7 @@ required:
   - created_on
   - source
   - thread_id
-  - message_id
+  - message_number
   - _links
 properties:
   content:
@@ -20,8 +20,8 @@ properties:
       - controller
   thread_id:
     type: string
-  message_id:
-    type: string
+  message_number:
+    type: integer
   _links:
     type: object
     required:
