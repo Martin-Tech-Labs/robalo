@@ -34,24 +34,22 @@ public sealed class InMemoryThreadRepository : IThreadRepository
 
     public async Task<IReadOnlyList<ThreadInfo>> ListThreads(CancellationToken cancellationToken)
     {
-        return GetThreadInfos(cancellationToken).ToList();
-
-        IEnumerable<ThreadInfo> GetThreadInfos(CancellationToken cancellationToken)
+        var results = new List<ThreadInfo>();
+        lock (_lock)
         {
-            lock (_lock)
+            foreach (var thread in _threads)
             {
-                foreach (var thread in _threads)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
+                cancellationToken.ThrowIfCancellationRequested();
 
-                    yield return new ThreadInfo(
-                        Id: thread.Key,
-                        Title: thread.Value.Title,
-                        CreatedOn: thread.Value.CreatedOn,
-                        ModifiedOn: thread.Value.Events.LastOrDefault()?.AddedOn ?? thread.Value.CreatedOn);
-                }
+                results.Add(new(
+                    Id: thread.Key,
+                    Title: thread.Value.Title,
+                    CreatedOn: thread.Value.CreatedOn,
+                    ModifiedOn: thread.Value.Events.LastOrDefault()?.AddedOn ?? thread.Value.CreatedOn));
             }
         }
+
+        return results;
     }
 
     public async Task<Option<Thread>> GetThread(ThreadIdentifier identifier, CancellationToken cancellationToken)
