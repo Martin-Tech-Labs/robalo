@@ -28,6 +28,11 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      npm-by-package:
+        patterns:
+          - "*"
+        group-by: dependency-name
 
   - package-ecosystem: "docker"
     directories:
