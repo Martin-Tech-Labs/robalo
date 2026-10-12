@@ -13,55 +13,10 @@ using Serilog;
 
 namespace Robalo.Controller.UnitTests.Controllers;
 
-public class ThreadsController_CreateThread
+public class ThreadsController_CreateThreadTests : ThreadsControllerTests
 {
-    readonly ThreadsController _sut;
-    readonly Mock<IDateTimeOffsetProvider> _dateTimeOffsetProvider = new();
-    readonly Mock<IThreadRepository> _repository = new();
-    readonly Mock<ProblemDetailsFactory> _problemDetailsFactory = new();
-    readonly Mock<IHttpContextAccessor> _httpContextAccessor = new();
-    readonly Mock<HttpContext> _httpContext = new();
-
-    readonly string _scheme;
-    readonly string _pathBase;
-    readonly string _host;
-    readonly int _port;
-
-    readonly Fixture _fixture = new();
-    static DateTimeOffset _utcNow;
-
-    public ThreadsController_CreateThread()
+    public ThreadsController_CreateThreadTests() : base()
     {
-        _sut = new(
-            logger: Log.Logger,
-            httpContextAccessor: _httpContextAccessor.Object,
-            threadRepository: _repository.Object,
-            problemDetailsFactory: _problemDetailsFactory.Object,
-            dateTimeOffsetProvider: _dateTimeOffsetProvider.Object);
-
-        _problemDetailsFactory.Setup(
-            p => p.CreateProblemDetails(
-                It.IsAny<HttpContext>(),
-                It.IsAny<int>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()))
-            .Returns(_fixture.Create<ProblemDetails>());
-
-        _httpContextAccessor.Setup(h => h.HttpContext).Returns(_httpContext.Object);
-
-        _scheme = $"test{_fixture.Create<Guid>().ToString("N")}";
-        _host = _fixture.Create<string>();
-        _port = _fixture.Create<int>();
-        _pathBase = _fixture.Create<string>();
-
-        _httpContext.Setup(h => h.Request.Scheme).Returns(_scheme);
-        _httpContext.Setup(h => h.Request.Host).Returns(new HostString(host: _host, _port));
-        _httpContext.Setup(h => h.Request.PathBase).Returns($"/{_pathBase}");
-
-        _utcNow = _fixture.Create<DateTimeOffset>();
-        _dateTimeOffsetProvider.Setup(d => d.UtcNow).Returns(_utcNow);
     }
 
 
@@ -87,28 +42,7 @@ public class ThreadsController_CreateThread
 
         var resource = (ThreadResource)createdResult.Value;
 
-        resource.Links.ShouldNotBeNull();
-        resource.Links.Self.ShouldNotBeNull();
-        resource.Links.Self.Href.ShouldNotBeNull();
-        resource.Links.Self.Href.Scheme.ShouldBe(_scheme);
-        resource.Links.Self.Href.Host.ShouldBe(_host);
-        resource.Links.Self.Href.Port.ShouldBe(_port);
-        resource.Links.Self.Href.Segments[1].ShouldBe($"{_pathBase}/");
-
-
-        resource.Links.Events.ShouldNotBeNull();
-        resource.Links.Events.Href.ShouldNotBeNull();
-        resource.Links.Events.Href.Scheme.ShouldBe(_scheme);
-        resource.Links.Events.Href.Host.ShouldBe(_host);
-        resource.Links.Events.Href.Port.ShouldBe(_port);
-        resource.Links.Events.Href.Segments[1].ShouldBe($"{_pathBase}/");
-
-        resource.Links.Messages.ShouldNotBeNull();
-        resource.Links.Messages.Href.ShouldNotBeNull();
-        resource.Links.Messages.Href.Scheme.ShouldBe(_scheme);
-        resource.Links.Messages.Href.Host.ShouldBe(_host);
-        resource.Links.Messages.Href.Port.ShouldBe(_port);
-        resource.Links.Messages.Href.Segments[1].ShouldBe($"{_pathBase}/");
+        ValidateAllLinks(resource);
 
         createdResult.Location.ShouldBe(resource.Links.Self.Href.AbsoluteUri);
         resource.CreatedOn.ShouldBe(_utcNow);
