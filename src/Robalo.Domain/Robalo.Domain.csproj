@@ -13,7 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Robalo.Common\Robalo.Common.csproj" />
-    <PackageReference Include="CancelCop.Analyzer" Version="1.52.51" PrivateAssets="all" />
+    <PackageReference Include="CancelCop.Analyzer" Version="1.52.52" PrivateAssets="all" />
 
   </ItemGroup>
 
