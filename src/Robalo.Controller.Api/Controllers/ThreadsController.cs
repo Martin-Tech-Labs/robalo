@@ -19,11 +19,13 @@ public class ThreadsController : ControllerBase
     private readonly IThreadRepository _threadRepository;
     private readonly IDateTimeOffsetProvider _dateTimeOffsetProvider;
     private readonly ProblemDetailsFactory _problemDetailsFactory;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    private const int _queryLimit = 10;
+    public const int QueryLimit = 10;
 
     public ThreadsController(
         ILogger logger,
+        IHttpContextAccessor httpContextAccessor,
         IThreadRepository threadRepository,
         ProblemDetailsFactory problemDetailsFactory,
         IDateTimeOffsetProvider dateTimeOffsetProvider)
@@ -32,6 +34,7 @@ public class ThreadsController : ControllerBase
         _threadRepository = threadRepository;
         _dateTimeOffsetProvider = dateTimeOffsetProvider;
         _problemDetailsFactory = problemDetailsFactory;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     [HttpPost("")]
@@ -84,63 +87,6 @@ public class ThreadsController : ControllerBase
             Success => NoContent(),
             NotFound _ => NotFound()
         };
-    }
-
-    [HttpGet("{id}/messages/query/{cursor}")]
-    public async Task<IActionResult> GetMessages(
-        string id,
-        string cursor,
-        CancellationToken cancellationToken)
-    {
-        return Cursor.TryGetFromCursorString(cursor) switch
-        {
-            Some<Cursor> some => await QueryMessages(id, some, cancellationToken),
-            _ => NotFound()
-        };
-    }
-
-    [HttpGet("{id}/messages")]
-    public async Task<IActionResult> GetMessages(
-        string id,
-        CancellationToken cancellationToken) => await QueryMessages(id, Cursor.Last(_queryLimit), cancellationToken);
-
-    private async Task<IActionResult> QueryMessages(string threadId, Cursor cursor, CancellationToken cancellationToken)
-    {
-        return ThreadIdentifier.TryGetFromId(threadId) switch
-        {
-            Some<ThreadIdentifier> some => await QueryMessages(some, cursor, cancellationToken),
-            _ => NotFound()
-        };
-    }
-
-    private async Task<IActionResult> QueryMessages(ThreadIdentifier threadId, Cursor cursor, CancellationToken cancellationToken)
-    {
-        return await _threadRepository.QueryMessages(
-            threadId,
-            cursor, cancellationToken) switch
-        {
-            None => NotFound(),
-            Some<QueryResult> queryResult => GetQueryResource(threadId, queryResult).AsOk()
-        };
-
-        MessageQueryResource GetQueryResource(ThreadIdentifier threadId, QueryResult queryResult)
-        {
-            return new MessageQueryResource(
-                Embedded: new([.. queryResult.Messages.Select(m => GetMessageResource(m, threadId))]),
-                Links: new MessageQueryLinks(
-                    Self: queryResult.Self switch
-                    {
-                        Some<Cursor> cursor => HttpContext.LinkToCursor(threadId, cursor.Value),
-                        _ => HttpContext.LinkToMessages(threadId)
-                    },
-                    Thread: HttpContext.LinkToThreadId(threadId),
-                    Events: HttpContext.LinkToEventsWithThreadId(threadId),
-                    Next: queryResult.Next.FuncOrDefault(cursor => HttpContext.LinkToCursor(threadId, cursor)),
-                    Prev: queryResult.Prev.FuncOrDefault(cursor => HttpContext.LinkToCursor(threadId, cursor)),
-                    First: HttpContext.LinkToCursor(threadId, Cursor.First(_queryLimit)),
-                    Last: HttpContext.LinkToCursor(threadId, Cursor.Last(_queryLimit)
-            )));
-        }
     }
 
     [HttpGet("{id}/messages/{number}")]
@@ -196,15 +142,74 @@ public class ThreadsController : ControllerBase
         };
     }
 
+    [HttpGet("{id}/messages/query/{cursor}")]
+    public async Task<IActionResult> QueryMessages(
+        string id,
+        string cursor,
+        CancellationToken cancellationToken)
+    {
+        return Cursor.TryGetFromCursorString(cursor) switch
+        {
+            Some<Cursor> some => await QueryMessages(id, some, cancellationToken),
+            _ => NotFound()
+        };
+    }
+
+    [HttpGet("{id}/messages")]
+    public async Task<IActionResult> QueryLastMessages(
+        string id,
+        CancellationToken cancellationToken) => await QueryMessages(id, Cursor.Last(QueryLimit), cancellationToken);
+
+    private async Task<IActionResult> QueryMessages(string threadId, Cursor cursor, CancellationToken cancellationToken)
+    {
+        return ThreadIdentifier.TryGetFromId(threadId) switch
+        {
+            Some<ThreadIdentifier> some => await QueryMessages(some, cursor, cancellationToken),
+            _ => NotFound()
+        };
+    }
+
+    private async Task<IActionResult> QueryMessages(ThreadIdentifier threadId, Cursor cursor, CancellationToken cancellationToken)
+    {
+        return await _threadRepository.QueryMessages(
+            threadId,
+            cursor, cancellationToken) switch
+        {
+            None => NotFound(),
+            Some<QueryResult> queryResult => GetQueryResource(threadId, queryResult).AsOk()
+        };
+
+        MessageQueryResource GetQueryResource(ThreadIdentifier threadId, QueryResult queryResult)
+        {
+            return new MessageQueryResource(
+                Embedded: new([.. queryResult.Messages.Select(m => GetMessageResource(m, threadId))]),
+                Links: new MessageQueryLinks(
+                    Self: queryResult.Self switch
+                    {
+                        Some<Cursor> cursor => _httpContextAccessor.HttpContext!.LinkToCursor(threadId, cursor.Value),
+                        _ => _httpContextAccessor.HttpContext!.LinkToMessages(threadId)
+                    },
+                    Thread: _httpContextAccessor.HttpContext!.LinkToThreadId(threadId),
+                    Events: _httpContextAccessor.HttpContext!.LinkToEventsWithThreadId(threadId),
+                    Next: queryResult.Next.FuncOrDefault(cursor => _httpContextAccessor.HttpContext!.LinkToCursor(threadId, cursor)),
+                    Prev: queryResult.Prev.FuncOrDefault(cursor => _httpContextAccessor.HttpContext!.LinkToCursor(threadId, cursor)),
+                    First: _httpContextAccessor.HttpContext!.LinkToCursor(threadId, Cursor.First(QueryLimit)),
+                    Last: _httpContextAccessor.HttpContext!.LinkToCursor(threadId, Cursor.Last(QueryLimit)
+            )));
+        }
+    }
+
+
+
     ThreadResource GetThreadResource(Thread thread) => new(
                   thread.CreatedOn,
                   thread.ModifiedOn,
                   thread.Title,
                   thread.Id.Id,
                   new ThreadLinks(
-                      Self: HttpContext.LinkToThreadId(thread.Id),
-                      Messages: HttpContext.LinkToMessages(thread.Id),
-                      Events: HttpContext.LinkToEventsWithThreadId(thread.Id)));
+                      Self: _httpContextAccessor.HttpContext!.LinkToThreadId(thread.Id),
+                      Messages: _httpContextAccessor.HttpContext!.LinkToMessages(thread.Id),
+                      Events: _httpContextAccessor.HttpContext!.LinkToEventsWithThreadId(thread.Id)));
 
     MessageResource GetMessageResource(Message message, ThreadIdentifier threadId) => new(
         message.Content,
@@ -213,9 +218,9 @@ public class ThreadsController : ControllerBase
         threadId.Id,
         message.Number,
         new MessageLinks(
-            Self: HttpContext.LinkToMessageNumber(threadId, message.Number),
-            Thread: HttpContext.LinkToThreadId(threadId),
-            Events: HttpContext.LinkToEventsWithThreadId(threadId)));
+            Self: _httpContextAccessor.HttpContext!.LinkToMessageNumber(threadId, message.Number),
+            Thread: _httpContextAccessor.HttpContext!.LinkToThreadId(threadId),
+            Events: _httpContextAccessor.HttpContext!.LinkToEventsWithThreadId(threadId)));
 
     ConflictObjectResult GetConcurrencyResult(string detail) => new(
         _problemDetailsFactory.CreateProblemDetails(

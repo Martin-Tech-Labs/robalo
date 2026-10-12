@@ -4,7 +4,7 @@ namespace Robalo.Common.UnitTests.Models;
 
 public class OptionTests
 {
-    private record TestRecord(string Field1, int Field2, bool Field3);
+    private sealed record TestRecord(string Field1, int Field2, bool Field3);
     private readonly Fixture _fixture = new();
 
     [Fact]
