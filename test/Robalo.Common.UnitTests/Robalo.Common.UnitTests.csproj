@@ -5,6 +5,11 @@
     <Nullable>enable</Nullable>
     <OutputType>Exe</OutputType>
     <TargetFramework>net11.0</TargetFramework>
+    <AnalysisMode>Recommended</AnalysisMode>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisModeStyle>None</AnalysisModeStyle>
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
+
   </PropertyGroup>
 
   <ItemGroup>
