@@ -77,14 +77,16 @@ public abstract class ThreadsControllerTests
         }
     }
 
-    protected void ValidateAllLinks<TLinks>(HalResource<TLinks> resource) where TLinks : Links
+    protected void ValidateAllNotNullLinks<TLinks>(HalResource<TLinks> resource) where TLinks : Links
     {
         resource.Links.ShouldNotBeNull();
+
+        var context = new NullabilityInfoContext();
 
         var links = resource.Links
             .GetType()
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(p => p.PropertyType == typeof(Link))
+            .Where(p => p.PropertyType == typeof(Link) && context.Create(p).ReadState == NullabilityState.NotNull)
             .Select(p => p.GetValue(resource.Links))
             .ToList();
 

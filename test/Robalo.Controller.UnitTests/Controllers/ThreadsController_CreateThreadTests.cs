@@ -37,7 +37,7 @@ public class ThreadsController_CreateThreadTests : ThreadsControllerTests
 
         var resource = (ThreadResource)createdResult.Value;
 
-        ValidateAllLinks(resource);
+        ValidateAllNotNullLinks(resource);
 
         createdResult.Location.ShouldBe(resource.Links.Self.Href.AbsoluteUri);
         resource.CreatedOn.ShouldBe(_utcNow);

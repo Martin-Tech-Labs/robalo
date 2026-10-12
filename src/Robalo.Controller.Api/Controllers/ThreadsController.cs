@@ -21,7 +21,7 @@ public class ThreadsController : ControllerBase
     private readonly ProblemDetailsFactory _problemDetailsFactory;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
-    private const int _queryLimit = 10;
+    public const int QueryLimit = 10;
 
     public ThreadsController(
         ILogger logger,
@@ -141,9 +141,9 @@ public class ThreadsController : ControllerBase
             NoChanges => throw new InvalidOperationException("Unexpected result NoChanges on thread update")
         };
     }
-    
+
     [HttpGet("{id}/messages/query/{cursor}")]
-    public async Task<IActionResult> GetMessages(
+    public async Task<IActionResult> QueryMessages(
         string id,
         string cursor,
         CancellationToken cancellationToken)
@@ -156,9 +156,9 @@ public class ThreadsController : ControllerBase
     }
 
     [HttpGet("{id}/messages")]
-    public async Task<IActionResult> GetMessages(
+    public async Task<IActionResult> QueryLastMessages(
         string id,
-        CancellationToken cancellationToken) => await QueryMessages(id, Cursor.Last(_queryLimit), cancellationToken);
+        CancellationToken cancellationToken) => await QueryMessages(id, Cursor.Last(QueryLimit), cancellationToken);
 
     private async Task<IActionResult> QueryMessages(string threadId, Cursor cursor, CancellationToken cancellationToken)
     {
@@ -193,8 +193,8 @@ public class ThreadsController : ControllerBase
                     Events: _httpContextAccessor.HttpContext!.LinkToEventsWithThreadId(threadId),
                     Next: queryResult.Next.FuncOrDefault(cursor => _httpContextAccessor.HttpContext!.LinkToCursor(threadId, cursor)),
                     Prev: queryResult.Prev.FuncOrDefault(cursor => _httpContextAccessor.HttpContext!.LinkToCursor(threadId, cursor)),
-                    First: _httpContextAccessor.HttpContext!.LinkToCursor(threadId, Cursor.First(_queryLimit)),
-                    Last: _httpContextAccessor.HttpContext!.LinkToCursor(threadId, Cursor.Last(_queryLimit)
+                    First: _httpContextAccessor.HttpContext!.LinkToCursor(threadId, Cursor.First(QueryLimit)),
+                    Last: _httpContextAccessor.HttpContext!.LinkToCursor(threadId, Cursor.Last(QueryLimit)
             )));
         }
     }

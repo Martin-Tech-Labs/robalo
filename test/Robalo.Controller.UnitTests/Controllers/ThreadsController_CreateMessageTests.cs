@@ -47,7 +47,7 @@ public class ThreadsController_CreateMessageTests : ThreadsControllerTests
 
         var messageResource = (MessageResource)createdResult.Value;
 
-        ValidateAllLinks(messageResource);
+        ValidateAllNotNullLinks(messageResource);
 
         messageResource.Content.ShouldBe(request.Content);
         messageResource.CreatedOn.ShouldBe(_utcNow);

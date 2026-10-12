@@ -41,7 +41,7 @@ public class ThreadsController_GetThreadTests : ThreadsControllerTests
 
         var resource = (ThreadResource)okResult.Value;
 
-        ValidateAllLinks(resource);
+        ValidateAllNotNullLinks(resource);
 
         resource.CreatedOn.ShouldBe(_utcNow);
         resource.ModifiedOn.ShouldBe(modifiedOn);
