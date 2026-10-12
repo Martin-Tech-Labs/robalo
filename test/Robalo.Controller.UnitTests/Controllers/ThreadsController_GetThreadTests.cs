@@ -68,6 +68,9 @@ public class ThreadsController_GetThreadTests : ThreadsControllerTests
     {
         _repository.Invocations.Clear();
         var id = ThreadIdentifier.NewIdentifier();
+        _repository
+            .Setup(r => r.GetThread(id, TestContext.Current.CancellationToken))
+            .ReturnsAsync(None.Default);
         var result = await _sut.GetThread(id, TestContext.Current.CancellationToken);
         result.ShouldBeOfType<NotFoundResult>();
         _repository.Verify(r => r.GetThread(id, TestContext.Current.CancellationToken), Times.Once());
