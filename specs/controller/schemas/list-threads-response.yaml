@@ -1,0 +1,21 @@
+type: object
+required:
+  - _embedded
+  - _links
+properties:
+  _embedded:
+    type: object
+    required:
+      - threads
+    properties:
+      threads:
+        type: array
+        items:
+          $ref: './thread.yaml'
+  _links:
+    type: object
+    required:
+      - self
+    properties:
+      self:
+        $ref: './link.yaml'

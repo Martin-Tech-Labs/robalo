@@ -32,6 +32,26 @@ public sealed class InMemoryThreadRepository : IThreadRepository
         }
     }
 
+    public async Task<IReadOnlyList<ThreadInfo>> ListThreads(CancellationToken cancellationToken)
+    {
+        var results = new List<ThreadInfo>();
+        lock (_lock)
+        {
+            foreach (var thread in _threads)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                results.Add(new(
+                    Id: thread.Key,
+                    Title: thread.Value.Title,
+                    CreatedOn: thread.Value.CreatedOn,
+                    ModifiedOn: thread.Value.Events.LastOrDefault()?.AddedOn ?? thread.Value.CreatedOn));
+            }
+        }
+
+        return results;
+    }
+
     public async Task<Option<Thread>> GetThread(ThreadIdentifier identifier, CancellationToken cancellationToken)
     {
         lock (_lock)
@@ -203,7 +223,7 @@ public sealed class InMemoryThreadRepository : IThreadRepository
                 reference: cursor.Reference,
                 limit: cursor.OverrideLimit.ValueOr(cursor.Limit),
                 cancellationToken: cancellationToken).ToList();
-            
+
             if (messages.Count == 0)
             {
                 throw new InvalidOperationException("Unexpected empty list of messages");

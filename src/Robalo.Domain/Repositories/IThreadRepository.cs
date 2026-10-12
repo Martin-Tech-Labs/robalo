@@ -11,4 +11,5 @@ public interface IThreadRepository
     Task<Option<IAsyncEnumerable<Message>>> GetMessages(ThreadIdentifier identifier, CancellationToken cancellationToken);
     Task<Option<QueryResult>> QueryMessages(ThreadIdentifier identifier, Cursor cursor, CancellationToken cancellationToken);
     Task<Option<Message>> GetMessage(ThreadIdentifier identifier, int messageNumber, CancellationToken cancellationToken);
+    Task<IReadOnlyList<ThreadInfo>> ListThreads(CancellationToken cancellationToken);
 }

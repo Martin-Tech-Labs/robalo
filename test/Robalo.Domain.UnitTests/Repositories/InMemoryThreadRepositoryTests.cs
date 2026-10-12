@@ -6,6 +6,7 @@ using Robalo.Common.Models;
 using Robalo.Common.Extensions;
 using Robalo.Domain.Events;
 using System.Data.Common;
+using Serilog.Core;
 
 
 namespace Robalo.Domain.UnitTests.Repositories;
@@ -614,5 +615,48 @@ public class InMemoryThreadRepositoryTests
 
         List<Message> GenerateExpectedMessages(int[] messageNumbers) =>
            [.. messageNumbers.Select(i => new Message(i, MessageSource.User, $"Message_{i}", thread.CreatedOn.AddSeconds(i)))];
+    }
+
+
+    [Fact]
+    public async Task ListThreads_ShouldReturnThreadInfos()
+    {
+        var sut = new InMemoryThreadRepository(Log.Logger);
+        var createdOn = _fixture.Create<DateTimeOffset>();
+
+        var thread1 = Thread.NewThread(ThreadIdentifier.NewIdentifier(), createdOn)
+            .UpdateTitle(_fixture.Create<string>())
+            .AddUserMessage(_fixture.Create<string>(), createdOn.AddSeconds(1))
+            .AddUserMessage(_fixture.Create<string>(), createdOn.AddSeconds(2));
+
+        var thread2 = Thread.NewThread(ThreadIdentifier.NewIdentifier(), createdOn.AddSeconds(3));
+
+        await sut.SaveThread(thread1, TestContext.Current.CancellationToken);
+        await sut.SaveThread(thread2, TestContext.Current.CancellationToken);
+
+        var result = await sut.ListThreads(TestContext.Current.CancellationToken);
+
+        result.Count.ShouldBe(2);
+
+        var threads = new[] { thread1, thread2 };
+
+        var list = result.OrderBy(r => r.CreatedOn).ToList();
+        for (int i = 0; i < list.Count; i++)
+        {
+            var threadInfo = list[i];
+            var thread = threads[i];
+            threadInfo.Id.ShouldBe(thread.Id);
+            threadInfo.CreatedOn.ShouldBe(thread.CreatedOn);
+            threadInfo.ModifiedOn.ShouldBe(thread.ModifiedOn);
+            threadInfo.Title.ShouldBe(thread.Title);
+        }
+    }
+
+    [Fact]
+    public async Task ListThreads_ShouldReturnEmptyOnNoThreads()
+    {
+        var sut = new InMemoryThreadRepository(Log.Logger);
+        var result = await sut.ListThreads(TestContext.Current.CancellationToken);
+        result.ShouldBeEmpty();
     }
 }

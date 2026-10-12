@@ -89,6 +89,19 @@ public class ThreadsController : ControllerBase
         };
     }
 
+
+    [HttpGet]
+    public async Task<IActionResult> ListThreads(CancellationToken cancellationToken)
+    {
+        var threadInfos = await _threadRepository.ListThreads(cancellationToken);
+        return GetResource(threadInfos).AsOk();
+
+        ThreadListResource GetResource(IReadOnlyList<ThreadInfo> threadInfos) =>
+            new ThreadListResource(
+                Embedded: new([.. threadInfos.Select(t => GetThreadResource(t))]),
+                Links: new(Self: _httpContextAccessor.LinkToThreads()));
+    }
+
     [HttpGet("{id}/messages/{number}")]
     public async Task<IActionResult> GetMessage(string id, int number, CancellationToken cancellationToken)
     {
@@ -186,30 +199,37 @@ public class ThreadsController : ControllerBase
                 Links: new MessageQueryLinks(
                     Self: queryResult.Self switch
                     {
-                        Some<Cursor> cursor => _httpContextAccessor.HttpContext!.LinkToCursor(threadId, cursor.Value),
-                        _ => _httpContextAccessor.HttpContext!.LinkToMessages(threadId)
+                        Some<Cursor> cursor => _httpContextAccessor.LinkToCursor(threadId, cursor.Value),
+                        _ => _httpContextAccessor.LinkToMessages(threadId)
                     },
-                    Thread: _httpContextAccessor.HttpContext!.LinkToThreadId(threadId),
-                    Events: _httpContextAccessor.HttpContext!.LinkToEventsWithThreadId(threadId),
-                    Next: queryResult.Next.FuncOrDefault(cursor => _httpContextAccessor.HttpContext!.LinkToCursor(threadId, cursor)),
-                    Prev: queryResult.Prev.FuncOrDefault(cursor => _httpContextAccessor.HttpContext!.LinkToCursor(threadId, cursor)),
-                    First: _httpContextAccessor.HttpContext!.LinkToCursor(threadId, Cursor.First(QueryLimit)),
-                    Last: _httpContextAccessor.HttpContext!.LinkToCursor(threadId, Cursor.Last(QueryLimit)
+                    Thread: _httpContextAccessor.LinkToThreadId(threadId),
+                    Events: _httpContextAccessor.LinkToEventsWithThreadId(threadId),
+                    Next: queryResult.Next.FuncOrDefault(cursor => _httpContextAccessor.LinkToCursor(threadId, cursor)),
+                    Prev: queryResult.Prev.FuncOrDefault(cursor => _httpContextAccessor.LinkToCursor(threadId, cursor)),
+                    First: _httpContextAccessor.LinkToCursor(threadId, Cursor.First(QueryLimit)),
+                    Last: _httpContextAccessor.LinkToCursor(threadId, Cursor.Last(QueryLimit)
             )));
         }
     }
 
 
 
-    ThreadResource GetThreadResource(Thread thread) => new(
-                  thread.CreatedOn,
-                  thread.ModifiedOn,
-                  thread.Title,
-                  thread.Id.Id,
+    ThreadResource GetThreadResource(ThreadInfo threadInfo) => new(
+                  threadInfo.CreatedOn,
+                  threadInfo.ModifiedOn,
+                  threadInfo.Title,
+                  threadInfo.Id.Id,
                   new ThreadLinks(
-                      Self: _httpContextAccessor.HttpContext!.LinkToThreadId(thread.Id),
-                      Messages: _httpContextAccessor.HttpContext!.LinkToMessages(thread.Id),
-                      Events: _httpContextAccessor.HttpContext!.LinkToEventsWithThreadId(thread.Id)));
+                      Self: _httpContextAccessor.LinkToThreadId(threadInfo.Id),
+                      Messages: _httpContextAccessor.LinkToMessages(threadInfo.Id),
+                      Events: _httpContextAccessor.LinkToEventsWithThreadId(threadInfo.Id)));
+
+    ThreadResource GetThreadResource(Thread thread) =>
+        GetThreadResource(new ThreadInfo(
+            thread.Id,
+            thread.Title,
+            thread.CreatedOn,
+            thread.ModifiedOn));
 
     MessageResource GetMessageResource(Message message, ThreadIdentifier threadId) => new(
         message.Content,
@@ -218,9 +238,9 @@ public class ThreadsController : ControllerBase
         threadId.Id,
         message.Number,
         new MessageLinks(
-            Self: _httpContextAccessor.HttpContext!.LinkToMessageNumber(threadId, message.Number),
-            Thread: _httpContextAccessor.HttpContext!.LinkToThreadId(threadId),
-            Events: _httpContextAccessor.HttpContext!.LinkToEventsWithThreadId(threadId)));
+            Self: _httpContextAccessor.LinkToMessageNumber(threadId, message.Number),
+            Thread: _httpContextAccessor.LinkToThreadId(threadId),
+            Events: _httpContextAccessor.LinkToEventsWithThreadId(threadId)));
 
     ConflictObjectResult GetConcurrencyResult(string detail) => new(
         _problemDetailsFactory.CreateProblemDetails(
