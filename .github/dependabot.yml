@@ -5,11 +5,19 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "dotnet-sdk"
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "nuget"
     directories:
@@ -18,19 +26,35 @@ updates:
       - "/test/*"
     schedule:
       interval: "weekly"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "docker"
     directories:
     - "/**/*"
     schedule:
       interval: "weekly"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "docker-compose"
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      all:
+        patterns:
+          - "*"
