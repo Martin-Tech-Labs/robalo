@@ -1,3 +1,4 @@
 {
-    "dotnet.defaultSolution": "Robalo.slnx"
+    "dotnet.defaultSolution": "Robalo.slnx",
+    "dotnet.backgroundAnalysis.analyzerDiagnosticsScope": "fullSolution"
 }

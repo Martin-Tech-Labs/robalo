@@ -230,8 +230,6 @@ public sealed class InMemoryThreadRepository : IThreadRepository
                 Prev: prev,
                 Next: next);
         }
-
-
     }
 
     IEnumerable<Message> GetMessages(ThreadStorage thread, int eventsCount, Option<int> reference, int limit, CancellationToken cancellationToken)

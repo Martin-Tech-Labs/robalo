@@ -4,6 +4,10 @@
     <TargetFramework>net11.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <AnalysisMode>Recommended</AnalysisMode>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisModeStyle>None</AnalysisModeStyle>
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
 
   </PropertyGroup>
   <ItemGroup>
