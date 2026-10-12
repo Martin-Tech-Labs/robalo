@@ -18,6 +18,11 @@ updates:
       - "/test/*"
     schedule:
       interval: "weekly"
+    groups:
+      nuget-by-package:
+        patterns:
+          - "*"
+        group-by: dependency-name
 
   - package-ecosystem: "npm"
     directory: "/"
