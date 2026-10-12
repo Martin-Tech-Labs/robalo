@@ -89,6 +89,59 @@ public class ThreadsController : ControllerBase
         };
     }
 
+    [HttpGet("{id}/messages/{number}")]
+    public async Task<IActionResult> GetMessage(string id, int number, CancellationToken cancellationToken)
+    {
+        var threadIdOrNone = ThreadIdentifier.TryGetFromId(id);
+        if (!threadIdOrNone.HasValue)
+        {
+            return NotFound();
+        }
+
+        if (number < 1)
+        {
+            return NotFound();
+        }
+
+        return await _threadRepository.GetMessage(threadIdOrNone.ValueOrFailure, number, cancellationToken) switch
+        {
+            None => NotFound(),
+            Some<Message> some => GetMessageResource(some.Value, threadIdOrNone.ValueOrFailure).AsOk()
+        };
+    }
+
+    [HttpPost("{id}/messages")]
+    public async Task<IActionResult> CreateMessage(string id, MessageApiRequest request, CancellationToken cancellationToken)
+    {
+        var threadIdOrNone = ThreadIdentifier.TryGetFromId(id);
+        if (!threadIdOrNone.HasValue)
+        {
+            return NotFound();
+        }
+
+        var threadId = threadIdOrNone.ValueOrFailure;
+
+        var threadOrNone = await _threadRepository.GetThread(threadId, cancellationToken);
+
+        if (threadOrNone.IsNone)
+        {
+            return NotFound();
+        }
+
+        var thread = threadOrNone.ValueOrFailure;
+        thread.AddUserMessage(request.Content!, _dateTimeOffsetProvider.UtcNow);
+
+        var result = await _threadRepository.SaveThread(thread, cancellationToken);
+
+        return result switch
+        {
+            Created _ => throw new InvalidOperationException("Unexpected result Created on thread update"),
+            ConcurrencyConflict => GetConcurrencyResult("thread_updated_in_parallel"),
+            Updated => GetMessageResource(thread.Messages[thread.Messages.Count - 1], threadId).AsCreated(),
+            NoChanges => throw new InvalidOperationException("Unexpected result NoChanges on thread update")
+        };
+    }
+    
     [HttpGet("{id}/messages/query/{cursor}")]
     public async Task<IActionResult> GetMessages(
         string id,
@@ -146,58 +199,7 @@ public class ThreadsController : ControllerBase
         }
     }
 
-    [HttpGet("{id}/messages/{number}")]
-    public async Task<IActionResult> GetMessage(string id, int number, CancellationToken cancellationToken)
-    {
-        var threadIdOrNone = ThreadIdentifier.TryGetFromId(id);
-        if (!threadIdOrNone.HasValue)
-        {
-            return NotFound();
-        }
 
-        if (number < 1)
-        {
-            return NotFound();
-        }
-
-        return await _threadRepository.GetMessage(threadIdOrNone.ValueOrFailure, number, cancellationToken) switch
-        {
-            None => NotFound(),
-            Some<Message> some => GetMessageResource(some.Value, threadIdOrNone.ValueOrFailure).AsOk()
-        };
-    }
-
-    [HttpPost("{id}/messages")]
-    public async Task<IActionResult> CreateMessage(string id, MessageApiRequest request, CancellationToken cancellationToken)
-    {
-        var threadIdOrNone = ThreadIdentifier.TryGetFromId(id);
-        if (!threadIdOrNone.HasValue)
-        {
-            return NotFound();
-        }
-
-        var threadId = threadIdOrNone.ValueOrFailure;
-
-        var threadOrNone = await _threadRepository.GetThread(threadId, cancellationToken);
-
-        if (threadOrNone.IsNone)
-        {
-            return NotFound();
-        }
-
-        var thread = threadOrNone.ValueOrFailure;
-        thread.AddUserMessage(request.Content!, _dateTimeOffsetProvider.UtcNow);
-
-        var result = await _threadRepository.SaveThread(thread, cancellationToken);
-
-        return result switch
-        {
-            Created _ => throw new InvalidOperationException("Unexpected result Created on thread update"),
-            ConcurrencyConflict => GetConcurrencyResult("thread_updated_in_parallel"),
-            Updated => GetMessageResource(thread.Messages[thread.Messages.Count - 1], threadId).AsCreated(),
-            NoChanges => throw new InvalidOperationException("Unexpected result NoChanges on thread update")
-        };
-    }
 
     ThreadResource GetThreadResource(Thread thread) => new(
                   thread.CreatedOn,
