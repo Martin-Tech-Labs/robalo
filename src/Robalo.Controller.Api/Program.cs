@@ -97,11 +97,14 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
     options.SuppressModelStateInvalidFilter = true;
 });
 
+builder.Services.AddHttpContextAccessor();
+
 builder.Services.AddScoped<IValidator<MessageApiRequest>, MessageApiRequestValidator>();
 
 var app = builder.Build();
 app.UseSerilogRequestLogging();
 app.UseForwardedHeaders();
+app.UseExceptionHandler();
 
 var pathBase = Environment.GetEnvironmentVariable("ASPNETCORE_PATHBASE");
 if (!string.IsNullOrWhiteSpace(pathBase))
