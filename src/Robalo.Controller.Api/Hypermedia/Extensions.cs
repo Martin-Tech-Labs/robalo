@@ -45,4 +45,10 @@ public static class Extensions
         this IHttpContextAccessor accessor,
         ThreadIdentifier threadId)
             => accessor.HttpContext!.LinkToPath($"/events?thread_id={threadId}");
+
+    public static Link LinkToEvents(this IHttpContextAccessor accessor)
+            => accessor.HttpContext!.LinkToPath($"/events");
+
+    public static Link LinkToServiceDiscovery(this IHttpContextAccessor accessor)
+        => accessor.HttpContext!.LinkToPath($"");
 }

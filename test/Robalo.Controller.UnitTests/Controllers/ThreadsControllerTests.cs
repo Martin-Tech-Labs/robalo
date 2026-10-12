@@ -77,33 +77,6 @@ public abstract class ThreadsControllerTests
         }
     }
 
-    protected void ValidateAllNotNullLinks<TLinks>(HalResource<TLinks> resource) where TLinks : Links
-    {
-        resource.Links.ShouldNotBeNull();
-
-        var context = new NullabilityInfoContext();
-
-        var links = resource.Links
-            .GetType()
-            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(p => p.PropertyType == typeof(Link) && context.Create(p).ReadState == NullabilityState.NotNull)
-            .Select(p => p.GetValue(resource.Links))
-            .ToList();
-
-        if (links is null || links.Count == 0)
-        {
-            throw new InvalidOperationException("No links found on the supplied object");
-        }
-
-        foreach (Link link in links!)
-        {
-            link.ShouldNotBeNull();
-            link.Templated.ShouldBeFalse();
-            link.Href.ShouldNotBeNull();
-            link.Href.Scheme.ShouldBe(_scheme);
-            link.Href.Host.ShouldBe(_host);
-            link.Href.Port.ShouldBe(_port);
-            link.Href.Segments[1].ShouldBe($"{_pathBase}/");
-        }
-    }
+    protected void ValidateAllNotNullLinks<TLinks>(HalResource<TLinks> resource) where TLinks : Links =>
+         resource.ValidateAllNotNullLinks(_scheme, _host, _port, _pathBase);
 }
