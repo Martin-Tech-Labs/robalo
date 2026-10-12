@@ -15,11 +15,6 @@ namespace Robalo.Controller.UnitTests.Controllers;
 
 public class ThreadsController_CreateThreadTests : ThreadsControllerTests
 {
-    public ThreadsController_CreateThreadTests() : base()
-    {
-    }
-
-
     [Fact]
     public async Task ShouldReturnCreated_OnCreatedThread()
     {

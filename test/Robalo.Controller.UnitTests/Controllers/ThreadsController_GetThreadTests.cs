@@ -16,11 +16,6 @@ namespace Robalo.Controller.UnitTests.Controllers;
 
 public class ThreadsController_GetThreadTests : ThreadsControllerTests
 {
-    public ThreadsController_GetThreadTests() : base()
-    {
-    }
-
-
     [Fact]
     public async Task ShouldReturnOK_OnExistingThread()
     {
