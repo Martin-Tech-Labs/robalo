@@ -9,10 +9,30 @@ servers:
 security:
 - bearerAuth: []
 tags:
+- name: Discovery
 - name: Threads
 - name: Messages
 - name: Events
 paths:
+  /:
+    get:
+      tags:
+      - Discovery
+      operationId: getServiceDiscovery
+      summary: Discover API entry points
+      description: Follow the returned links to list threads, create a thread, or subscribe to events.
+      responses:
+        '200':
+          description: API entry-point links.
+          content:
+            application/hal+json:
+              schema:
+                $ref: ./schemas/service-discovery.yaml
+              examples:
+                default:
+                  externalValue: ./examples/service-discovery.json
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /threads:
     get:
       tags:
