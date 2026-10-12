@@ -27,8 +27,12 @@ properties:
     required:
       - self
       - thread
+      - events
     properties:
       self:
         $ref: './link.yaml'
       thread:
         $ref: './link.yaml'
+      events:
+        $ref: './link.yaml'
+

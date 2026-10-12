@@ -14,6 +14,23 @@ tags:
 - name: Events
 paths:
   /threads:
+    get:
+      tags:
+      - Threads
+      operationId: listThreads
+      summary: List threads
+      responses:
+        '200':
+          description: Thread metadata with navigation links. The threads array is empty when no threads exist.
+          content:
+            application/hal+json:
+              schema:
+                $ref: ./schemas/list-threads-response.yaml
+              examples:
+                default:
+                  externalValue: ./examples/list-threads-response.json
+        '401':
+          $ref: '#/components/responses/Unauthorized'
     post:
       tags:
       - Threads
@@ -32,7 +49,7 @@ paths:
           content:
             application/hal+json:
               schema:
-                $ref: ./schemas/thread-response.yaml
+                $ref: ./schemas/thread.yaml
               examples:
                 default:
                   externalValue: ./examples/thread-response.json
@@ -113,7 +130,7 @@ paths:
           content:
             application/hal+json:
               schema:
-                $ref: ./schemas/message-response.yaml
+                $ref: ./schemas/message.yaml
               examples:
                 default:
                   externalValue: ./examples/message-response.json
@@ -279,7 +296,7 @@ components:
       content:
         application/hal+json:
           schema:
-            $ref: ./schemas/thread-response.yaml
+            $ref: ./schemas/thread.yaml
           examples:
             default:
               externalValue: ./examples/thread-response.json
@@ -288,7 +305,7 @@ components:
       content:
         application/hal+json:
           schema:
-            $ref: ./schemas/message-response.yaml
+            $ref: ./schemas/message.yaml
           examples:
             default:
               externalValue: ./examples/message-response.json
