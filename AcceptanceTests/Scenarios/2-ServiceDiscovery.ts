@@ -20,7 +20,7 @@ describe('2 - Service Discovery @serviceDiscovery', () => {
         });
 
         it("And I verfy the schema", () => {
-            expect(response.body).to.have.validServiceDiscoveryScheme();
+            expect(response.body).to.have.validServiceDiscoverySchema();
         });
     })
 });

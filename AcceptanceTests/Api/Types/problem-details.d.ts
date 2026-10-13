@@ -12,21 +12,25 @@ export interface ProblemDetails {
   /**
    * URI reference identifying the problem type.
    */
-  type?: string;
+  type: string;
   /**
    * Short human-readable summary of the problem type, stable across occurrences except for localization.
    */
-  title?: string;
+  title: string;
   /**
    * HTTP status code for this occurrence; must match the response status.
    */
-  status?: number;
+  status: number;
   /**
    * Human-readable explanation specific to this occurrence.
    */
-  detail?: string;
+  detail: string;
   /**
    * URI reference identifying this specific problem occurrence.
    */
   instance?: string;
+  /**
+   * RequestId
+   */
+  request_id: string;
 }

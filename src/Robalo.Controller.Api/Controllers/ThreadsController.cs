@@ -234,7 +234,7 @@ public class ThreadsController : ControllerBase
     MessageResource GetMessageResource(Message message, ThreadIdentifier threadId) => new(
         message.Content,
         message.CreatedOn,
-        message.Source.ToString(),
+        message.Source.ToString().ToLowerInvariant(),
         threadId.Id,
         message.Number,
         new MessageLinks(
