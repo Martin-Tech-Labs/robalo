@@ -27,3 +27,4 @@ properties:
     type: string
     format: uri-reference
     description: URI reference identifying this specific problem occurrence.
+additionalProperties: false

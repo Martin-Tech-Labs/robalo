@@ -28,3 +28,5 @@ properties:
         $ref: './link.yaml'
       events:
         $ref: './link.yaml'
+    additionalProperties: false    
+additionalProperties: false
