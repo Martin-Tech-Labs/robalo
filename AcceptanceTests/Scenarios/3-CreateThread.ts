@@ -109,24 +109,29 @@ describe('3 - Create Thread @createThread', () => {
     })
 
 
-    describe("Create Thread - Missing message", () => {
+    describe("Create Thread - Missing Message", () => {
         let problemDetails: ProblemDetails;
-
+        
         before(() => {
             message = "";
         });
+
 
         it("Given service discovery document", async () => {
             serviceDiscovery = (await ControllerApi.serviceDiscovery()).body as ServiceDiscovery;
         });
 
 
-        it(`When I create a new thread with message `, async () => {
+        it(`When I make a post request to the create-thread with missing message `, async () => {
             response = await ControllerApi.createThread({ content: message }, serviceDiscovery._links['create-thread']);
         });
 
         it("Then I should get 422", () => {
             response.statusCode.should.equal(422);
+        });
+
+        it("And I verfy the content type application/problem+json", () => {
+            response.headers['content-type'].should.include('application/problem+json');
         });
 
         it("And I verfy the schema", () => {
@@ -138,6 +143,39 @@ describe('3 - Create Thread @createThread', () => {
             problemDetails.title.should.equal("Validation failed");
             problemDetails.detail.should.equal("content_must_be_provided");
             problemDetails.status.should.equal(422);
+        });
+    })
+
+    describe("Create Thread - Malformed payload", () => {
+        let problemDetails: ProblemDetails;
+
+
+        it("Given service discovery document", async () => {
+            serviceDiscovery = (await ControllerApi.serviceDiscovery()).body as ServiceDiscovery;
+        });
+
+
+        it(`When I create a new thread with message `, async () => {
+            response = await ControllerApi.post("{{≠}ºls", serviceDiscovery._links['create-thread']);
+        });
+
+        it("Then I should get 400", () => {
+            response.statusCode.should.equal(400);
+        });
+
+        it("And I verfy the content type application/problem+json", () => {
+            response.headers['content-type'].should.include('application/problem+json');
+        });
+
+        it("And I verfy the schema", () => {
+            expect(response.body).to.have.validProblemDetailsSchema();
+        });
+
+        it("And I verfy the problem details", () => {
+            problemDetails = response.body as ProblemDetails;
+            problemDetails.title.should.equal("Malformed request body.");
+            problemDetails.detail.should.equal("invalid_json");
+            problemDetails.status.should.equal(400);
         });
     })
 });

@@ -23,6 +23,12 @@ const ControllerApi = {
 
     get: (link: Link) => request(link.href).get(''),
 
+    post: (payload: string, link: Link) =>
+        request(link.href)
+            .post('')
+            .set("Content-Type", "application/json")
+            .send(payload),
+
     createThread: (content: MessageRequest, link: Link) =>
         request(link.href)
             .post('')
