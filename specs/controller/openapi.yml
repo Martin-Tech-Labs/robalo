@@ -45,7 +45,7 @@ paths:
           content:
             application/hal+json:
               schema:
-                $ref: ./schemas/list-threads-response.yaml
+                $ref: ./schemas/thread-list.yaml
               examples:
                 default:
                   externalValue: ./examples/list-threads-response.json
@@ -334,7 +334,7 @@ components:
       content:
         application/hal+json:
           schema:
-            $ref: ./schemas/get-messages-response.yaml
+            $ref: ./schemas/message-query-result.yaml
           examples:
             default:
               externalValue: ./examples/get-messages-response.json

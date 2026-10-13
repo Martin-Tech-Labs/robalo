@@ -4,7 +4,7 @@
     "precheck": "tsc --noEmit --strict --module nodenext --target es2022 --erasableSyntaxOnly --verbatimModuleSyntax --allowImportingTsExtensions --types chai AcceptanceTests/Scenarios/*.ts",
     "test": "npm run precheck && mocha",
     "generate-spec": "npm exec -- redocly bundle specs/controller/openapi.yml --dereferenced --output specs/controller/openapi-fully.yml",
-    "generate-schema-types": "npm exec -- json2ts -i 'specs/controller/schemas/*.yaml' -o AcceptanceTests/Api/Types/"
+    "generate-schema-types": "rm -rf AcceptanceTests/Api/Types && npm exec -- json2ts -i 'specs/controller/schemas/*.yaml' -o AcceptanceTests/Api/Types/"
   },
   "mocha": {
     "spec": [

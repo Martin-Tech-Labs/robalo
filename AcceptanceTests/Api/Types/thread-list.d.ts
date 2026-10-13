@@ -5,7 +5,7 @@
  * and run json-schema-to-typescript to regenerate this file.
  */
 
-export interface ListThreadsResponse {
+export interface ThreadList {
   _embedded: {
     threads: Thread[];
   };

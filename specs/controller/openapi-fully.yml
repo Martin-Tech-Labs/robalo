@@ -63,6 +63,7 @@ paths:
                         required: *ref_0
                         properties: *ref_1
                         additionalProperties: false
+                    additionalProperties: false
                 additionalProperties: false
               examples:
                 default:
@@ -176,7 +177,9 @@ paths:
                                   required: *ref_0
                                   properties: *ref_1
                                   additionalProperties: false
+                              additionalProperties: false
                           additionalProperties: false
+                    additionalProperties: false
                   _links:
                     type: object
                     required:
@@ -187,6 +190,7 @@ paths:
                         required: *ref_0
                         properties: *ref_1
                         additionalProperties: false
+                    additionalProperties: false
                 additionalProperties: false
               examples:
                 default:
@@ -452,7 +456,9 @@ paths:
                                   required: *ref_0
                                   properties: *ref_1
                                   additionalProperties: false
+                              additionalProperties: false
                           additionalProperties: false
+                    additionalProperties: false
                   _links:
                     type: object
                     required:
@@ -497,6 +503,7 @@ paths:
                         required: *ref_0
                         properties: *ref_1
                         additionalProperties: false
+                    additionalProperties: false
                 additionalProperties: false
               examples:
                 default:
@@ -735,6 +742,7 @@ paths:
                           required: *ref_11
                           properties: *ref_12
                           additionalProperties: false
+                    additionalProperties: false
                   _links:
                     type: object
                     required:
@@ -745,6 +753,7 @@ paths:
                         required: *ref_0
                         properties: *ref_1
                         additionalProperties: false
+                    additionalProperties: false
                 additionalProperties: false
         '400':
           description: Invalid request.
@@ -851,7 +860,7 @@ components:
       required: *ref_4
       properties: *ref_5
       additionalProperties: false
-    list-threads-response:
+    thread-list:
       type: object
       required: *ref_26
       properties: *ref_27
@@ -866,7 +875,7 @@ components:
       required: *ref_11
       properties: *ref_12
       additionalProperties: false
-    get-messages-response:
+    message-query-result:
       type: object
       required: *ref_30
       properties: *ref_31

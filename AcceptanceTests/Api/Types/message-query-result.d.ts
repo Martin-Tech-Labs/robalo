@@ -5,7 +5,7 @@
  * and run json-schema-to-typescript to regenerate this file.
  */
 
-export interface GetMessagesResponse {
+export interface MessageQueryResult {
   _embedded: {
     messages: Message[];
   };
