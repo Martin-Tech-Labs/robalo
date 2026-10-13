@@ -4,7 +4,7 @@ import { describe, it } from 'mocha';
 import ControllerApi from '../Api/controllerApi.ts'
 import type { Response } from 'supertest';
 
-describe('1 - Scenario: System Endpoints', () => {
+describe('1 - Scenario: System Endpoints @system', () => {
     describe('Ping endpoint', () => {
 
         let response: Response;

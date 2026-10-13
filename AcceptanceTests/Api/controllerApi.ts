@@ -16,6 +16,7 @@ const ControllerApi = {
     env() {
         return request(Config.ControllerUrl).get('/_system/env');
     },
+    serviceDiscovery: () => request(Config.ControllerUrl).get('')
 };
 
 export default ControllerApi;
