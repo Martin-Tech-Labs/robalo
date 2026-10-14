@@ -82,7 +82,7 @@ public class ThreadsController_QueryMessageTests : ThreadsControllerTests
             messageResource.CreatedOn.ShouldBe(queryResult.Messages[i].CreatedOn);
             messageResource.MessageNumber.ShouldBe(queryResult.Messages[i].Number);
             messageResource.ThreadId.ShouldBe(threadId);
-            messageResource.Source.ShouldBe(queryResult.Messages[i].Source.ToString());
+            messageResource.Source.ShouldBe(queryResult.Messages[i].Source.ToString().ToLowerInvariant());
         }
     }
 

@@ -9,10 +9,119 @@ servers:
 security:
   - bearerAuth: []
 tags:
+  - name: Discovery
   - name: Threads
   - name: Messages
   - name: Events
 paths:
+  /:
+    get:
+      tags:
+        - Discovery
+      operationId: getServiceDiscovery
+      summary: Discover API entry points
+      description: Follow the returned links to list threads, create a thread, or subscribe to events.
+      responses:
+        '200':
+          description: API entry-point links.
+          content:
+            application/hal+json:
+              schema:
+                type: object
+                required: &ref_25
+                  - _links
+                properties: &ref_26
+                  _links:
+                    type: object
+                    required:
+                      - self
+                      - threads
+                      - create-thread
+                      - events
+                    properties:
+                      self:
+                        type: object
+                        required: &ref_0
+                          - href
+                        properties: &ref_1
+                          href:
+                            type: string
+                            format: uri-reference
+                        additionalProperties: false
+                      threads:
+                        type: object
+                        required: *ref_0
+                        properties: *ref_1
+                        additionalProperties: false
+                      create-thread:
+                        type: object
+                        required: *ref_0
+                        properties: *ref_1
+                        additionalProperties: false
+                      events:
+                        type: object
+                        required: *ref_0
+                        properties: *ref_1
+                        additionalProperties: false
+                    additionalProperties: false
+                additionalProperties: false
+              examples:
+                default:
+                  value:
+                    _links:
+                      self:
+                        href: http://localhost:5050/controller/
+                      threads:
+                        href: http://localhost:5050/controller/threads
+                      create-thread:
+                        href: http://localhost:5050/controller/threads
+                      events:
+                        href: http://localhost:5050/controller/events
+        '401':
+          description: Missing or invalid Controller access token.
+          content: &ref_2
+            application/problem+json:
+              schema:
+                type: object
+                description: Problem Details for HTTP APIs (RFC 9457), served as application/problem+json. Standard fields are optional. Problem types may define extension properties.
+                externalDocs: &ref_6
+                  url: https://www.rfc-editor.org/rfc/rfc9457.html
+                required: &ref_7
+                  - type
+                  - title
+                  - status
+                  - detail
+                  - request_id
+                properties: &ref_8
+                  type:
+                    type: string
+                    format: uri-reference
+                    default: about:blank
+                    description: URI reference identifying the problem type.
+                  title:
+                    type: string
+                    description: Short human-readable summary of the problem type, stable across occurrences except for localization.
+                  status:
+                    type: integer
+                    minimum: 100
+                    maximum: 599
+                    description: HTTP status code for this occurrence; must match the response status.
+                  detail:
+                    type: string
+                    description: Human-readable explanation specific to this occurrence.
+                  instance:
+                    type: string
+                    format: uri-reference
+                    description: URI reference identifying this specific problem occurrence.
+                  request_id:
+                    type: string
+                    description: RequestId
+                additionalProperties: false
+          headers: &ref_3
+            WWW-Authenticate:
+              schema:
+                type: string
+              example: Bearer
   /threads:
     get:
       tags:
@@ -26,10 +135,10 @@ paths:
             application/hal+json:
               schema:
                 type: object
-                required: &ref_24
+                required: &ref_27
                   - _embedded
                   - _links
-                properties: &ref_25
+                properties: &ref_28
                   _embedded:
                     type: object
                     required:
@@ -39,12 +148,12 @@ paths:
                         type: array
                         items:
                           type: object
-                          required: &ref_2
+                          required: &ref_4
                             - created_on
                             - modified_on
                             - thread_id
                             - _links
-                          properties: &ref_3
+                          properties: &ref_5
                             created_on:
                               type: string
                               format: date-time
@@ -64,20 +173,22 @@ paths:
                               properties:
                                 self:
                                   type: object
-                                  required: &ref_0
-                                    - href
-                                  properties: &ref_1
-                                    href:
-                                      type: string
-                                      format: uri-reference
+                                  required: *ref_0
+                                  properties: *ref_1
+                                  additionalProperties: false
                                 messages:
                                   type: object
                                   required: *ref_0
                                   properties: *ref_1
+                                  additionalProperties: false
                                 events:
                                   type: object
                                   required: *ref_0
                                   properties: *ref_1
+                                  additionalProperties: false
+                              additionalProperties: false
+                          additionalProperties: false
+                    additionalProperties: false
                   _links:
                     type: object
                     required:
@@ -87,6 +198,9 @@ paths:
                         type: object
                         required: *ref_0
                         properties: *ref_1
+                        additionalProperties: false
+                    additionalProperties: false
+                additionalProperties: false
               examples:
                 default:
                   value:
@@ -119,39 +233,8 @@ paths:
                         href: /threads
         '401':
           description: Missing or invalid Controller access token.
-          content: &ref_6
-            application/problem+json:
-              schema:
-                type: object
-                description: Problem Details for HTTP APIs (RFC 9457), served as application/problem+json. Standard fields are optional. Problem types may define extension properties.
-                externalDocs: &ref_4
-                  url: https://www.rfc-editor.org/rfc/rfc9457.html
-                properties: &ref_5
-                  type:
-                    type: string
-                    format: uri-reference
-                    default: about:blank
-                    description: URI reference identifying the problem type.
-                  title:
-                    type: string
-                    description: Short human-readable summary of the problem type, stable across occurrences except for localization.
-                  status:
-                    type: integer
-                    minimum: 100
-                    maximum: 599
-                    description: HTTP status code for this occurrence; must match the response status.
-                  detail:
-                    type: string
-                    description: Human-readable explanation specific to this occurrence.
-                  instance:
-                    type: string
-                    format: uri-reference
-                    description: URI reference identifying this specific problem occurrence.
-          headers: &ref_7
-            WWW-Authenticate:
-              schema:
-                type: string
-              example: Bearer
+          content: *ref_2
+          headers: *ref_3
     post:
       tags:
         - Threads
@@ -171,11 +254,12 @@ paths:
             application/hal+json:
               schema:
                 type: object
-                required: *ref_2
-                properties: *ref_3
+                required: *ref_4
+                properties: *ref_5
+                additionalProperties: false
               examples:
                 default:
-                  value: &ref_8
+                  value: &ref_9
                     created_on: '2027-06-05T12:34:56Z'
                     modified_on: '2027-06-05T12:34:56Z'
                     title: Hello
@@ -189,26 +273,30 @@ paths:
                         href: /events?thread=thd_123
         '400':
           description: Invalid request.
-          content: &ref_13
+          content: &ref_14
             application/problem+json:
               schema:
                 type: object
                 description: Problem Details for HTTP APIs (RFC 9457), served as application/problem+json. Standard fields are optional. Problem types may define extension properties.
-                externalDocs: *ref_4
-                properties: *ref_5
+                externalDocs: *ref_6
+                required: *ref_7
+                properties: *ref_8
+                additionalProperties: false
         '401':
           description: Missing or invalid Controller access token.
-          content: *ref_6
-          headers: *ref_7
+          content: *ref_2
+          headers: *ref_3
         '422':
           description: The request was well-formed but was unable to be followed due to semantic errors.
-          content: &ref_22
+          content: &ref_23
             application/problem+json:
               schema:
                 type: object
                 description: Problem Details for HTTP APIs (RFC 9457), served as application/problem+json. Standard fields are optional. Problem types may define extension properties.
-                externalDocs: *ref_4
-                properties: *ref_5
+                externalDocs: *ref_6
+                required: *ref_7
+                properties: *ref_8
+                additionalProperties: false
               examples:
                 validationError:
                   value:
@@ -221,19 +309,19 @@ paths:
           in: header
           required: false
           description: Optional client-generated key for retrying a creation request. Reuse the same key and payload for retries. Within the authenticated caller and target endpoint, a repeated request with a retained key returns the original result without creating another resource. Reusing the key with a different payload returns 409. Key retention duration is not yet defined.
-          schema: &ref_14
+          schema: &ref_15
             type: string
             minLength: 1
       requestBody:
         required: true
         description: A user message, also used as the initial message when creating a thread.
-        content: &ref_15
+        content: &ref_16
           application/json:
             schema:
               type: object
-              required: &ref_26
+              required: &ref_29
                 - content
-              properties: &ref_27
+              properties: &ref_30
                 content:
                   type: string
                   minLength: 1
@@ -250,7 +338,7 @@ paths:
         in: path
         required: true
         description: Thread identifier.
-        schema: &ref_10
+        schema: &ref_11
           type: string
         example: thd_123
     get:
@@ -261,28 +349,31 @@ paths:
       responses:
         '200':
           description: Thread metadata.
-          content: &ref_20
+          content: &ref_21
             application/hal+json:
               schema:
                 type: object
-                required: *ref_2
-                properties: *ref_3
+                required: *ref_4
+                properties: *ref_5
+                additionalProperties: false
               examples:
                 default:
-                  value: *ref_8
+                  value: *ref_9
         '401':
           description: Missing or invalid Controller access token.
-          content: *ref_6
-          headers: *ref_7
+          content: *ref_2
+          headers: *ref_3
         '404':
           description: Resource or pagination link not found or inaccessible to the caller.
-          content: &ref_9
+          content: &ref_10
             application/problem+json:
               schema:
                 type: object
                 description: Problem Details for HTTP APIs (RFC 9457), served as application/problem+json. Standard fields are optional. Problem types may define extension properties.
-                externalDocs: *ref_4
-                properties: *ref_5
+                externalDocs: *ref_6
+                required: *ref_7
+                properties: *ref_8
+                additionalProperties: false
     delete:
       tags:
         - Threads
@@ -293,18 +384,18 @@ paths:
           description: Thread and its message history deleted. No response body.
         '401':
           description: Missing or invalid Controller access token.
-          content: *ref_6
-          headers: *ref_7
+          content: *ref_2
+          headers: *ref_3
         '404':
           description: Resource or pagination link not found or inaccessible to the caller.
-          content: *ref_9
+          content: *ref_10
   /threads/{threadId}/messages:
     parameters:
       - name: threadId
         in: path
         required: true
         description: Thread identifier.
-        schema: *ref_10
+        schema: *ref_11
         example: thd_123
     get:
       tags:
@@ -315,14 +406,14 @@ paths:
       responses:
         '200':
           description: A batch of messages with navigation links.
-          content: &ref_16
+          content: &ref_17
             application/hal+json:
               schema:
                 type: object
-                required: &ref_28
+                required: &ref_31
                   - _embedded
                   - _links
-                properties: &ref_29
+                properties: &ref_32
                   _embedded:
                     type: object
                     required:
@@ -332,14 +423,14 @@ paths:
                         type: array
                         items:
                           type: object
-                          required: &ref_11
+                          required: &ref_12
                             - content
                             - created_on
                             - source
                             - thread_id
                             - message_number
                             - _links
-                          properties: &ref_12
+                          properties: &ref_13
                             content:
                               type: string
                             created_on:
@@ -366,14 +457,20 @@ paths:
                                   type: object
                                   required: *ref_0
                                   properties: *ref_1
+                                  additionalProperties: false
                                 thread:
                                   type: object
                                   required: *ref_0
                                   properties: *ref_1
+                                  additionalProperties: false
                                 events:
                                   type: object
                                   required: *ref_0
                                   properties: *ref_1
+                                  additionalProperties: false
+                              additionalProperties: false
+                          additionalProperties: false
+                    additionalProperties: false
                   _links:
                     type: object
                     required:
@@ -387,30 +484,39 @@ paths:
                         type: object
                         required: *ref_0
                         properties: *ref_1
+                        additionalProperties: false
                       thread:
                         type: object
                         required: *ref_0
                         properties: *ref_1
+                        additionalProperties: false
                       events:
                         type: object
                         required: *ref_0
                         properties: *ref_1
+                        additionalProperties: false
                       next:
                         type: object
                         required: *ref_0
                         properties: *ref_1
+                        additionalProperties: false
                       prev:
                         type: object
                         required: *ref_0
                         properties: *ref_1
+                        additionalProperties: false
                       first:
                         type: object
                         required: *ref_0
                         properties: *ref_1
+                        additionalProperties: false
                       last:
                         type: object
                         required: *ref_0
                         properties: *ref_1
+                        additionalProperties: false
+                    additionalProperties: false
+                additionalProperties: false
               examples:
                 default:
                   value:
@@ -453,11 +559,11 @@ paths:
                         href: /threads/thd_123/messages/query/crs_678
         '401':
           description: Missing or invalid Controller access token.
-          content: *ref_6
-          headers: *ref_7
+          content: *ref_2
+          headers: *ref_3
         '404':
           description: Resource or pagination link not found or inaccessible to the caller.
-          content: *ref_9
+          content: *ref_10
     post:
       tags:
         - Messages
@@ -477,11 +583,12 @@ paths:
             application/hal+json:
               schema:
                 type: object
-                required: *ref_11
-                properties: *ref_12
+                required: *ref_12
+                properties: *ref_13
+                additionalProperties: false
               examples:
                 default:
-                  value: &ref_17
+                  value: &ref_18
                     content: Hello world
                     created_on: '2027-06-05T12:34:56Z'
                     source: user
@@ -496,46 +603,48 @@ paths:
                         href: /events?thread=thd_123
         '400':
           description: Invalid request.
-          content: *ref_13
+          content: *ref_14
         '401':
           description: Missing or invalid Controller access token.
-          content: *ref_6
-          headers: *ref_7
+          content: *ref_2
+          headers: *ref_3
         '404':
           description: Resource or pagination link not found or inaccessible to the caller.
-          content: *ref_9
+          content: *ref_10
         '409':
           description: The idempotency key was already used for a different request.
-          content: &ref_23
+          content: &ref_24
             application/problem+json:
               schema:
                 type: object
                 description: Problem Details for HTTP APIs (RFC 9457), served as application/problem+json. Standard fields are optional. Problem types may define extension properties.
-                externalDocs: *ref_4
-                properties: *ref_5
+                externalDocs: *ref_6
+                required: *ref_7
+                properties: *ref_8
+                additionalProperties: false
       parameters:
         - name: Idempotency-Key
           in: header
           required: false
           description: Optional client-generated key for retrying a creation request. Reuse the same key and payload for retries. Within the authenticated caller and target endpoint, a repeated request with a retained key returns the original result without creating another resource. Reusing the key with a different payload returns 409. Key retention duration is not yet defined.
-          schema: *ref_14
+          schema: *ref_15
       requestBody:
         required: true
         description: A user message, also used as the initial message when creating a thread.
-        content: *ref_15
+        content: *ref_16
   /threads/{threadId}/messages/query/{cursor}:
     parameters:
       - name: threadId
         in: path
         required: true
         description: Thread identifier.
-        schema: *ref_10
+        schema: *ref_11
         example: thd_123
       - name: cursor
         in: path
         required: true
         description: Opaque server-issued pagination value. Follow returned links without interpreting or modifying it. Links are not guaranteed to remain valid indefinitely.
-        schema: &ref_19
+        schema: &ref_20
           type: string
         example: crs_123
     get:
@@ -547,27 +656,27 @@ paths:
       responses:
         '200':
           description: A batch of messages with navigation links.
-          content: *ref_16
+          content: *ref_17
         '401':
           description: Missing or invalid Controller access token.
-          content: *ref_6
-          headers: *ref_7
+          content: *ref_2
+          headers: *ref_3
         '404':
           description: Resource or pagination link not found or inaccessible to the caller.
-          content: *ref_9
+          content: *ref_10
   /threads/{threadId}/messages/{messageNumber}:
     parameters:
       - name: threadId
         in: path
         required: true
         description: Thread identifier.
-        schema: *ref_10
+        schema: *ref_11
         example: thd_123
       - name: messageNumber
         in: path
         required: true
         description: Message identifier.
-        schema: &ref_18
+        schema: &ref_19
           type: integer
         example: 123
     get:
@@ -578,22 +687,23 @@ paths:
       responses:
         '200':
           description: Message representation.
-          content: &ref_21
+          content: &ref_22
             application/hal+json:
               schema:
                 type: object
-                required: *ref_11
-                properties: *ref_12
+                required: *ref_12
+                properties: *ref_13
+                additionalProperties: false
               examples:
                 default:
-                  value: *ref_17
+                  value: *ref_18
         '401':
           description: Missing or invalid Controller access token.
-          content: *ref_6
-          headers: *ref_7
+          content: *ref_2
+          headers: *ref_3
         '404':
           description: Resource or pagination link not found or inaccessible to the caller.
-          content: *ref_9
+          content: *ref_10
     delete:
       tags:
         - Messages
@@ -604,11 +714,11 @@ paths:
           description: Message deleted. No response body.
         '401':
           description: Missing or invalid Controller access token.
-          content: *ref_6
-          headers: *ref_7
+          content: *ref_2
+          headers: *ref_3
         '404':
           description: Resource or pagination link not found or inaccessible to the caller.
-          content: *ref_9
+          content: *ref_10
   /events:
     get:
       tags:
@@ -629,10 +739,10 @@ paths:
               itemSchema:
                 type: object
                 description: A batch of messages delivered through the event stream.
-                required: &ref_30
+                required: &ref_33
                   - _embedded
                   - _links
-                properties: &ref_31
+                properties: &ref_34
                   _embedded:
                     type: object
                     required:
@@ -642,8 +752,10 @@ paths:
                         type: array
                         items:
                           type: object
-                          required: *ref_11
-                          properties: *ref_12
+                          required: *ref_12
+                          properties: *ref_13
+                          additionalProperties: false
+                    additionalProperties: false
                   _links:
                     type: object
                     required:
@@ -653,16 +765,19 @@ paths:
                         type: object
                         required: *ref_0
                         properties: *ref_1
+                        additionalProperties: false
+                    additionalProperties: false
+                additionalProperties: false
         '400':
           description: Invalid request.
-          content: *ref_13
+          content: *ref_14
         '401':
           description: Missing or invalid Controller access token.
-          content: *ref_6
-          headers: *ref_7
+          content: *ref_2
+          headers: *ref_3
         '404':
           description: Resource or pagination link not found or inaccessible to the caller.
-          content: *ref_9
+          content: *ref_10
       parameters:
         - name: thread
           in: query
@@ -683,92 +798,105 @@ components:
       in: path
       required: true
       description: Thread identifier.
-      schema: *ref_10
+      schema: *ref_11
       example: thd_123
     MessageNumber:
       name: messageNumber
       in: path
       required: true
       description: Message identifier.
-      schema: *ref_18
+      schema: *ref_19
       example: 123
     Cursor:
       name: cursor
       in: path
       required: true
       description: Opaque server-issued pagination value. Follow returned links without interpreting or modifying it. Links are not guaranteed to remain valid indefinitely.
-      schema: *ref_19
+      schema: *ref_20
       example: crs_123
     IdempotencyKey:
       name: Idempotency-Key
       in: header
       required: false
       description: Optional client-generated key for retrying a creation request. Reuse the same key and payload for retries. Within the authenticated caller and target endpoint, a repeated request with a retained key returns the original result without creating another resource. Reusing the key with a different payload returns 409. Key retention duration is not yet defined.
-      schema: *ref_14
+      schema: *ref_15
   requestBodies:
     UserMessage:
       required: true
       description: A user message, also used as the initial message when creating a thread.
-      content: *ref_15
+      content: *ref_16
   responses:
     Thread:
       description: Thread metadata.
-      content: *ref_20
+      content: *ref_21
     Message:
       description: Message representation.
-      content: *ref_21
+      content: *ref_22
     Messages:
       description: A batch of messages with navigation links.
-      content: *ref_16
+      content: *ref_17
     UnprocessableEntity:
       description: The request was well-formed but was unable to be followed due to semantic errors.
-      content: *ref_22
+      content: *ref_23
     BadRequest:
       description: Invalid request.
-      content: *ref_13
+      content: *ref_14
     Unauthorized:
       description: Missing or invalid Controller access token.
-      content: *ref_6
-      headers: *ref_7
+      content: *ref_2
+      headers: *ref_3
     NotFound:
       description: Resource or pagination link not found or inaccessible to the caller.
-      content: *ref_9
+      content: *ref_10
     Conflict:
       description: The idempotency key was already used for a different request.
-      content: *ref_23
+      content: *ref_24
   schemas:
     link:
       type: object
       required: *ref_0
       properties: *ref_1
-    thread:
+      additionalProperties: false
+    service-discovery:
       type: object
-      required: *ref_2
-      properties: *ref_3
-    list-threads-response:
-      type: object
-      required: *ref_24
-      properties: *ref_25
+      required: *ref_25
+      properties: *ref_26
+      additionalProperties: false
     problem-details:
       type: object
       description: Problem Details for HTTP APIs (RFC 9457), served as application/problem+json. Standard fields are optional. Problem types may define extension properties.
-      externalDocs: *ref_4
+      externalDocs: *ref_6
+      required: *ref_7
+      properties: *ref_8
+      additionalProperties: false
+    thread:
+      type: object
+      required: *ref_4
       properties: *ref_5
+      additionalProperties: false
+    thread-list:
+      type: object
+      required: *ref_27
+      properties: *ref_28
+      additionalProperties: false
     message-request:
       type: object
-      required: *ref_26
-      properties: *ref_27
+      required: *ref_29
+      properties: *ref_30
       additionalProperties: false
     message:
       type: object
-      required: *ref_11
-      properties: *ref_12
-    get-messages-response:
+      required: *ref_12
+      properties: *ref_13
+      additionalProperties: false
+    message-query-result:
       type: object
-      required: *ref_28
-      properties: *ref_29
+      required: *ref_31
+      properties: *ref_32
+      additionalProperties: false
     get-events-response:
       type: object
       description: A batch of messages delivered through the event stream.
-      required: *ref_30
-      properties: *ref_31
+      required: *ref_33
+      properties: *ref_34
+      additionalProperties: false

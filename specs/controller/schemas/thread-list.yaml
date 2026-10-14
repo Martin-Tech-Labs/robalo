@@ -12,6 +12,7 @@ properties:
         type: array
         items:
           $ref: './thread.yaml'
+    additionalProperties: false    
   _links:
     type: object
     required:
@@ -19,3 +20,5 @@ properties:
     properties:
       self:
         $ref: './link.yaml'
+    additionalProperties: false    
+additionalProperties: false

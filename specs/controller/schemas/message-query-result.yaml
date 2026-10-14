@@ -12,6 +12,7 @@ properties:
         type: array
         items:
           $ref: './message.yaml'
+    additionalProperties: false    
   _links:
     type: object
     required:
@@ -35,3 +36,5 @@ properties:
         $ref: './link.yaml'
       last:
         $ref: './link.yaml'
+    additionalProperties: false
+additionalProperties: false

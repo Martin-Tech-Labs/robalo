@@ -51,7 +51,7 @@ public class ThreadsController_CreateMessageTests : ThreadsControllerTests
 
         messageResource.Content.ShouldBe(request.Content);
         messageResource.CreatedOn.ShouldBe(_utcNow);
-        messageResource.Source.ShouldBe(MessageSource.User.ToString());
+        messageResource.Source.ShouldBe("user");
         messageResource.MessageNumber.ShouldBe(thread.Messages.Count);
         messageResource.ThreadId.ShouldBe(thread.Id);
 

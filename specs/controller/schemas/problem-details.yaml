@@ -4,6 +4,12 @@ description: >-
   Standard fields are optional. Problem types may define extension properties.
 externalDocs:
   url: https://www.rfc-editor.org/rfc/rfc9457.html
+required:
+  - type
+  - title
+  - status
+  - detail
+  - request_id
 properties:
   type:
     type: string
@@ -27,3 +33,7 @@ properties:
     type: string
     format: uri-reference
     description: URI reference identifying this specific problem occurrence.
+  request_id:
+    type: string
+    description: RequestId
+additionalProperties: false

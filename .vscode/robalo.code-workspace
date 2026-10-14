@@ -5,6 +5,7 @@
 		}
 	],
 	"settings": {
-		"codeQL.githubDatabase.update": "never"
+		"codeQL.githubDatabase.update": "never",
+		"dotnet.defaultSolution": "Robalo.slnx"
 	}
 }
