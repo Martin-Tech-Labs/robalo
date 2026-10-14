@@ -6,6 +6,7 @@ declare global {
             validThreadListSchema(message?: string): Assertion;
             validMessageQueryResultSchema(message?: string): Assertion;
             validProblemDetailsSchema(message?: string): Assertion;
+            validMessageSchema(message?: string): Assertion;
         }
     }
 }
@@ -27,6 +28,7 @@ let validateThreadSchema: ValidateFunction;
 let validateMessageQueryResultSchema: ValidateFunction;
 let validateProblemDetailsSchema: ValidateFunction;
 let validateThreadListSchema: ValidateFunction;
+let validateMessageSchema: ValidateFunction;
 
 before(async () => {
     validateServiceDiscoverySchema = ajv.compile((await $RefParser.dereference("specs/controller/schemas/service-discovery.yaml")));
@@ -34,6 +36,8 @@ before(async () => {
     validateThreadListSchema = ajv.compile((await $RefParser.dereference("specs/controller/schemas/thread-list.yaml")));
     validateMessageQueryResultSchema = ajv.compile((await $RefParser.dereference("specs/controller/schemas/message-query-result.yaml")));
     validateProblemDetailsSchema = ajv.compile((await $RefParser.dereference("specs/controller/schemas/problem-details.yaml")));
+    validateMessageSchema = ajv.compile((await $RefParser.dereference("specs/controller/schemas/message.yaml")));
+
 });
 
 use((chai, utils) => {
@@ -63,6 +67,21 @@ use((chai, utils) => {
                 isValid,
                 `expected #{this} to match ThreadList schema: ${ajv.errorsText(validateThreadListSchema.errors)}${message ? `: ${message}` : ""}`,
                 "expected #{this} to not match valid ThreadList schema" + (message ? ": " + message : "")
+            );
+        },
+    );
+
+    utils.addChainableMethod(
+        chai.Assertion.prototype,
+        "validMessageSchema" satisfies keyof Chai.Assertion,
+        function (this: Chai.AssertionPrototype, message?: string) {
+            const obj = utils.flag(this, "object");
+
+            const isValid = validateMessageSchema(obj);
+            this.assert(
+                isValid,
+                `expected #{this} to match Message schema: ${ajv.errorsText(validateMessageSchema.errors)}${message ? `: ${message}` : ""}`,
+                "expected #{this} to not match valid Message schema" + (message ? ": " + message : "")
             );
         },
     );

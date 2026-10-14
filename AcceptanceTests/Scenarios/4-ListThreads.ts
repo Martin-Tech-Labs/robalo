@@ -28,18 +28,17 @@ describe('4 - List Threads @vier @threads', () => {
             message = `msg_${randomUUID().toLowerCase()}`;
         });
 
-
         it("Given service discovery document", async () => {
             serviceDiscovery = (await ControllerApi.serviceDiscovery()).body as ServiceDiscovery;
         });
 
 
         it(`And an existing thread 1`, async () => {
-            thread1 = (await ControllerApi.createThread({ content: message }, serviceDiscovery._links['create-thread'])).body as Thread;
+            thread1 = (await ControllerApi.post({ content: message }, serviceDiscovery._links['create-thread'])).body as Thread;
         });
 
         it(`And an existing thread 2`, async () => {
-            thread2 = (await ControllerApi.createThread({ content: message }, serviceDiscovery._links['create-thread'])).body as Thread;
+            thread2 = (await ControllerApi.post({ content: message }, serviceDiscovery._links['create-thread'])).body as Thread;
         });
 
         it("When I request a list of threads", async () => {
