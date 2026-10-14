@@ -14,7 +14,7 @@ import type { ProblemDetails } from '../Api/Types/problem-details.d.ts'
 
 import { randomUUID } from 'node:crypto';
 
-describe('3 - Create Thread @createThread', () => {
+describe('3 - Threads @threads', () => {
     let serviceDiscovery: ServiceDiscovery;
     let thread: Thread;
     let response: Response;
@@ -106,12 +106,28 @@ describe('3 - Create Thread @createThread', () => {
             expect(messageQueryResult._links.next).to.be.undefined;
             expect(messageQueryResult._links.prev).to.be.undefined;
         });
+
+        it("When I delete the thread", async () => {
+            response = await ControllerApi.delete(thread._links.self);
+        })
+
+        it("Then I verify the valid response code 204", async () => {
+            response.statusCode.should.equal(204);
+        });
+
+        it("When I try to retrive the thread using previously saved self link", async () => {
+            response = await ControllerApi.get(thread._links.self);
+        })
+
+        it("Then I verify the valid response code 404", async () => {
+            response.statusCode.should.equal(404);
+        });
     })
 
 
     describe("Create Thread - Missing Message", () => {
         let problemDetails: ProblemDetails;
-        
+
         before(() => {
             message = "";
         });
@@ -149,11 +165,9 @@ describe('3 - Create Thread @createThread', () => {
     describe("Create Thread - Malformed payload", () => {
         let problemDetails: ProblemDetails;
 
-
         it("Given service discovery document", async () => {
             serviceDiscovery = (await ControllerApi.serviceDiscovery()).body as ServiceDiscovery;
         });
-
 
         it(`When I create a new thread with message `, async () => {
             response = await ControllerApi.post("{{≠}ºls", serviceDiscovery._links['create-thread']);

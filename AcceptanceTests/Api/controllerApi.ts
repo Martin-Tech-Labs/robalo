@@ -22,6 +22,7 @@ const ControllerApi = {
     serviceDiscovery: () => request(Config.ControllerUrl).get(''),
 
     get: (link: Link) => request(link.href).get(''),
+    delete: (link: Link) => request(link.href).delete(''),
 
     post: (payload: string, link: Link) =>
         request(link.href)

@@ -50,7 +50,7 @@ public class ThreadsController : ControllerBase
         return result switch
         {
             Created _ => GetThreadResource(thread).AsCreated(),
-            ConcurrencyConflict => GetConcurrencyResult("thread_already_exists"),
+            ConcurrencyConflict =>  throw new InvalidOperationException("Unexpected result ConcurrencyConflict on thread creation"),
             Updated => throw new InvalidOperationException("Unexpected result Updated on thread creation"),
             NoChanges => throw new InvalidOperationException("Unexpected result NoChanges on thread creation")
         };
