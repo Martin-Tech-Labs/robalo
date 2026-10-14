@@ -51,7 +51,6 @@ describe('3 - Threads @drei @threads', () => {
         it("And I verfy the schema", () => {
             expect(response.body).to.have.validThreadSchema();
             thread = response.body as Thread;
-
         });
 
         it("And I verify the location link matches the self link", () => {
@@ -83,7 +82,7 @@ describe('3 - Threads @drei @threads', () => {
             expect(response.body).to.have.validThreadSchema();
         });
 
-        it("And I verfy the resources match", () => {
+        it("And I verify the resources match", () => {
             let threadSelf = response.body as Thread;
             thread.should.deep.equal(threadSelf);
         });
@@ -162,6 +161,22 @@ describe('3 - Threads @drei @threads', () => {
 
         it("And I verify the message number is 2", () => {
             message.message_number.should.equal(2);
+        });
+
+        it("When I go to message self link", async () => {
+            response = await ControllerApi.get(message._links.self);
+        });
+
+        it("Then I verify status code", () => {
+            response.statusCode.should.equal(200);
+        });
+
+        it("And I verify the schema", () => {
+            expect(response.body).to.be.validMessageSchema();
+        });
+
+        it("And I verify the retrieved message via self links matches the created response", () => {
+            expect(response.body as Message).to.deep.equal(message);
         });
 
         it("When I reload the thread by going to its self link", async () => {

@@ -64,7 +64,7 @@ describe('5 - Query Messages @queryThreads @threads', () => {
 
         it("I verify messages", () => {
             result._embedded.messages.should.have.lengthOf(limit);
-            var orderedMessages = result._embedded.messages.sort(t => t.message_number);
+            var orderedMessages = result._embedded.messages.toSorted((a, b) => a.message_number - b.message_number);
             for (let i = 0; i < orderedMessages.length; i++) {
                 orderedMessages[i].message_number.should.equal(numberOfMessages - limit + i + 1);
                 orderedMessages[i].content.should.equal(`msg_${numberOfMessages - limit + i}`);
@@ -146,7 +146,7 @@ describe('5 - Query Messages @queryThreads @threads', () => {
             expect(resultPrev._links.first).to.deep.equal(result._links.first);
 
             resultPrev._embedded.messages.should.have.lengthOf(limit);
-            var orderedMessages = resultPrev._embedded.messages.sort(t => t.message_number);
+            var orderedMessages = resultPrev._embedded.messages.toSorted((a, b) => a.message_number - b.message_number);
             for (let i = 0; i < orderedMessages.length; i++) {
                 orderedMessages[i].message_number.should.equal(numberOfMessages - 2 * limit + i + 1);
                 orderedMessages[i].content.should.equal(`msg_${numberOfMessages - 2 * limit + i}`);
@@ -177,7 +177,7 @@ describe('5 - Query Messages @queryThreads @threads', () => {
             expect(resultFirst._links.first).to.deep.equal(result._links.first);
 
             resultFirst._embedded.messages.should.have.lengthOf(limit);
-            var orderedMessages = resultFirst._embedded.messages.sort(t => t.message_number);
+            var orderedMessages = resultFirst._embedded.messages.toSorted((a, b) => a.message_number - b.message_number);
             for (let i = 0; i < orderedMessages.length; i++) {
                 orderedMessages[i].message_number.should.equal(i + 1);
                 orderedMessages[i].content.should.equal(`msg_${i}`);
@@ -208,7 +208,7 @@ describe('5 - Query Messages @queryThreads @threads', () => {
             expect(resultLast._links.first).to.deep.equal(result._links.first);
 
             resultLast._embedded.messages.should.have.lengthOf(limit);
-            var orderedMessages = resultLast._embedded.messages.sort(t => t.message_number);
+            var orderedMessages = resultLast._embedded.messages.toSorted((a, b) => a.message_number - b.message_number);
             for (let i = 0; i < orderedMessages.length; i++) {
                 orderedMessages[i].message_number.should.equal(numberOfMessages + 1 - limit + i + 1);
                 orderedMessages[i].content.should.equal(`msg_${numberOfMessages + 1 - limit + i}`);
