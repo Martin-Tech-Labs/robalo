@@ -14,7 +14,7 @@ import type { ProblemDetails } from '../Api/Types/problem-details.d.ts'
 
 import { randomUUID } from 'node:crypto';
 
-describe('3 - Threads @threads', () => {
+describe('3 - Threads @drei @threads', () => {
     let serviceDiscovery: ServiceDiscovery;
     let thread: Thread;
     let response: Response;
@@ -122,6 +122,15 @@ describe('3 - Threads @threads', () => {
         it("Then I verify the valid response code 404", async () => {
             response.statusCode.should.equal(404);
         });
+
+        it("When I try to delete the thread again using previously saved self link", async () => {
+            response = await ControllerApi.delete(thread._links.self);
+        })
+
+        it("Then I verify the valid response code 404", async () => {
+            response.statusCode.should.equal(404);
+        });
+
     })
 
 
