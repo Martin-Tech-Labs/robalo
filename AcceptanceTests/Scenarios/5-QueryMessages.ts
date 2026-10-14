@@ -32,7 +32,7 @@ describe('5 - Query Messages @queryThreads @threads', () => {
         });
 
         it(`And an existing thread`, async () => {
-            thread = (await ControllerApi.post({ content: "msg_0" }, serviceDiscovery._links['create-thread']).expect(201)).body as Thread;
+            thread = (await ControllerApi.post({ content: "msg_0" }, serviceDiscovery._links.threads).expect(201)).body as Thread;
         });
 
         it(`With ${numberOfMessages} messages`, async () => {

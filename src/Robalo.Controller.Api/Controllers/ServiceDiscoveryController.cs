@@ -33,7 +33,6 @@ public class ServiceDiscoveryController : ControllerBase
             Links: new(
                 Self: _httpContextAccessor.LinkToServiceDiscovery(),
                 Threads: _httpContextAccessor.LinkToThreads(),
-                CreateThread: _httpContextAccessor.LinkToThreads(),
                 Events: _httpContextAccessor.LinkToEvents())
         ).AsOk();
 }

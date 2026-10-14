@@ -34,11 +34,11 @@ describe('4 - List Threads @listThreads @threads', () => {
 
 
         it(`And an existing thread 1`, async () => {
-            thread1 = (await ControllerApi.post({ content: message }, serviceDiscovery._links['create-thread'])).body as Thread;
+            thread1 = (await ControllerApi.post({ content: message }, serviceDiscovery._links.threads)).body as Thread;
         });
 
         it(`And an existing thread 2`, async () => {
-            thread2 = (await ControllerApi.post({ content: message }, serviceDiscovery._links['create-thread'])).body as Thread;
+            thread2 = (await ControllerApi.post({ content: message }, serviceDiscovery._links.threads)).body as Thread;
         });
 
         it("When I request a list of threads", async () => {

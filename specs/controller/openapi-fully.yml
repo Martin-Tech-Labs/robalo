@@ -36,7 +36,6 @@ paths:
                     required:
                       - self
                       - threads
-                      - create-thread
                       - events
                     properties:
                       self:
@@ -49,11 +48,6 @@ paths:
                             format: uri-reference
                         additionalProperties: false
                       threads:
-                        type: object
-                        required: *ref_0
-                        properties: *ref_1
-                        additionalProperties: false
-                      create-thread:
                         type: object
                         required: *ref_0
                         properties: *ref_1
@@ -72,8 +66,6 @@ paths:
                       self:
                         href: http://localhost:5050/controller/
                       threads:
-                        href: http://localhost:5050/controller/threads
-                      create-thread:
                         href: http://localhost:5050/controller/threads
                       events:
                         href: http://localhost:5050/controller/events

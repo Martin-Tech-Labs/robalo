@@ -6,9 +6,6 @@
         "threads": {
             "href": "http://localhost:5050/controller/threads"
         },
-        "create-thread": {
-            "href": "http://localhost:5050/controller/threads"
-        },
         "events": {
             "href": "http://localhost:5050/controller/events"
         }

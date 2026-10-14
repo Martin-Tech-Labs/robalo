@@ -7,14 +7,11 @@ properties:
     required:
       - self
       - threads
-      - create-thread
       - events
     properties:
       self:
         $ref: './link.yaml'
       threads:
-        $ref: './link.yaml'
-      create-thread:
         $ref: './link.yaml'
       events:
         $ref: './link.yaml'

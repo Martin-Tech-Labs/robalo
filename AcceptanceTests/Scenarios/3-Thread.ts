@@ -36,7 +36,7 @@ describe('3 - Threads @drei @threads', () => {
 
 
         it(`When I create a new thread with message `, async () => {
-            response = await ControllerApi.post({ content: message1Content }, serviceDiscovery._links['create-thread']);
+            response = await ControllerApi.post({ content: message1Content }, serviceDiscovery._links.threads);
         });
 
         it("Then I verfy the response code", () => {
@@ -215,7 +215,7 @@ describe('3 - Threads @drei @threads', () => {
 
 
         it(`When I make a post request to the create-thread with missing message `, async () => {
-            response = await ControllerApi.post({ content: message1Content }, serviceDiscovery._links['create-thread']);
+            response = await ControllerApi.post({ content: message1Content }, serviceDiscovery._links.threads);
         });
 
         it("Then I should get 422", () => {
@@ -246,7 +246,7 @@ describe('3 - Threads @drei @threads', () => {
         });
 
         it(`When I create a new thread with message `, async () => {
-            response = await ControllerApi.post("{{≠}ºls", serviceDiscovery._links['create-thread']);
+            response = await ControllerApi.post("{{≠}ºls", serviceDiscovery._links.threads);
         });
 
         it("Then I should get 400", () => {
@@ -280,7 +280,7 @@ describe('3 - Threads @drei @threads', () => {
 
 
         it(`And existing thread`, async () => {
-            response = await ControllerApi.post({ content: "test" }, serviceDiscovery._links['create-thread']).expect(201);
+            response = await ControllerApi.post({ content: "test" }, serviceDiscovery._links.threads).expect(201);
             thread = response.body as Thread;
         });
 
@@ -317,7 +317,7 @@ describe('3 - Threads @drei @threads', () => {
         });
 
         it(`And an existing thread`, async () => {
-            response = await ControllerApi.post({ content: "Test" }, serviceDiscovery._links['create-thread']).expect(201);
+            response = await ControllerApi.post({ content: "Test" }, serviceDiscovery._links.threads).expect(201);
             thread = response.body as Thread;
         });
 
