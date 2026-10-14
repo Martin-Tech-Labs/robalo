@@ -22,17 +22,13 @@ const ControllerApi = {
     serviceDiscovery: () => request(Config.ControllerUrl).get(''),
 
     get: (link: Link) => request(link.href).get(''),
+
     delete: (link: Link) => request(link.href).delete(''),
 
-    post: (payload: string, link: Link) =>
+    post: <T extends object | string>(content: T, link: Link) =>
         request(link.href)
             .post('')
             .set("Content-Type", "application/json")
-            .send(payload),
-
-    createThread: (content: MessageRequest, link: Link) =>
-        request(link.href)
-            .post('')
             .send(content)
 };
 
