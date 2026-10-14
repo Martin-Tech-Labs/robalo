@@ -44,7 +44,7 @@ public class ThreadsController_GetMessageTests : ThreadsControllerTests
 
         messageResource.Content.ShouldBe(message.Content);
         messageResource.CreatedOn.ShouldBe(message.CreatedOn);
-        messageResource.Source.ShouldBe(message.Source.ToString());
+        messageResource.Source.ShouldBe(message.Source.ToString().ToLowerInvariant());
         messageResource.MessageNumber.ShouldBe(message.Number);
         messageResource.ThreadId.ShouldBe(id);
     }
