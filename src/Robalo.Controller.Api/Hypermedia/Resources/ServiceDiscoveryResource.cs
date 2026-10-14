@@ -9,5 +9,4 @@ public record ServiceDiscoveryResource(ServiceDiscoveryLinks Links)
 public record ServiceDiscoveryLinks(
     Link Self,
     Link Threads,
-    [property: JsonPropertyName("create-thread")] Link CreateThread,
     Link Events) : Links(Self);

@@ -60,27 +60,17 @@ public class ThreadsController_CreateThreadTests : ThreadsControllerTests
             Times.Once());
     }
 
-    [Fact]
-    public async Task ShouldReturnConflict_OnConcurrencyConflict()
-    {
-        _problemDetailsFactory.Invocations.Clear();
 
+    [Fact]
+    public async Task ShouldThrow_OnRepositoryConcurrencyConflictResult()
+    {
         _repository
             .Setup(r => r.SaveThread(It.IsAny<Thread>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ConcurrencyConflict());
 
-        var result = await _sut.CreateThread(
+        await Should.ThrowAsync<InvalidOperationException>(() => _sut.CreateThread(
             _fixture.Create<MessageApiRequest>(),
-            TestContext.Current.CancellationToken);
-
-        result.ShouldBeOfType<ConflictObjectResult>();
-        var conflictResult = (ConflictObjectResult)result;
-
-        conflictResult.Value.ShouldNotBeNull();
-        conflictResult.Value.ShouldBeOfType<ProblemDetails>();
-
-        _problemDetailsFactory.Verify(v => v.CreateProblemDetails(
-            It.IsAny<HttpContext>(), 409, "Conflict", It.IsAny<string>(), "thread_already_exists", It.IsAny<string>()), Times.Once());
+            TestContext.Current.CancellationToken));
     }
 
     [Fact]

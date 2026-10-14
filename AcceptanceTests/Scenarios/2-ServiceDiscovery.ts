@@ -7,7 +7,7 @@ import { expect } from "chai";
 import ControllerApi from '../Api/controllerApi.ts'
 import type { Response } from 'supertest';
 
-describe('2 - Service Discovery @serviceDiscovery', () => {
+describe('2 - Service Discovery @serviceDiscovery @root', () => {
     describe('Service Discovery endpoint', () => {
 
         let response: Response;

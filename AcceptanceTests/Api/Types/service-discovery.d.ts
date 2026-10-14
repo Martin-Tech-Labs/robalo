@@ -9,7 +9,6 @@ export interface ServiceDiscovery {
   _links: {
     self: Link;
     threads: Link;
-    "create-thread": Link;
     events: Link;
   };
 }
