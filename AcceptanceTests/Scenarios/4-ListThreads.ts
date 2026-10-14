@@ -15,7 +15,7 @@ import type { ThreadList } from '../Api/Types/thread-list.d.ts'
 
 import { randomUUID } from 'node:crypto';
 
-describe('4 - List Threads @vier @threads', () => {
+describe('4 - List Threads @listThreads @threads', () => {
     let serviceDiscovery: ServiceDiscovery;
     let thread1: Thread;
     let thread2: Thread;

@@ -2,7 +2,7 @@
   "type": "module",
   "scripts": {
     "precheck": "tsc --noEmit --strict --module nodenext --target es2022 --erasableSyntaxOnly --verbatimModuleSyntax --allowImportingTsExtensions --types chai AcceptanceTests/Scenarios/*.ts",
-    "test": "npm run precheck && sh -c 'mocha --grep \"${1:-.}\"' --",
+    "test": "npm run precheck && sh -c 'case \"$1\" in @*) tag=\"$1\"; shift; mocha --grep \"(^| )${tag}( |$)\" \"$@\" ;; *) mocha \"$@\" ;; esac' --",
     "generate-spec": "npm exec -- redocly bundle specs/controller/openapi.yml --dereferenced --output specs/controller/openapi-fully.yml",
     "generate-schema-types": "rm -rf AcceptanceTests/Api/Types && npm exec -- json2ts -i 'specs/controller/schemas/*.yaml' -o AcceptanceTests/Api/Types/",
     "spec": "npm run generate-spec && npm run generate-schema-types"

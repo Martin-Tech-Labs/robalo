@@ -24,7 +24,7 @@ describe('3 - Threads @drei @threads', () => {
     let message: Message;
     let messageQueryResult: MessageQueryResult;
 
-    describe('Create Thread - Happy Path', () => {
+    describe('Create Thread - Happy Path @threads @thread', () => {
         before(() => {
             message1Content = `msg_${randomUUID().toLowerCase()}`;
             message2Content = `msg_${randomUUID().toLowerCase()}`;
@@ -57,6 +57,15 @@ describe('3 - Threads @drei @threads', () => {
         it("And I verify the location link matches the self link", () => {
             response.headers['location'].should.equal(thread._links.self.href);
         });
+
+        it("And I verify the thread modified_on equals created_on", () => {
+            thread.created_on.should.equal(thread.modified_on);
+        });
+
+        it("And I verify the thread title is not present", () => {
+            expect(thread.title).to.be.undefined;
+        });
+
 
         it("When I go to the self link", async () => {
             response = await ControllerApi.get(thread._links.self);
@@ -154,6 +163,17 @@ describe('3 - Threads @drei @threads', () => {
         it("And I verify the message number is 2", () => {
             message.message_number.should.equal(2);
         });
+
+        it("When I reload the thread by going to its self link", async () => {
+            response = await ControllerApi.get(thread._links.self).expect(200);
+        });
+
+        it("Then I verify modified_on is updated to that of the last message", async () => {
+            let resultSelf = response.body as Thread;
+            resultSelf.created_on.should.equal(thread.created_on);
+            resultSelf.modified_on.should.equal(message.created_on);
+        });
+
 
         it("When I delete the thread", async () => {
             response = await ControllerApi.delete(thread._links.self);
