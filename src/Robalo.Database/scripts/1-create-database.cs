@@ -98,19 +98,44 @@ foreach (var migration in migrations)
 }
 
 using var command2 = connection.CreateCommand();
-command2.CommandText = "SELECT sqlite_version(),sqlite3mc_version();";
+
+const string GetVersionsQuery = "SELECT sqlite_version(),sqlite3mc_version();";
+
+command2.CommandText = GetVersionsQuery;
 var reader = await command2.ExecuteReaderAsync();
 await reader.ReadAsync();
 var version1 = reader.GetValue(0);
 var version2 = reader.GetValue(1);
 
+if (string.IsNullOrWhiteSpace(password))
+{
+    AnsiConsole.MarkupLineInterpolated($"[bold yellow] WARNING: Non-encrypted database {database} was created[/] with Sqlite [yellow]{version1}[/] ({version2})");
+    return 0;
+}
 
-if (!string.IsNullOrWhiteSpace(password))
+await using var connectionPlain = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = database }.ToString());
+
+await connectionPlain.OpenAsync();
+
+using var command3 = connectionPlain.CreateCommand();
+command3.CommandText = GetVersionsQuery;
+var isThrown = false;
+
+try
 {
-    AnsiConsole.MarkupLineInterpolated($"[bold green]Success! 🔑 Encrypted database {database} was created[/] with Sqlite [yellow]{version1}[/] ({version2})");
+    await command3.ExecuteReaderAsync();
 }
-else
+catch (SqliteException ex) when (ex.SqliteErrorCode == 26)
 {
-    AnsiConsole.MarkupLineInterpolated($"[bold yellow] Non-encrypted database {database} was created[/] with Sqlite [yellow]{version1}[/] ({version2})");
+    isThrown = true;
 }
+
+if (!isThrown)
+{
+    AnsiConsole.MarkupLineInterpolated($"[bold red]Error! File {database} was created but encryption failed[/].");
+    return 1;
+}
+
+AnsiConsole.MarkupLineInterpolated($"[bold green]Success! 🔑 Encrypted database {database} was created[/] with Sqlite [yellow]{version1}[/] ({version2})");
+
 return 0;
