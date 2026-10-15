@@ -43,6 +43,14 @@ while ((key = Console.ReadKey(true)).Key != ConsoleKey.Enter)
         passwordChars.RemoveAt(passwordChars.Count - 1);
         Console.Write("\b \b"); // Remove the last asterisk
     }
+    else if (passwordChars.Count == 0 && char.IsWhiteSpace(key.KeyChar))
+    {
+        // Ignore whitespace at the beginning
+    }
+    else if (passwordChars.Count > 0 && char.IsWhiteSpace(key.KeyChar) && char.IsWhiteSpace(passwordChars[^1]))
+    {
+        // Ignore subsequent whitespaces
+    }
     else if (!char.IsControl(key.KeyChar))
     {
         passwordChars.Add(key.KeyChar);
@@ -50,12 +58,13 @@ while ((key = Console.ReadKey(true)).Key != ConsoleKey.Enter)
     }
 }
 
+Console.WriteLine();
+
 var password = new string([.. passwordChars]);
 
-if (!string.IsNullOrWhiteSpace(password) && password.Length < 8)
+if (!string.IsNullOrWhiteSpace(password) && (password.Length < 8 || char.IsWhiteSpace(passwordChars[^1])))
 {
-    Console.WriteLine();
-    AnsiConsole.MarkupLineInterpolated($"[bold red]Error! If provided, password must contain at least 8 characters[/].");
+    AnsiConsole.MarkupLineInterpolated($"[bold red]Error! If provided, password must contain at least 8 characters and not end with a whitespace[/].");
     return 1;
 }
 
