@@ -67,3 +67,5 @@ nunit-*.xml
 *.editorconfig
 
 node_modules/
+
+*.db
