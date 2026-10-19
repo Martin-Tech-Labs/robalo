@@ -3,13 +3,17 @@ services:
     build:
       context: .
       dockerfile: src/Robalo.Controller.Api/Dockerfile
-    ports:
+    ports:    
       - "5010:5010"
+    volumes:
+      - ./data:/data
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_HTTP_PORTS: 5010
       ASPNETCORE_PATHBASE: /controller
       ROBALO_Serilog__WriteTo__1__args__serverURL: http://seq:5341
+      ROBALO_Database__Database: /data/robalo.db
+      ROBALO_Database__Password: "12345678"
 
   seq:
     image: datalust/seq:2026.1.17182

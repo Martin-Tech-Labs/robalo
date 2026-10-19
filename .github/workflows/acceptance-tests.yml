@@ -28,6 +28,9 @@ jobs:
         with:
           global-json-file: global.json
 
+      - name: Create Database
+        run: dotnet run cake.cs -- --target=CreateDatabase
+
       - name: Start compose
         run: docker compose up -d --wait --wait-timeout 30
 

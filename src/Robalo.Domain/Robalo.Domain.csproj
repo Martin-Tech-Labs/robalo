@@ -17,6 +17,8 @@
     <ProjectReference Include="..\Robalo.Common\Robalo.Common.csproj" />
     <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="10.0.13" />
     <PackageReference Include="CancelCop.Analyzer" Version="1.52.52" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="11.0.0-rc.2.26504.105" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="11.0.0-rc.2.26504.105" />
     <PackageReference Include="Dapper" Version="2.1.89" />
   </ItemGroup>
 

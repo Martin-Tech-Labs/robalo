@@ -4,6 +4,8 @@
 #:package Cake.Docker@1.5.0
 #:package Cake.Npm@5.1.0
 
+using System.Diagnostics;
+
 var target = Argument("target", "UnitTests");
 var configuration = Argument("configuration", "Release");
 
@@ -240,6 +242,68 @@ Task("AcceptanceTests")
 {
     NpmCi();
     NpmRunScript("test");
+});
+
+Task("CreateDatabase")
+.Does(() =>
+{
+
+    EnsureDirectoryExists("data");
+
+    var database = "data/robalo.db";
+
+    using var process = Process.Start(
+        new ProcessStartInfo("./src/Robalo.Database/scripts/1-create-database.cs")
+        {
+            UseShellExecute = false,
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            ArgumentList =
+        {
+            "--",
+            database
+        }
+        });
+
+    process!.StandardInput.WriteLine("12345678");
+    process.StandardInput.Close();
+    process.WaitForExit();
+    var stdout = string.Join(Environment.NewLine, process.StandardOutput.ReadToEnd());
+
+
+    if (process.ExitCode != 0)
+    {
+        AnsiConsole.MarkupLine($"[bold red]Oh, no![/] [yellow]Script failed[/] (exit code [bold]{process.ExitCode}[/]).");
+
+        var stderr = string.Join(Environment.NewLine, process.StandardError.ReadToEnd());
+
+        AnsiConsole.WriteLine("Output:");
+        AnsiConsole.WriteLine(string.IsNullOrWhiteSpace(stdout) ? "<nothing>" : stdout);
+
+        AnsiConsole.WriteLine("Error:");
+        AnsiConsole.WriteLine(string.IsNullOrWhiteSpace(stderr) ? "<nothing>" : stderr);
+
+        throw new Exception($"Script failed with exit code {process.ExitCode}");
+    }
+    else
+    {
+        Console.WriteLine(stdout);
+    }
+
+    if (!OperatingSystem.IsWindows())
+    {
+
+        System.IO.File.SetUnixFileMode("data",
+            UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+            UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+            UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute);
+
+        System.IO.File.SetUnixFileMode(database,
+            UnixFileMode.UserRead | UnixFileMode.UserWrite |
+            UnixFileMode.GroupRead | UnixFileMode.GroupWrite |
+            UnixFileMode.OtherRead | UnixFileMode.OtherWrite);
+    }
 });
 
 //////////////////////////////////////////////////////////////////////

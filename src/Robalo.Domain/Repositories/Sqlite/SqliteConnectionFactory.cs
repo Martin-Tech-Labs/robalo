@@ -26,7 +26,8 @@ public sealed class SqliteConnectionFactory : ISqliteConnectionFactory
           (new SqliteConnectionStringBuilder
           {
               DataSource = _databaseSettings.Database,
-              Password = _databaseSettings.Password
+              Password = _databaseSettings.Password,
+              Mode = SqliteOpenMode.ReadWrite
           }.ToString());
         await connection.OpenAsync(cancellationToken);
         return await configure(connection);
