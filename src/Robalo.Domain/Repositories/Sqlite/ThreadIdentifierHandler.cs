@@ -3,7 +3,7 @@ using System.Globalization;
 using Dapper;
 using Robalo.Domain.Models;
 
-namespace Robalo.Domain.Repositories;
+namespace Robalo.Domain.Repositories.Sqlite;
 
 public sealed class ThreadIdentifierTypeHandler : SqlMapper.TypeHandler<ThreadIdentifier>
 {

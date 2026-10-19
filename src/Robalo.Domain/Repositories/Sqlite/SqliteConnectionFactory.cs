@@ -2,16 +2,17 @@ using System.Data;
 using System.Data.Common;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
+using Robalo.Domain.Repositories.Sqlite.Configuration;
 using Serilog;
 
-namespace Robalo.Domain.Repositories;
+namespace Robalo.Domain.Repositories.Sqlite;
 
-public sealed class SqlConnectionFactory : ISqlConnectionFactory
+public sealed class SqliteConnectionFactory : ISqliteConnectionFactory
 {
     readonly DatabaseSettings _databaseSettings;
     readonly ILogger _logger;
 
-    public SqlConnectionFactory(ILogger logger, DatabaseSettings databaseSettings)
+    public SqliteConnectionFactory(ILogger logger, DatabaseSettings databaseSettings)
     {
         _logger = logger.ForContext(GetType());
         _databaseSettings = databaseSettings;

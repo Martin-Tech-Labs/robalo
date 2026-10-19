@@ -1,13 +1,7 @@
 using Robalo.Domain.Events;
 using Robalo.Domain.Models;
 
-namespace Robalo.Domain.Repositories.Dto;
-
-// ThreadId TEXT,
-// MessageNumber INTEGER,
-// Source TEXT,
-// Content TEXT,
-// CreatedOn TEXT,
+namespace Robalo.Domain.Repositories.Sqlite.Dto;
 
 public sealed record MessageDto(
     ThreadIdentifier ThreadId,

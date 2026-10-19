@@ -7,18 +7,18 @@ using Robalo.Common.Extensions;
 using Robalo.Common.Models;
 using Robalo.Domain.Events;
 using Robalo.Domain.Models;
-using Robalo.Domain.Repositories.Dto;
+using Robalo.Domain.Repositories.Sqlite.Dto;
 using Serilog;
 using SQLitePCL;
 
-namespace Robalo.Domain.Repositories;
+namespace Robalo.Domain.Repositories.Sqlite;
 
 public sealed class SqliteThreadRepository : IThreadRepository
 {
     readonly ILogger _logger;
-    readonly ISqlConnectionFactory _sqlConnectionFactory;
+    readonly ISqliteConnectionFactory _sqlConnectionFactory;
 
-    public SqliteThreadRepository(ILogger logger, ISqlConnectionFactory sqlConnectionFactory)
+    public SqliteThreadRepository(ILogger logger, ISqliteConnectionFactory sqlConnectionFactory)
     {
         _logger = logger.ForContext(GetType());
         _sqlConnectionFactory = sqlConnectionFactory;

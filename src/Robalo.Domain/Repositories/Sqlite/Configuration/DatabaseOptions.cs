@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 
-namespace Robalo.Domain.Repositories;
+namespace Robalo.Domain.Repositories.Sqlite.Configuration;
 
 public sealed class DatabaseOptions
 {

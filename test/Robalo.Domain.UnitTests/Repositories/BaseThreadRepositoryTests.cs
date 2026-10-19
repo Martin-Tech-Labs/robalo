@@ -450,6 +450,7 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
         queryResult.Self.ShouldBeNone();
     }
 
+#pragma warning disable xUnit1026
 
     [Theory]
     [InlineData(1, 11, 10, null, new[] { 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 }, new[] { 1 }, new int[] { })]
@@ -550,6 +551,8 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
         List<Message> GenerateExpectedMessages(int[] messageNumbers) =>
            [.. messageNumbers.Select(i => new Message(i, MessageSource.User, $"Message_{i}", thread.CreatedOn.AddSeconds(i)))];
     }
+
+#pragma warning restore
 
 
     [Fact]

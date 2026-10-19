@@ -1,4 +1,4 @@
-namespace Robalo.Domain.Repositories;
+namespace Robalo.Domain.Repositories.Sqlite;
 
 #pragma warning disable CA1707
 public static class SqliteExtendedErrorCodes

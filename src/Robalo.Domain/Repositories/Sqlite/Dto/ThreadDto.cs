@@ -1,6 +1,6 @@
 using Robalo.Domain.Models;
 
-namespace Robalo.Domain.Repositories.Dto;
+namespace Robalo.Domain.Repositories.Sqlite.Dto;
 
 public sealed record ThreadDto(
     string Id,

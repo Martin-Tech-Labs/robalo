@@ -2,7 +2,7 @@ using System.Data;
 using System.Globalization;
 using Dapper;
 
-namespace Robalo.Domain.Repositories;
+namespace Robalo.Domain.Repositories.Sqlite;
 
 public sealed class DateTimeOffsetTypeHandler : SqlMapper.TypeHandler<DateTimeOffset>
 {
