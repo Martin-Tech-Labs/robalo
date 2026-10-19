@@ -126,60 +126,6 @@ public class ThreadTests
     }
 
     [Fact]
-    public void SetLastMessageNumber_ShouldThrow_IfNegative()
-    {
-        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
-        Should.Throw<ArgumentException>(() => thread.SetLastMessageNumber(-1));
-    }
-
-    [Fact]
-    public void SetLastMessageNumber_ShouldThrow_OnThreadWithMessages()
-    {
-        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
-        thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
-
-        Should.Throw<InvalidOperationException>(() => thread.SetLastMessageNumber(1));
-    }
-
-    [Fact]
-    public void SetLastMessageNumber_ShouldThrow_OnSyncedThread()
-    {
-        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
-        thread.MarkAggregateAsSynchronized();
-        Should.Throw<InvalidOperationException>(() => thread.SetLastMessageNumber(1));
-    }
-
-    [Fact]
-    public void AddTwoUserMessages_ShouldAddMessages_WithOverriddenLastMessageNumber()
-    {
-        var createdOn = _fixture.Create<DateTimeOffset>();
-        var thread = Thread.NewThread(createdOn).SetLastMessageNumber(100);
-        var oldVersion = thread.OldVersion;
-
-        thread.AddUserMessage(_fixture.Create<string>(), createdOn.AddSeconds(1));
-        var newVersion1 = thread.NewVersion;
-        thread.AddUserMessage(_fixture.Create<string>(), createdOn.AddSeconds(2));
-
-        thread.Messages.Count.ShouldBe(2);
-        thread.Messages[0].Number.ShouldBe(101);
-        thread.Messages[1].Number.ShouldBe(102);
-
-        thread.NewVersion.ShouldNotBe(thread.OldVersion);
-        thread.NewVersion.ShouldNotBe(newVersion1);
-        thread.OldVersion.ShouldBe(oldVersion);
-
-        thread.ModifiedOn.ShouldBe(createdOn.AddSeconds(2));
-
-        thread.PendingEvents.Count.ShouldBe(2);
-
-        var @event1 = (UserMessageAdded)thread.PendingEvents[0];
-        var @event2 = (UserMessageAdded)thread.PendingEvents[1];
-
-        @event1.Content.ShouldBe(thread.Messages[0].Content);
-        @event2.Content.ShouldBe(thread.Messages[1].Content);
-    }
-
-    [Fact]
     public void MarkAggregateAsSynchronized_ShouldCleanPendingEventsAndUpdateVersion()
     {
         var createdOn = _fixture.Create<DateTimeOffset>();

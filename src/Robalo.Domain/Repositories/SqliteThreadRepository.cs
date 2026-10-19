@@ -126,7 +126,7 @@ public sealed class SqliteThreadRepository : IThreadRepository
                 createdOn: threadDto.CreatedOn,
                 title: threadDto.Title,
                 version: threadDto.Version,
-                events: messages.Select(m => new UserMessageAdded(m.Content, m.CreatedOn)));
+                events: messages.Select(m => new UserMessageAdded((int)m.MessageNumber, m.Content, m.CreatedOn)));
 
             return thread.Some();
         }, cancellationToken);

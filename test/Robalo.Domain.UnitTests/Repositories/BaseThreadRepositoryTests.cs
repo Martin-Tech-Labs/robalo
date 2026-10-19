@@ -194,9 +194,9 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
     {
         var newThread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
 
-        var @event1 = new UserMessageAdded(_fixture.Create<string>(), newThread.CreatedOn);
-        var @event2 = new UserMessageAdded(_fixture.Create<string>(), newThread.CreatedOn.AddSeconds(1));
-        var @event3 = new UserMessageAdded(_fixture.Create<string>(), newThread.CreatedOn.AddSeconds(2));
+        var @event1 = new UserMessageAdded(1, _fixture.Create<string>(), newThread.CreatedOn);
+        var @event2 = new UserMessageAdded(2, _fixture.Create<string>(), newThread.CreatedOn.AddSeconds(1));
+        var @event3 = new UserMessageAdded(3, _fixture.Create<string>(), newThread.CreatedOn.AddSeconds(2));
 
         var events = new[] { @event1, @event2, @event3 };
 
