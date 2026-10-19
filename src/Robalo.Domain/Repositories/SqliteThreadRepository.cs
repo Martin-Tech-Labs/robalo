@@ -32,7 +32,7 @@ public sealed class SqliteThreadRepository : IThreadRepository
         await _sqlConnectionFactory.Execute<SuccessOrNotFound>(async connection =>
          {
              await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
-             var rowsAffected = await connection.ExecuteAsync("DELETE FROM Threads WHERE Id = @ThreadId", new { ThreadId = identifier.IdString });
+             var rowsAffected = await connection.ExecuteAsync("DELETE FROM Threads WHERE Id = @ThreadId", new { ThreadId = identifier });
 
              if (rowsAffected == 0)
              {
@@ -44,7 +44,7 @@ public sealed class SqliteThreadRepository : IThreadRepository
                  throw new InvalidOperationException($"Returned rows affected {rowsAffected}, but expected 0 or 1");
              }
 
-             rowsAffected = await connection.ExecuteAsync("DELETE FROM Messages WHERE ThreadId = @ThreadId", new { ThreadId = identifier.IdString });
+             rowsAffected = await connection.ExecuteAsync("DELETE FROM Messages WHERE ThreadId = @ThreadId", new { ThreadId = identifier });
 
              await transaction.CommitAsync(cancellationToken);
 
@@ -97,7 +97,7 @@ public sealed class SqliteThreadRepository : IThreadRepository
     {
         return await _sqlConnectionFactory.Execute(async connection =>
         {
-            return (await connection.QueryAsync<ThreadDto>("SELECT * FROM Threads WHERE Id = @Id", new { Id = identifier.IdString })).Any();
+            return (await connection.QueryAsync<ThreadDto>("SELECT * FROM Threads WHERE Id = @Id", new { Id = identifier })).Any();
 
         }, cancellationToken);
     }
@@ -105,7 +105,7 @@ public sealed class SqliteThreadRepository : IThreadRepository
     public async Task<Option<Thread>> GetThread(ThreadIdentifier identifier, CancellationToken cancellationToken) =>
         await _sqlConnectionFactory.Execute(async connection =>
         {
-            var result = (await connection.QueryAsync<ThreadDto>("SELECT * FROM Threads WHERE Id = @Id", new { Id = identifier.IdString })).ToList();
+            var result = (await connection.QueryAsync<ThreadDto>("SELECT * FROM Threads WHERE Id = @Id", new { Id = identifier })).ToList();
 
             if (result.Count == 0)
             {
@@ -122,7 +122,7 @@ public sealed class SqliteThreadRepository : IThreadRepository
             var thread = Thread.NewThread(identifier, threadDto.CreatedOn)
                 .DoIfNotNullOrWhiteSpace(threadDto.Title, (t, title) => t.UpdateTitle(title));
 
-            var messages = (await connection.QueryAsync<MessageDto>("SELECT * FROM Messages WHERE ThreadId = @ThreadId", new { ThreadId = identifier.IdString })).ToList();
+            var messages = (await connection.QueryAsync<MessageDto>("SELECT * FROM Messages WHERE ThreadId = @ThreadId", new { ThreadId = identifier })).ToList();
 
             foreach (var message in messages.OrderBy(m => m.MessageNumber))
             {

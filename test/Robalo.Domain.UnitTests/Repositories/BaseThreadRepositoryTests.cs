@@ -626,7 +626,6 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
     [Fact]
     public async Task ListThreads_ShouldReturnThreadInfos()
     {
-        var sut = new InMemoryThreadRepository(Log.Logger);
         var createdOn = _fixture.Create<DateTimeOffset>();
 
         var thread1 = Thread.NewThread(ThreadIdentifier.NewIdentifier(), createdOn)
@@ -636,16 +635,17 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
 
         var thread2 = Thread.NewThread(ThreadIdentifier.NewIdentifier(), createdOn.AddSeconds(3));
 
-        await sut.SaveThread(thread1, TestContext.Current.CancellationToken);
-        await sut.SaveThread(thread2, TestContext.Current.CancellationToken);
+        await _sut.SaveThread(thread1, TestContext.Current.CancellationToken);
+        await _sut.SaveThread(thread2, TestContext.Current.CancellationToken);
 
-        var result = await sut.ListThreads(TestContext.Current.CancellationToken);
+        var result = await _sut.ListThreads(TestContext.Current.CancellationToken);
 
-        result.Count.ShouldBe(2);
+        result.Count.ShouldBeGreaterThanOrEqualTo(2);
 
         var threads = new[] { thread1, thread2 };
 
-        var list = result.OrderBy(r => r.CreatedOn).ToList();
+        var list = result.Where(t => t.Id == thread1.Id || t.Id == thread2.Id).OrderBy(r => r.CreatedOn).ToList();
+
         for (int i = 0; i < list.Count; i++)
         {
             var threadInfo = list[i];
@@ -660,8 +660,11 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
     [Fact]
     public async Task ListThreads_ShouldReturnEmptyOnNoThreads()
     {
-        var sut = new InMemoryThreadRepository(Log.Logger);
-        var result = await sut.ListThreads(TestContext.Current.CancellationToken);
+        foreach (var thread in await _sut.ListThreads(TestContext.Current.CancellationToken))
+        {
+            await _sut.DeleteThread(thread.Id, TestContext.Current.CancellationToken);
+        }
+        var result = await _sut.ListThreads(TestContext.Current.CancellationToken);
         result.ShouldBeEmpty();
     }
 }

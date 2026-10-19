@@ -10,7 +10,7 @@ namespace Robalo.Domain.Repositories.Dto;
 // CreatedOn TEXT,
 
 public sealed record MessageDto(
-    string ThreadId,
+    ThreadIdentifier ThreadId,
     long MessageNumber,
     string Source,
     string Content,
@@ -18,7 +18,7 @@ public sealed record MessageDto(
 {
     public static MessageDto FromModel(ThreadIdentifier threadIdentifier, Message message) =>
          new(
-            threadIdentifier.IdString,
+            threadIdentifier,
             message.Number,
             message.Source.ToString().ToLowerInvariant(),
             message.Content,
