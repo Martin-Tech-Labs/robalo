@@ -42,7 +42,7 @@ public class ThreadsController : ControllerBase
     {
         var utcNow = _dateTimeOffsetProvider.UtcNow;
 
-        var thread = Thread.NewThread(ThreadIdentifier.NewIdentifier(), utcNow)
+        var thread = Thread.NewThread(utcNow)
          .AddUserMessage(request.Content!, utcNow);
 
         var result = await _threadRepository.SaveThread(thread, cancellationToken);

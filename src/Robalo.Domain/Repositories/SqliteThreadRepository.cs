@@ -119,18 +119,14 @@ public sealed class SqliteThreadRepository : IThreadRepository
 
             var threadDto = result.Single();
 
-            var thread = Thread.NewThread(identifier, threadDto.CreatedOn)
-                .DoIfNotNullOrWhiteSpace(threadDto.Title, (t, title) => t.UpdateTitle(title));
+            var messages = (await connection.QueryAsync<MessageDto>("SELECT * FROM Messages WHERE ThreadId = @ThreadId", new { ThreadId = identifier })).OrderBy(m => m.MessageNumber);
 
-            var messages = (await connection.QueryAsync<MessageDto>("SELECT * FROM Messages WHERE ThreadId = @ThreadId", new { ThreadId = identifier })).ToList();
-
-            foreach (var message in messages.OrderBy(m => m.MessageNumber))
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                thread.AddUserMessage(message.Content, message.CreatedOn);
-            }
-
-            thread.MarkAggregateAsSynchronized(Version.FromVersionString(threadDto.Version));
+            var thread = Thread.Rehydrate(
+                identifier: identifier,
+                createdOn: threadDto.CreatedOn,
+                title: threadDto.Title,
+                version: threadDto.Version,
+                events: messages.Select(m => new UserMessageAdded(m.Content, m.CreatedOn)));
 
             return thread.Some();
         }, cancellationToken);

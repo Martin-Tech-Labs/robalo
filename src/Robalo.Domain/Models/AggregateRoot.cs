@@ -15,7 +15,7 @@ public abstract class AggregateRoot<TSelf> where TSelf : AggregateRoot<TSelf>
 
     public AggregateRoot(ThreadIdentifier id, Version version)
     {
-        Id = id; 
+        Id = id;
         NewVersion = version;
         PendingEvents = _pendingEvents.AsReadOnly();
     }
@@ -29,7 +29,7 @@ public abstract class AggregateRoot<TSelf> where TSelf : AggregateRoot<TSelf>
         _eventHandlers[typeof(TEvent)] = obj => actionType((TEvent)obj);
     }
 
-    public TSelf Apply<TEvent>(TEvent @event) where TEvent : notnull
+    protected TSelf Apply<TEvent>(TEvent @event) where TEvent : notnull
     {
         if (_eventHandlers.TryGetValue(@event.GetType(), out var action))
         {
@@ -41,15 +41,15 @@ public abstract class AggregateRoot<TSelf> where TSelf : AggregateRoot<TSelf>
         throw new InvalidOperationException($"Missing registration for event {@event.GetType().Name}");
     }
 
-    public TSelf MarkAggregateAsSynchronized(Option<Version> version = default)
+    public TSelf MarkAggregateAsSynchronized()
     {
-        _pendingEvents.Clear();
-
-        _ = version switch
+        if (_pendingEvents.Count == 0 && OldVersion == NewVersion)
         {
-            Some<Version> some => OldVersion = NewVersion = some,
-            _ => OldVersion = NewVersion
-        };
+            throw new InvalidOperationException("Cannot mark aggregate as synchronized: Aggregate is already synchonized");
+        }
+
+        _pendingEvents.Clear();
+        OldVersion = NewVersion;
 
         return (TSelf)this;
     }

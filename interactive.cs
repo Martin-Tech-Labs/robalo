@@ -1,7 +1,14 @@
 #:package SimpleBase@5.6.4
 
+using System.Globalization;
 using System.Security.Cryptography;
 using SimpleBase;
+var utc = DateTimeOffset.UtcNow.ToString("o");
+
+
+var coll = new List<string> { "a", "b", "c", "d", "e" };
+
+var coll2 = coll[^3..^0];
 
 Console.WriteLine("Hello");
 
@@ -45,7 +52,7 @@ public readonly union Option<T>(None, Some<T>) where T : notnull
     public override string ToString() => this switch
     {
         Some<T> some => some.ToString(),
-        _  => "None"
+        _ => "None"
     };
 
 }

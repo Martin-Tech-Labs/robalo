@@ -42,7 +42,7 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
     [Fact]
     public async Task SaveChanges_ShouldSaveNewThread_WithNoMessages()
     {
-        var thread = Thread.NewThread(ThreadIdentifier.NewIdentifier(), _fixture.Create<DateTimeOffset>());
+        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         var result = await _sut.SaveThread(thread, TestContext.Current.CancellationToken);
         result.Value.ShouldBeOfType<Created>();
 
@@ -54,14 +54,13 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
     [Fact]
     public async Task GetThread_ShouldRetrieveThread_WithNoMessages()
     {
-        var threadId = ThreadIdentifier.NewIdentifier();
         var createdOn = _fixture.Create<DateTimeOffset>();
-        var thread1 = Thread.NewThread(threadId, createdOn);
+        var thread1 = Thread.NewThread(createdOn);
         (await _sut.SaveThread(thread1, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
 
         var version = thread1.NewVersion;
 
-        var threadOrNone = await _sut.GetThread(threadId, TestContext.Current.CancellationToken);
+        var threadOrNone = await _sut.GetThread(thread1.Id, TestContext.Current.CancellationToken);
         threadOrNone.HasValue.ShouldBeTrue();
 
         var thread2 = threadOrNone.ValueOrFailure;
@@ -79,11 +78,10 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
     [Fact]
     public async Task SaveChanges_ShouldNotSaveThread_WithNoChanges_AfterRetrieval()
     {
-        var threadId = ThreadIdentifier.NewIdentifier();
-        var thread = Thread.NewThread(threadId, _fixture.Create<DateTimeOffset>());
+        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         (await _sut.SaveThread(thread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
 
-        var thread2 = await _sut.GetThread(threadId, TestContext.Current.CancellationToken);
+        var thread2 = await _sut.GetThread(thread.Id, TestContext.Current.CancellationToken);
 
         thread2.HasValue.ShouldBeTrue();
 
@@ -94,11 +92,10 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
     [Fact]
     public async Task SaveChanges_ShouldNotSaveThread_WithNoChanges_AfterUpdate()
     {
-        var threadId = ThreadIdentifier.NewIdentifier();
-        var thread = Thread.NewThread(threadId, _fixture.Create<DateTimeOffset>());
+        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         (await _sut.SaveThread(thread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
 
-        var thread2 = await _sut.GetThread(threadId, TestContext.Current.CancellationToken);
+        var thread2 = await _sut.GetThread(thread.Id, TestContext.Current.CancellationToken);
         thread2.HasValue.ShouldBeTrue();
         thread2.ValueOrFailure.UpdateTitle(_fixture.Create<string>());
         (await _sut.SaveThread(thread2.ValueOrFailure, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Updated>();
@@ -108,12 +105,11 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
     [Fact]
     public async Task SaveChanges_ShouldUpdateTitle()
     {
-        var threadId = ThreadIdentifier.NewIdentifier();
         var createdOn = _fixture.Create<DateTimeOffset>();
-        var newThread = Thread.NewThread(threadId, createdOn);
+        var newThread = Thread.NewThread(createdOn);
         (await _sut.SaveThread(newThread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
 
-        var threadOrNone = await _sut.GetThread(threadId, TestContext.Current.CancellationToken);
+        var threadOrNone = await _sut.GetThread(newThread.Id, TestContext.Current.CancellationToken);
 
         threadOrNone.HasValue.ShouldBeTrue();
 
@@ -124,12 +120,12 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
         thread.UpdateTitle(title);
         (await _sut.SaveThread(thread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Updated>();
 
-        var updatedThreadOrNone = await _sut.GetThread(threadId, TestContext.Current.CancellationToken);
+        var updatedThreadOrNone = await _sut.GetThread(newThread.Id, TestContext.Current.CancellationToken);
         updatedThreadOrNone.HasValue.ShouldBeTrue();
 
         var updatedThread = updatedThreadOrNone.ValueOrFailure;
 
-        updatedThread.Id.ShouldBe(threadId);
+        updatedThread.Id.ShouldBe(newThread.Id);
         updatedThread.CreatedOn.ShouldBe(createdOn);
         updatedThread.Title.ShouldBe(title);
     }
@@ -137,56 +133,55 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
     [Fact]
     public async Task DeleteThread_ShouldReturnSuccess_OnExistingThread()
     {
-        var threadId = ThreadIdentifier.NewIdentifier();
-        (await _sut.SaveThread(Thread.NewThread(threadId, _fixture.Create<DateTimeOffset>()), TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
+        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
+        (await _sut.SaveThread(thread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
 
-        var successOrNone = await _sut.DeleteThread(threadId, TestContext.Current.CancellationToken);
+        var successOrNone = await _sut.DeleteThread(thread.Id, TestContext.Current.CancellationToken);
         successOrNone.Value.ShouldBeOfType<Success>();
     }
 
     [Fact]
     public async Task GetThread_ShouldReturnNone_OnDeletedThread()
     {
-        var threadId = ThreadIdentifier.NewIdentifier();
-        (await _sut.SaveThread(Thread.NewThread(threadId, _fixture.Create<DateTimeOffset>()), TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
+        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
+        (await _sut.SaveThread(thread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
 
-        (await _sut.DeleteThread(threadId, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Success>();
+        (await _sut.DeleteThread(thread.Id, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Success>();
 
-        var threadOrNone = await _sut.GetThread(threadId, TestContext.Current.CancellationToken);
+        var threadOrNone = await _sut.GetThread(thread.Id, TestContext.Current.CancellationToken);
         threadOrNone.ShouldBeNone();
     }
     [Fact]
     public async Task GetMessages_ShouldReturnNone_OnDeletedThread()
     {
-        var threadId = ThreadIdentifier.NewIdentifier();
-        (await _sut.SaveThread(Thread.NewThread(threadId, _fixture.Create<DateTimeOffset>()), TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
+        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
+        (await _sut.SaveThread(thread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
 
-        (await _sut.DeleteThread(threadId, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Success>();
+        (await _sut.DeleteThread(thread.Id, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Success>();
 
-        var messagesOrNone = await _sut.GetMessages(threadId, TestContext.Current.CancellationToken);
+        var messagesOrNone = await _sut.GetMessages(thread.Id, TestContext.Current.CancellationToken);
         messagesOrNone.ShouldBeNone();
     }
 
     [Fact]
     public async Task DeleteThread_ShouldReturnNotFound_OnDeletedThread()
     {
-        var threadId = ThreadIdentifier.NewIdentifier();
-        (await _sut.SaveThread(Thread.NewThread(threadId, _fixture.Create<DateTimeOffset>()), TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
+        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
+        (await _sut.SaveThread(thread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
 
-        (await _sut.DeleteThread(threadId, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Success>();
+        (await _sut.DeleteThread(thread.Id, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Success>();
 
-        var result = await _sut.DeleteThread(threadId, TestContext.Current.CancellationToken);
+        var result = await _sut.DeleteThread(thread.Id, TestContext.Current.CancellationToken);
         result.Value.ShouldBeOfType<NotFound>();
     }
 
     [Fact]
     public async Task SaveThread_ShouldReturnConcurrencyConflict_OnUpdatingDeletedThread()
     {
-        var threadId = ThreadIdentifier.NewIdentifier();
-        var thread = Thread.NewThread(threadId, _fixture.Create<DateTimeOffset>());
+        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         (await _sut.SaveThread(thread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
 
-        (await _sut.DeleteThread(threadId, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Success>();
+        (await _sut.DeleteThread(thread.Id, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Success>();
 
         thread.UpdateTitle(_fixture.Create<string>());
 
@@ -197,8 +192,7 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
     [Fact]
     public async Task SaveThread_ShouldCorrectSaveEvents()
     {
-        var threadId = ThreadIdentifier.NewIdentifier();
-        var newThread = Thread.NewThread(threadId, _fixture.Create<DateTimeOffset>());
+        var newThread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
 
         var @event1 = new UserMessageAdded(_fixture.Create<string>(), newThread.CreatedOn);
         var @event2 = new UserMessageAdded(_fixture.Create<string>(), newThread.CreatedOn.AddSeconds(1));
@@ -213,7 +207,7 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
 
         (await _sut.SaveThread(newThread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
 
-        var threadOrNone = await _sut.GetThread(threadId, TestContext.Current.CancellationToken);
+        var threadOrNone = await _sut.GetThread(newThread.Id, TestContext.Current.CancellationToken);
         threadOrNone.HasValue.ShouldBeTrue();
         var thread = threadOrNone.ValueOrFailure;
 
@@ -228,35 +222,14 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
     }
 
     [Fact]
-    public async Task SaveThread_ShouldReturnConcurrencyConflict_OnCreatingThreadWithExistingId()
-    {
-        var threadId = ThreadIdentifier.NewIdentifier();
-
-        (await _sut.SaveThread(
-            thread: Thread.NewThread(
-                threadId: threadId,
-                createdOn: _fixture.Create<DateTimeOffset>()),
-            cancellationToken: TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
-
-        var newThread = Thread.NewThread(threadId, _fixture.Create<DateTimeOffset>());
-
-        var result = await _sut.SaveThread(newThread, TestContext.Current.CancellationToken);
-
-        result.Value.ShouldBeOfType<ConcurrencyConflict>();
-    }
-
-    [Fact]
     public async Task SaveThread_ShouldReturnConcurrencyConflict_OnUpdatingThreadWithInParallel()
     {
-        var threadId = ThreadIdentifier.NewIdentifier();
 
-        var originalThread = Thread.NewThread(
-                        threadId: threadId,
-                        createdOn: _fixture.Create<DateTimeOffset>());
+        var originalThread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
 
         (await _sut.SaveThread(originalThread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
 
-        var parallelThread = (await _sut.GetThread(threadId, TestContext.Current.CancellationToken)).ValueOrFailure;
+        var parallelThread = (await _sut.GetThread(originalThread.Id, TestContext.Current.CancellationToken)).ValueOrFailure;
         parallelThread.AddUserMessage(_fixture.Create<string>(), originalThread.CreatedOn.AddSeconds(1));
 
         (await _sut.SaveThread(parallelThread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Updated>();
@@ -270,12 +243,11 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
     [Fact]
     public async Task GetMessages_ShouldReturnEmptyEnumerable_OnExistingThreadWithNoMessages()
     {
-        var threadId = ThreadIdentifier.NewIdentifier();
-        var newThread = Thread.NewThread(threadId, _fixture.Create<DateTimeOffset>());
+        var newThread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
 
         (await _sut.SaveThread(newThread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
 
-        var result = await _sut.GetMessages(threadId, TestContext.Current.CancellationToken);
+        var result = await _sut.GetMessages(newThread.Id, TestContext.Current.CancellationToken);
         result.HasValue.ShouldBeTrue();
         (await result.ValueOrFailure.AnyAsync(TestContext.Current.CancellationToken)).ShouldBeFalse();
     }
@@ -283,8 +255,7 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
     [Fact]
     public async Task GetMessages_ShouldReturnCorrectMessages_OnExistingThreadWithMessages()
     {
-        var threadId = ThreadIdentifier.NewIdentifier();
-        var thread = Thread.NewThread(threadId, _fixture.Create<DateTimeOffset>());
+        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
 
         var expectedMessages = new Message[]
         {
@@ -297,56 +268,16 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
 
         (await _sut.SaveThread(thread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
 
-        var result = await _sut.GetMessages(threadId, TestContext.Current.CancellationToken);
+        var result = await _sut.GetMessages(thread.Id, TestContext.Current.CancellationToken);
         result.HasValue.ShouldBeTrue();
         var messages = await result.ValueOrFailure.ToArrayAsync(TestContext.Current.CancellationToken);
         messages.ShouldBeEquivalentTo(expectedMessages);
     }
 
     [Fact]
-    public async Task SaveThread_OnConcurrencyConflictOnCreation_ShouldNotPersistConflictingChanges()
-    {
-        var thread = Thread.NewThread(
-            ThreadIdentifier.NewIdentifier(),
-            _fixture.Create<DateTimeOffset>()).UpdateTitle(_fixture.Create<string>());
-
-        var expectedMessages = new Message[]
-        {
-            new(1, MessageSource.User, _fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1)),
-            new(2, MessageSource.User, _fixture.Create<string>(), thread.ModifiedOn.AddSeconds(2)),
-            new(3, MessageSource.User, _fixture.Create<string>(), thread.ModifiedOn.AddSeconds(3)),
-        };
-
-        thread.ForEach(expectedMessages, (t, e) => thread.AddUserMessage(e.Content, e.CreatedOn));
-
-        (await _sut.SaveThread(thread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
-
-        var conflictThread = Thread.NewThread(
-            thread.Id,
-            _fixture.Create<DateTimeOffset>()).UpdateTitle(_fixture.Create<string>());
-
-        (await _sut.SaveThread(conflictThread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<ConcurrencyConflict>();
-
-        var threadOrNone = await _sut.GetThread(thread.Id, TestContext.Current.CancellationToken);
-        threadOrNone.HasValue.ShouldBeTrue();
-        threadOrNone.ValueOrFailure.Title.ShouldBe(thread.Title);
-        threadOrNone.ValueOrFailure.CreatedOn.ShouldBe(thread.CreatedOn);
-        threadOrNone.ValueOrFailure.ModifiedOn.ShouldBe(thread.ModifiedOn);
-
-        threadOrNone.ValueOrFailure.Messages.ToArray().ShouldBeEquivalentTo(expectedMessages);
-
-        var messagesOrNone = await _sut.GetMessages(thread.Id, TestContext.Current.CancellationToken);
-        messagesOrNone.HasValue.ShouldBeTrue();
-        var messages = await messagesOrNone.ValueOrFailure.ToArrayAsync(TestContext.Current.CancellationToken);
-        messages.ShouldBeEquivalentTo(expectedMessages);
-    }
-
-    [Fact]
     public async Task SaveThread_OnConcurrencyConflictOnUpdate_ShouldNotPersistConflictingChanges()
     {
-        var thread = Thread.NewThread(
-            ThreadIdentifier.NewIdentifier(),
-            _fixture.Create<DateTimeOffset>()).UpdateTitle(_fixture.Create<string>());
+        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>()).UpdateTitle(_fixture.Create<string>());
 
         var expectedMessages = new List<Message>
         {
@@ -388,9 +319,7 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
     public async Task SaveThread_ShouldCorrectlyHandleSubsequentUpdates()
     {
         var newTitle = _fixture.Create<string>();
-        var thread = Thread.NewThread(
-            ThreadIdentifier.NewIdentifier(),
-            _fixture.Create<DateTimeOffset>()).UpdateTitle(_fixture.Create<string>());
+        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>()).UpdateTitle(_fixture.Create<string>());
 
         var expectedMessages = new List<Message>
         {
@@ -440,7 +369,7 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
     [Fact]
     public async Task GetMessage_ShouldReturnNone_OnThreadWithNoMessages()
     {
-        var thread = Thread.NewThread(ThreadIdentifier.NewIdentifier(), _fixture.Create<DateTimeOffset>());
+        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         await _sut.SaveThread(thread, TestContext.Current.CancellationToken);
 
         var result = await _sut.GetMessage(thread.Id, 1, TestContext.Current.CancellationToken);
@@ -450,7 +379,7 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
     [Fact]
     public async Task GetMessage_ShouldReturnNone_OnMessageNumberAboveCount()
     {
-        var thread = Thread.NewThread(ThreadIdentifier.NewIdentifier(), _fixture.Create<DateTimeOffset>());
+        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
 
         thread.AddUserMessage(_fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1));
         thread.AddUserMessage(_fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1));
@@ -468,7 +397,7 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
     [InlineData(3, 2)]
     public async Task GetMessage_ShouldReturnExpectedMessage(int messageNumber, int index)
     {
-        var thread = Thread.NewThread(ThreadIdentifier.NewIdentifier(), _fixture.Create<DateTimeOffset>());
+        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         var expectedMessages = new Message[]
         {
             new(1, MessageSource.User, _fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1)),
@@ -494,7 +423,7 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
     [Fact]
     public async Task QueryMessages_ShouldReturnNone_OnDeletedThread()
     {
-        var thread = Thread.NewThread(ThreadIdentifier.NewIdentifier(), _fixture.Create<DateTimeOffset>());
+        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         await _sut.SaveThread(thread, TestContext.Current.CancellationToken);
 
         (await _sut.DeleteThread(thread.Id, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Success>();
@@ -506,7 +435,7 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
     [Fact]
     public async Task QueryMessages_ShouldReturnEmptyEmpty_OnThreadWithNoMessages()
     {
-        var thread = Thread.NewThread(ThreadIdentifier.NewIdentifier(), _fixture.Create<DateTimeOffset>());
+        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         await _sut.SaveThread(thread, TestContext.Current.CancellationToken);
 
         var result = await _sut.QueryMessages(thread.Id, Cursor.First(20), TestContext.Current.CancellationToken);
@@ -541,7 +470,7 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
         int[] expectedMessageNumbersPrev,
         int[] expectedMessageNumbersNext)
     {
-        var thread = Thread.NewThread(ThreadIdentifier.NewIdentifier(), _fixture.Create<DateTimeOffset>());
+        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
 
         for (var i = 1; i <= numOfMessages; i++)
         {
@@ -628,12 +557,12 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
     {
         var createdOn = _fixture.Create<DateTimeOffset>();
 
-        var thread1 = Thread.NewThread(ThreadIdentifier.NewIdentifier(), createdOn)
+        var thread1 = Thread.NewThread(createdOn)
             .UpdateTitle(_fixture.Create<string>())
             .AddUserMessage(_fixture.Create<string>(), createdOn.AddSeconds(1))
             .AddUserMessage(_fixture.Create<string>(), createdOn.AddSeconds(2));
 
-        var thread2 = Thread.NewThread(ThreadIdentifier.NewIdentifier(), createdOn.AddSeconds(3));
+        var thread2 = Thread.NewThread(createdOn.AddSeconds(3));
 
         await _sut.SaveThread(thread1, TestContext.Current.CancellationToken);
         await _sut.SaveThread(thread2, TestContext.Current.CancellationToken);

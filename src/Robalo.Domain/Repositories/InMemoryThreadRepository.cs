@@ -60,10 +60,12 @@ public sealed class InMemoryThreadRepository : IThreadRepository
             {
                 None none => none,
                 Some<ThreadStorage> threadStorage =>
-                    Thread.NewThread(identifier, threadStorage.Value.CreatedOn)
-                    .ForEach(items: threadStorage.Value.Events, action: (t, @event) => t.Apply(@event))
-                    .DoIfNotNullOrWhiteSpace(threadStorage.Value.Title, (thr, title) => thr.UpdateTitle(title))
-                    .MarkAggregateAsSynchronized(threadStorage.Value.Version)
+                    Thread.Rehydrate(
+                        identifier: identifier,
+                        createdOn: threadStorage.Value.CreatedOn,
+                        title: threadStorage.Value.Title,
+                        version: threadStorage.Value.Version,
+                        events: threadStorage.Value.Events)
             };
         }
     }

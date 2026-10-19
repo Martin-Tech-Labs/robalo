@@ -21,7 +21,7 @@ public class ThreadsController_GetThreadTests : ThreadsControllerTests
     {
         var modifiedOn = _utcNow.AddSeconds(5);
         var thread =
-            Thread.NewThread(ThreadIdentifier.NewIdentifier(), _utcNow)
+            Thread.NewThread(_utcNow)
             .AddUserMessage(_fixture.Create<string>(), modifiedOn)
             .UpdateTitle(_fixture.Create<string>())
             .MarkAggregateAsSynchronized();
