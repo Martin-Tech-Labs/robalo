@@ -12,11 +12,19 @@ public sealed record MessageDto(
 {
     public static MessageDto FromModel(ThreadIdentifier threadIdentifier, Message message) =>
          new(
-            threadIdentifier,
-            message.Number,
-            message.Source.ToString().ToLowerInvariant(),
-            message.Content,
-            message.CreatedOn);
+            ThreadId: threadIdentifier,
+            MessageNumber: message.Number,
+            Source: message.Source.ToString().ToLowerInvariant(),
+            Content: message.Content,
+            CreatedOn: message.CreatedOn);
+
+    public static MessageDto FromEvent(ThreadIdentifier threadIdentifier, UserMessageAdded e) =>
+        new(
+            ThreadId: threadIdentifier,
+            MessageNumber: e.MessageNumber,
+            Source: MessageSource.User.ToString().ToLowerInvariant(),
+            Content: e.Content,
+            CreatedOn: e.AddedOn);
 
     public Message ToModel() =>
         new((int)MessageNumber, MessageSource.User, Content, CreatedOn);

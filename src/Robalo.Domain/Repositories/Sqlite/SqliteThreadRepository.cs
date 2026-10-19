@@ -303,17 +303,17 @@ public sealed class SqliteThreadRepository : IThreadRepository
             return;
         }
 
-        foreach (var message in thread.Messages.ToList()[^(thread.PendingEvents.Count)..^0])
+        foreach (UserMessageAdded @event in thread.PendingEvents)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             var rowsAffected = await connection.ExecuteAsync(
                 "INSERT INTO Messages VALUES(@ThreadId, @MessageNumber, @Source, @Content, @CreatedOn)",
-                MessageDto.FromModel(thread.Id, message));
+                MessageDto.FromEvent(thread.Id, @event));
 
             if (rowsAffected != 1)
             {
-                _logger.Error("Could not persist message {MessageNumber} for thread {ThreadId}", message.Number, thread.Id);
+                _logger.Error("Could not persist message {MessageNumber} for thread {ThreadId}", @event.MessageNumber, thread.Id);
                 throw new InvalidOperationException($"Expected rowsAffected 1 but got {rowsAffected}");
             }
         }
