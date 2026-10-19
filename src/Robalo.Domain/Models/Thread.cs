@@ -1,3 +1,4 @@
+using Robalo.Common.Extensions;
 using Robalo.Domain.Events;
 
 namespace Robalo.Domain.Models;
@@ -13,58 +14,39 @@ public sealed class Thread : AggregateRoot<Thread>
 
     public string? Title { get; private set; }
 
-    int _lastMessageNumber;
-
     Thread(ThreadIdentifier id, Version version, DateTimeOffset createdOn) : base(id, version)
     {
         CreatedOn = createdOn;
         Messages = _messages.AsReadOnly();
-        
+
         When<UserMessageAdded>(@event =>
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(@event.Content);
-
-            if (@event.AddedOn < ModifiedOn)
-            {
-                throw new ArgumentException("Invalid date", nameof(@event));
-            }
-
-            NewVersion = Version.NewVersion();
-
             _messages.Add(new Message(
-                Number: ++_lastMessageNumber,
+                Number: @event.MessageNumber,
                 Source: MessageSource.User,
                 Content: @event.Content,
                 CreatedOn: @event.AddedOn));
         });
     }
 
-    public static Thread NewThread(ThreadIdentifier threadId, DateTimeOffset createdOn)
+    public static Thread NewThread(DateTimeOffset createdOn)
     {
         if (createdOn == default)
         {
             throw new ArgumentOutOfRangeException(nameof(createdOn), "Invalid date");
         }
 
-        return new(threadId, Version.NewVersion(), createdOn);
+        return new(ThreadIdentifier.NewIdentifier(), Version.NewVersion(), createdOn);
     }
 
-    public Thread SetLastMessageNumber(int lastMessageNumber)
+    public Thread AddUserMessage(string content, DateTimeOffset addedOn)
     {
-        ArgumentOutOfRangeException.ThrowIfLessThan(lastMessageNumber, 0);
+        ArgumentOutOfRangeException.ThrowIfLessThan(addedOn, ModifiedOn);
+        ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        if (_messages.Count != 0 || _lastMessageNumber != 0 || OldVersion.HasValue)
-        {
-            throw new InvalidOperationException("Not supported");
-        }
-
-        _lastMessageNumber = lastMessageNumber;
-
-        return this;
+        NewVersion = Version.NewVersion();
+        return Apply(new UserMessageAdded(_messages.Count == 0 ? 1 : _messages[^1].Number + 1, content, addedOn));
     }
-
-    public Thread AddUserMessage(string content, DateTimeOffset addedOn) =>
-        Apply(new UserMessageAdded(content, addedOn));
 
     public Thread UpdateTitle(string title)
     {
@@ -73,5 +55,20 @@ public sealed class Thread : AggregateRoot<Thread>
 
         NewVersion = Version.NewVersion();
         return this;
+    }
+
+    public static Thread Rehydrate(
+        ThreadIdentifier identifier,
+        DateTimeOffset createdOn,
+        string? title,
+        Version version,
+        IEnumerable<UserMessageAdded> events)
+    {
+        var thread = new Thread(identifier, version, createdOn) { Title = title };
+        thread.ForEach(events, (t, e) => thread.Apply(e));
+
+        thread.MarkAggregateAsSynchronized();
+
+        return thread;
     }
 }

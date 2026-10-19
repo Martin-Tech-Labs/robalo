@@ -21,7 +21,7 @@ public class ThreadsController_CreateMessageTests : ThreadsControllerTests
     [Fact]
     public async Task ShouldReturnCreated_OnExistingThread()
     {
-        var thread = Thread.NewThread(ThreadIdentifier.NewIdentifier(), _utcNow.AddSeconds(-5))
+        var thread = Thread.NewThread(_utcNow.AddSeconds(-5))
             .ForEach(
                 Enumerable.Range(0, _fixture.Create<int>()),
                 (t, _) => t.AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-2)))
@@ -70,7 +70,7 @@ public class ThreadsController_CreateMessageTests : ThreadsControllerTests
     [Fact]
     public async Task ShouldReturnConflict_OnConcurrencyConflict()
     {
-        var thread = Thread.NewThread(ThreadIdentifier.NewIdentifier(), _utcNow).MarkAggregateAsSynchronized();
+        var thread = Thread.NewThread(_utcNow).MarkAggregateAsSynchronized();
 
         _repository
             .Setup(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken))
@@ -95,7 +95,7 @@ public class ThreadsController_CreateMessageTests : ThreadsControllerTests
     [Fact]
     public async Task ShouldThrow_OnCreatedResultFromRepository()
     {
-        var thread = Thread.NewThread(ThreadIdentifier.NewIdentifier(), _utcNow).MarkAggregateAsSynchronized();
+        var thread = Thread.NewThread(_utcNow).MarkAggregateAsSynchronized();
 
         _repository
             .Setup(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken))
@@ -111,7 +111,7 @@ public class ThreadsController_CreateMessageTests : ThreadsControllerTests
     [Fact]
     public async Task ShouldThrow_OnNoChangedResultFromRepository()
     {
-        var thread = Thread.NewThread(ThreadIdentifier.NewIdentifier(), _utcNow).MarkAggregateAsSynchronized();
+        var thread = Thread.NewThread(_utcNow).MarkAggregateAsSynchronized();
 
         _repository
             .Setup(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken))

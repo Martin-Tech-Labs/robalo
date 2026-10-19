@@ -7,7 +7,7 @@ namespace Robalo.Domain.Models;
 public sealed partial class ThreadIdentifier : IEquatable<ThreadIdentifier>
 {
     private const string ThreadIdPrefix = "trd";
-    public string Id { get; }
+    public string IdString { get; }
     public Guid Uuid { get; }
 
     [GeneratedRegex(@"\A" + ThreadIdPrefix + @"_[a-z2-7]{26}\z")]
@@ -15,7 +15,7 @@ public sealed partial class ThreadIdentifier : IEquatable<ThreadIdentifier>
 
     ThreadIdentifier(string id, Guid uuid)
     {
-        Id = id;
+        IdString = id;
         Uuid = uuid;
     }
 
@@ -26,7 +26,7 @@ public sealed partial class ThreadIdentifier : IEquatable<ThreadIdentifier>
     {
         try
         {
-            return FromId(id);
+            return FromIdString(id);
         }
         catch (ArgumentException)
         {
@@ -34,7 +34,7 @@ public sealed partial class ThreadIdentifier : IEquatable<ThreadIdentifier>
         }
     }
 
-    public static ThreadIdentifier FromId(string id)
+    public static ThreadIdentifier FromIdString(string id)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
 
@@ -66,11 +66,11 @@ public sealed partial class ThreadIdentifier : IEquatable<ThreadIdentifier>
 
     public static ThreadIdentifier NewIdentifier() => FromUuid(Guid.NewGuid());
 
-    public override string ToString() => Id;
+    public override string ToString() => IdString;
 
-    public bool Equals(ThreadIdentifier? other) => other?.Id == Id;
+    public bool Equals(ThreadIdentifier? other) => other?.IdString == IdString;
 
     public override bool Equals(object? obj) => obj is ThreadIdentifier other && other.Equals(this);
 
-    public override int GetHashCode() => StringComparer.Ordinal.GetHashCode(Id);
+    public override int GetHashCode() => StringComparer.Ordinal.GetHashCode(IdString);
 }

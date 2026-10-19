@@ -60,10 +60,12 @@ public sealed class InMemoryThreadRepository : IThreadRepository
             {
                 None none => none,
                 Some<ThreadStorage> threadStorage =>
-                    Thread.NewThread(identifier, threadStorage.Value.CreatedOn)
-                    .ForEach(items: threadStorage.Value.Events, action: (t, i) => t.AddUserMessage(i.Content, i.AddedOn))
-                    .DoIfNotNullOrWhiteSpace(threadStorage.Value.Title, (thr, title) => thr.UpdateTitle(title))
-                    .MarkAggregateAsSynchronized(threadStorage.Value.Version)
+                    Thread.Rehydrate(
+                        identifier: identifier,
+                        createdOn: threadStorage.Value.CreatedOn,
+                        title: threadStorage.Value.Title,
+                        version: threadStorage.Value.Version,
+                        events: threadStorage.Value.Events)
             };
         }
     }
@@ -223,6 +225,16 @@ public sealed class InMemoryThreadRepository : IThreadRepository
                 reference: cursor.Reference,
                 limit: cursor.OverrideLimit.ValueOr(cursor.Limit),
                 cancellationToken: cancellationToken).ToList();
+
+            if (messages.Count == 0)
+            {
+                return QueryResult.Empty();
+            }
+
+            if (cursor.Reference.HasValue && cursor.Reference.ValueOrFailure > eventsCount)
+            {
+                return QueryResult.Empty();
+            }
 
             if (messages.Count == 0)
             {
