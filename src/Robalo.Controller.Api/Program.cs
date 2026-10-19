@@ -19,6 +19,7 @@ using Robalo.Controller.Api.Requests;
 using Robalo.Controller.Api.Validation;
 using Robalo.Controller.Api.Validation.Requests;
 using Robalo.Domain.Repositories;
+using Robalo.Domain.Repositories.Sqlite;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 
 var startTimeUtc = Process.GetCurrentProcess().StartTime.ToUniversalTime();
@@ -54,8 +55,9 @@ builder.Services.AddOpenTelemetry()
            });
     });
 
-builder.Services.AddSingleton<IThreadRepository, InMemoryThreadRepository>();
+builder.Services.AddOptions();
 builder.Services.AddTransient<IDateTimeOffsetProvider, DateTimeOffsetProvider>();
+builder.Services.AddSqliteRepository(builder.Configuration);
 builder.Services.AddFluentValidationAutoValidation(configuration =>
 {
     configuration.DisableBuiltInModelValidation = true;
@@ -98,7 +100,6 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 });
 
 builder.Services.AddHttpContextAccessor();
-
 builder.Services.AddScoped<IValidator<MessageApiRequest>, MessageApiRequestValidator>();
 
 var app = builder.Build();

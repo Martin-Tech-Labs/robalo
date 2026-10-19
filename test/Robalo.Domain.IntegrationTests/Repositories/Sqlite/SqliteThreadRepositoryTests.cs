@@ -11,5 +11,6 @@ public class SqliteThreadRepositoryTests : BaseThreadRepositoryTests<SqliteThrea
 {
     public SqliteThreadRepositoryTests(DatabaseFixture fixture) : base(new SqliteThreadRepository(Log.Logger, new SqliteConnectionFactory(Log.Logger, new(fixture.Database, fixture.Password))))
     {
+        Extensions.AddDapperTypeHandlers();
     }
 }

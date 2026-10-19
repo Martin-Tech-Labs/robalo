@@ -18,12 +18,13 @@
     <PackageReference Include="FluentValidation" Version="12.2.0" />
     <PackageReference Include="SharpGrip.FluentValidation.AutoValidation.Mvc" Version="2.0.0" />
     <PackageReference Include="CancelCop.Analyzer" Version="1.52.52" PrivateAssets="all" />
+    <PackageReference Include="SQLite3MC.PCLRaw.bundle" Version="2.6.1" />
 
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Robalo.Common\Robalo.Common.csproj" />  
-    <ProjectReference Include="..\Robalo.Domain\Robalo.Domain.csproj" />  
+    <ProjectReference Include="..\Robalo.Common\Robalo.Common.csproj" />
+    <ProjectReference Include="..\Robalo.Domain\Robalo.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>
