@@ -13,7 +13,7 @@ public class ThreadIdentifierTests
         var id = ThreadIdentifier.NewIdentifier();
 
         id.ShouldNotBeNull();
-        id.Id.ShouldNotBeNullOrWhiteSpace();
+        id.IdString.ShouldNotBeNullOrWhiteSpace();
         id.Uuid.ShouldNotBe(Guid.Empty);
     }
 
@@ -23,7 +23,7 @@ public class ThreadIdentifierTests
         var id1 = ThreadIdentifier.NewIdentifier();
         var id2 = ThreadIdentifier.NewIdentifier();
 
-        id1.Id.Equals(id2.Id, StringComparison.OrdinalIgnoreCase).ShouldBeFalse();
+        id1.IdString.Equals(id2.IdString, StringComparison.OrdinalIgnoreCase).ShouldBeFalse();
         id1.Uuid.ShouldNotBe(id2.Uuid);
 
         id1.Equals(id2).ShouldBeFalse();
@@ -37,7 +37,7 @@ public class ThreadIdentifierTests
         var id1 = ThreadIdentifier.NewIdentifier();
         var id2 = ThreadIdentifier.FromUuid(id1.Uuid);
 
-        id1.Id.Equals(id2.Id, StringComparison.OrdinalIgnoreCase).ShouldBeTrue();
+        id1.IdString.Equals(id2.IdString, StringComparison.OrdinalIgnoreCase).ShouldBeTrue();
         id1.Uuid.ShouldBe(id2.Uuid);
         id1.GetHashCode().ShouldBe(id2.GetHashCode());
 
@@ -48,9 +48,9 @@ public class ThreadIdentifierTests
     public void FromId_ShouldCorrectlyReconstructThreadId()
     {
         var id1 = ThreadIdentifier.NewIdentifier();
-        var id2 = ThreadIdentifier.FromId(id1.Id);
+        var id2 = ThreadIdentifier.FromIdString(id1.IdString);
 
-        id1.Id.Equals(id2.Id, StringComparison.OrdinalIgnoreCase).ShouldBeTrue();
+        id1.IdString.Equals(id2.IdString, StringComparison.OrdinalIgnoreCase).ShouldBeTrue();
         id1.Uuid.ShouldBe(id2.Uuid);
         id1.GetHashCode().ShouldBe(id2.GetHashCode());
 
@@ -65,7 +65,7 @@ public class ThreadIdentifierTests
 
         Should.Throw<ArgumentException>(() =>
         {
-            ThreadIdentifier.FromId(id1.Id.Replace("trd", "abc"));
+            ThreadIdentifier.FromIdString(id1.IdString.Replace("trd", "abc"));
         });
     }
 
@@ -74,7 +74,7 @@ public class ThreadIdentifierTests
     {
         Should.Throw<ArgumentException>(() =>
         {
-            ThreadIdentifier.FromId(_fixture.Create<string>());
+            ThreadIdentifier.FromIdString(_fixture.Create<string>());
         });
     }
 
@@ -84,7 +84,7 @@ public class ThreadIdentifierTests
     {
         Should.Throw<ArgumentException>(() =>
         {
-            ThreadIdentifier.FromId($"trd_{Base32.Rfc4648.Encode(Guid.Empty.ToByteArray(), false).ToLowerInvariant()}");
+            ThreadIdentifier.FromIdString($"trd_{Base32.Rfc4648.Encode(Guid.Empty.ToByteArray(), false).ToLowerInvariant()}");
         });
     }
 

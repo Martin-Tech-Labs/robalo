@@ -16,6 +16,14 @@ public static class OptionExtensions
     public static Option<T> AsOption<T>(this None none) where T : notnull => none;
     public static Option<T> Some<T>(this T value) where T : notnull => value;
 
+#pragma warning disable CC001
+    public static async Task<Option<T>> Some<T>(this Task<T> task) where T : notnull
+    {
+        return (await task).Some();
+    }
+#pragma warning restore
+
+
     public static T2? FuncOrDefault<T1, T2>(this Option<T1> value, Func<T1, T2> func) where T1 : notnull =>
          value switch
          {
@@ -53,4 +61,11 @@ public static class OptionExtensions
             Some<T> some => some.Value.ToString() ?? "",
             _ => alternativeValue
         };
+
+    public static Option<T> SingleOrNone<T>(this IEnumerable<T> enumerable) where T : notnull =>
+        enumerable.Any() ? enumerable.Single() : None.Default;
+
+    public static Option<T2> SingleOrNone<T1, T2>(this IEnumerable<T1> enumerable, Func<T1, T2> map)
+        where T1 : notnull
+        where T2 : notnull => enumerable.Select(map).SingleOrNone();
 }

@@ -11,5 +11,6 @@
     <Project Path="test/Robalo.Common.UnitTests/Robalo.Common.UnitTests.csproj" />
     <Project Path="test/Robalo.Common.IntegrationTests/Robalo.Common.IntegrationTests.csproj" />
     <Project Path="test/Robalo.Domain.UnitTests/Robalo.Domain.UnitTests.csproj" />
+    <Project Path="test/Robalo.Domain.IntegrationTests/Robalo.Domain.IntegrationTests.csproj" />
   </Folder>
 </Solution>
