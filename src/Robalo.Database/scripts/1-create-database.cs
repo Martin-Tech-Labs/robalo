@@ -32,37 +32,47 @@ if (migrations.Length == 0)
     return 1;
 }
 
-List<char> passwordChars = [];
+string password;
 
-Console.WriteLine("Enter a passphrase and press <Enter>. If no password is entered, a non-encrypted database will be created.");
-ConsoleKeyInfo key;
-while ((key = Console.ReadKey(true)).Key != ConsoleKey.Enter)
+if (Console.IsInputRedirected)
 {
-    if (key.Key == ConsoleKey.Backspace && passwordChars.Count > 0)
+    password = Console.ReadLine() ?? "";
+}
+else
+{
+
+    List<char> passwordChars = [];
+
+    Console.WriteLine("Enter a passphrase and press <Enter>. If no password is entered, a non-encrypted database will be created.");
+    ConsoleKeyInfo key;
+    while ((key = Console.ReadKey(true)).Key != ConsoleKey.Enter)
     {
-        passwordChars.RemoveAt(passwordChars.Count - 1);
-        Console.Write("\b \b"); // Remove the last asterisk
+        if (key.Key == ConsoleKey.Backspace && passwordChars.Count > 0)
+        {
+            passwordChars.RemoveAt(passwordChars.Count - 1);
+            Console.Write("\b \b"); // Remove the last asterisk
+        }
+        else if (passwordChars.Count == 0 && char.IsWhiteSpace(key.KeyChar))
+        {
+            // Ignore whitespace at the beginning
+        }
+        else if (passwordChars.Count > 0 && char.IsWhiteSpace(key.KeyChar) && char.IsWhiteSpace(passwordChars[^1]))
+        {
+            // Ignore subsequent whitespaces
+        }
+        else if (!char.IsControl(key.KeyChar))
+        {
+            passwordChars.Add(key.KeyChar);
+            Console.Write("*"); // Display asterisk for each character
+        }
     }
-    else if (passwordChars.Count == 0 && char.IsWhiteSpace(key.KeyChar))
-    {
-        // Ignore whitespace at the beginning
-    }
-    else if (passwordChars.Count > 0 && char.IsWhiteSpace(key.KeyChar) && char.IsWhiteSpace(passwordChars[^1]))
-    {
-        // Ignore subsequent whitespaces
-    }
-    else if (!char.IsControl(key.KeyChar))
-    {
-        passwordChars.Add(key.KeyChar);
-        Console.Write("*"); // Display asterisk for each character
-    }
+    Console.WriteLine();
+
+    password = new string([.. passwordChars]);
 }
 
-Console.WriteLine();
 
-var password = new string([.. passwordChars]);
-
-if (!string.IsNullOrWhiteSpace(password) && (password.Length < 8 || char.IsWhiteSpace(passwordChars[^1])))
+if (!string.IsNullOrWhiteSpace(password) && (password.Length < 8 || char.IsWhiteSpace(password[^1])))
 {
     AnsiConsole.MarkupLineInterpolated($"[bold red]Error! If provided, password must contain at least 8 characters and not end with a whitespace[/].");
     return 1;

@@ -35,4 +35,10 @@
     <PackageReference Include="SQLite3MC.PCLRaw.bundle" Version="2.6.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="../../src/Robalo.Database/**/*"
+      Link="src/Robalo.Database/%(RecursiveDir)%(Filename)%(Extension)"
+      CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
