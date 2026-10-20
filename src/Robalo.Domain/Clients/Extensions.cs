@@ -5,20 +5,20 @@ using Microsoft.Extensions.DependencyInjection;
 using OpenAI;
 using OpenAI.Chat;
 using Robalo.Common.Models;
-using Robalo.Domain.Services.Configuration;
+using Robalo.Domain.Clients.Configuration;
 
-namespace Robalo.Domain.Services.Extensions;
+namespace Robalo.Domain.Clients.Extensions;
 
 public static class Extensions
 {
-    public static IServiceCollection AddLlmService(
+    public static IServiceCollection AddLlmClient(
         this IServiceCollection services,
         ConfigurationManager configuration,
         string configurationKey = "Llm")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(configurationKey);
 
-        services.AddTransient<ILlmService, LlmService>();
+        services.AddTransient<ILlmClient, LlmClient>();
 
         LlmOptions llmOptions = new();
 

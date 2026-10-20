@@ -4,22 +4,22 @@ using System.Diagnostics;
 using Moq;
 using OpenAI.Chat;
 using Robalo.Common.Models;
-using Robalo.Domain.Services;
-using Robalo.Domain.Services.Models;
+using Robalo.Domain.Clients;
+using Robalo.Domain.Clients.Models;
 using Serilog;
 using static Robalo.Common.Models.ClientError;
 
-namespace Robalo.Domain.UnitTests.Services;
+namespace Robalo.Domain.UnitTests.Clients;
 
-public class LlmServiceTests
+public class LlmClientTests
 {
-    readonly LlmService _sut;
+    readonly LlmClient _sut;
     readonly Mock<ChatClient> _chatClient = new();
     readonly Fixture _fixture = new();
 
-    public LlmServiceTests()
+    public LlmClientTests()
     {
-        _sut = new LlmService(Log.Logger, _chatClient.Object);
+        _sut = new LlmClient(Log.Logger, _chatClient.Object);
     }
 
     [Fact]

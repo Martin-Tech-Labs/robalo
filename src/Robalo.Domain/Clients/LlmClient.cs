@@ -3,18 +3,18 @@ using OpenAI;
 using OpenAI.Chat;
 using Robalo.Common.Extensions;
 using Robalo.Common.Models;
-using Robalo.Domain.Services.Configuration;
-using Robalo.Domain.Services.Models;
+using Robalo.Domain.Clients.Configuration;
+using Robalo.Domain.Clients.Models;
 using Serilog;
 
-namespace Robalo.Domain.Services;
+namespace Robalo.Domain.Clients;
 
-public sealed class LlmService : ILlmService
+public sealed class LlmClient : ILlmClient
 {
     readonly ILogger _logger;
     readonly ChatClient _chatClient;
 
-    public LlmService(ILogger logger, ChatClient chatClient)
+    public LlmClient(ILogger logger, ChatClient chatClient)
     {
         _logger = logger.ForContext(GetType());
         _chatClient = chatClient;
