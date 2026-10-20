@@ -6,8 +6,8 @@ public class DatabaseFixture : IDisposable
 {
     public DatabaseFixture()
     {
-        Database = $"{Guid.NewGuid().ToString("N")}.db";
-        Password = $"{Guid.NewGuid().ToString("N")}";
+        Database = $"{Guid.NewGuid():N}.db";
+        Password = $"{Guid.NewGuid():N}";
         CreateRepository(Database, Password);
     }
 
