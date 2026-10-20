@@ -62,7 +62,6 @@ public class ThreadsController_CreateMessageTests : ThreadsControllerTests
             ((UserMessageAdded)t.PendingEvents.Single()).AddedOn == _utcNow &&
             t.Messages[t.Messages.Count - 1].Content == request.Content &&
             t.Messages[t.Messages.Count - 1].CreatedOn == _utcNow &&
-            t.Messages[t.Messages.Count - 1].Source == MessageSource.User &&
             t.Messages[t.Messages.Count - 1].Number == t.Messages.Count),
             TestContext.Current.CancellationToken), Times.Once());
     }

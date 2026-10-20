@@ -11,9 +11,9 @@ namespace Robalo.Domain.Events;
 public record UserMessageAdded(
     int MessageNumber,
     string Content,
-    DateTimeOffset AddedOn)
+    DateTimeOffset AddedOn) : MessageAdded(MessageNumber, Content, AddedOn)
 {
-    public static UserMessageAdded FromMessage(Message message) => new(
+    public static UserMessageAdded FromMessage(UserMessage message) => new(
         MessageNumber: message.Number,
         Content: message.Content,
         AddedOn: message.CreatedOn);

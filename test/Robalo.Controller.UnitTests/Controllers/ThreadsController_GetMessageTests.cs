@@ -22,7 +22,7 @@ public class ThreadsController_GetMessageTests : ThreadsControllerTests
         var id = ThreadIdentifier.NewIdentifier();
         var number = _fixture.Create<int>();
 
-        var message = _fixture.Create<Message>() with { Number = number };
+        var message = _fixture.Create<UserMessage>() with { Number = number };
 
         _repository
             .Setup(r => r.GetMessage(id, number, TestContext.Current.CancellationToken))
@@ -44,7 +44,6 @@ public class ThreadsController_GetMessageTests : ThreadsControllerTests
 
         messageResource.Content.ShouldBe(message.Content);
         messageResource.CreatedOn.ShouldBe(message.CreatedOn);
-        messageResource.Source.ShouldBe(message.Source.ToString().ToLowerInvariant());
         messageResource.MessageNumber.ShouldBe(message.Number);
         messageResource.ThreadId.ShouldBe(id);
     }

@@ -4,7 +4,7 @@ using Robalo.Domain.Models;
 namespace Robalo.Domain.Repositories;
 
 public sealed record QueryResult(
-    IReadOnlyList<Message> Messages,
+    IReadOnlyList<UserMessage> Messages,
     Option<Cursor> Self,
     Option<Cursor> Prev,
     Option<Cursor> Next)

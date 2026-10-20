@@ -24,7 +24,7 @@ public class ThreadsController_QueryMessageTests : ThreadsControllerTests
         var threadId = ThreadIdentifier.NewIdentifier();
         var cursor = Cursor.Create(22, 5);
         var queryResult = new QueryResult(
-            _fixture.CreateMany<Message>(_fixture.Create<int>()).ToList(),
+            _fixture.CreateMany<UserMessage>(_fixture.Create<int>()).ToList(),
             Cursor.Create(20, 1),
             Cursor.Create(19, 2),
             Cursor.Create(18, 3));
@@ -43,7 +43,7 @@ public class ThreadsController_QueryMessageTests : ThreadsControllerTests
     {
         var threadId = ThreadIdentifier.NewIdentifier();
         var queryResult = new QueryResult(
-            _fixture.CreateMany<Message>(_fixture.Create<int>()).ToList(),
+            _fixture.CreateMany<UserMessage>(_fixture.Create<int>()).ToList(),
             Cursor.Create(20, 1),
             Cursor.Create(19, 2),
             Cursor.Create(18, 3));
@@ -82,7 +82,6 @@ public class ThreadsController_QueryMessageTests : ThreadsControllerTests
             messageResource.CreatedOn.ShouldBe(queryResult.Messages[i].CreatedOn);
             messageResource.MessageNumber.ShouldBe(queryResult.Messages[i].Number);
             messageResource.ThreadId.ShouldBe(threadId);
-            messageResource.Source.ShouldBe(queryResult.Messages[i].Source.ToString().ToLowerInvariant());
         }
     }
 

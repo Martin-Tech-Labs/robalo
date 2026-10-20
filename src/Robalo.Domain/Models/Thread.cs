@@ -8,11 +8,13 @@ public sealed class Thread : AggregateRoot<Thread>
     public DateTimeOffset CreatedOn { get; }
     public DateTimeOffset ModifiedOn => _messages.LastOrDefault()?.CreatedOn ?? CreatedOn;
 
-    readonly List<Message> _messages = [];
+    readonly List<UserMessage> _messages = [];
 
-    public IReadOnlyList<Message> Messages { get; }
+    public IReadOnlyList<UserMessage> Messages { get; }
 
     public string? Title { get; private set; }
+
+    private int GetNextMessageNumber() => _messages.Count == 0 ? 1 : _messages[^1].Number + 1;
 
     Thread(ThreadIdentifier id, Version version, DateTimeOffset createdOn) : base(id, version)
     {
@@ -21,9 +23,8 @@ public sealed class Thread : AggregateRoot<Thread>
 
         When<UserMessageAdded>(@event =>
         {
-            _messages.Add(new Message(
+            _messages.Add(new UserMessage(
                 Number: @event.MessageNumber,
-                Source: MessageSource.User,
                 Content: @event.Content,
                 CreatedOn: @event.AddedOn));
         });
@@ -39,13 +40,32 @@ public sealed class Thread : AggregateRoot<Thread>
         return new(ThreadIdentifier.NewIdentifier(), Version.NewVersion(), createdOn);
     }
 
+    public Thread AddLlmMessage(string content, DateTimeOffset addedOn, int firstMessageNumber, int lastMessageNumber)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(addedOn, ModifiedOn);
+        ArgumentException.ThrowIfNullOrWhiteSpace(content);
+        ArgumentOutOfRangeException.ThrowIfLessThan(lastMessageNumber, firstMessageNumber);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(lastMessageNumber, _messages[^1].Number);
+
+        NewVersion = Version.NewVersion();
+        return Apply(new LlmMessageAdded(
+            MessageNumber: GetNextMessageNumber(),
+            Content: content,
+            AddedOn: addedOn,
+            FirstMessageNumber: firstMessageNumber,
+            LastMessageNumber: lastMessageNumber));
+    }
+
     public Thread AddUserMessage(string content, DateTimeOffset addedOn)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(addedOn, ModifiedOn);
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
         NewVersion = Version.NewVersion();
-        return Apply(new UserMessageAdded(_messages.Count == 0 ? 1 : _messages[^1].Number + 1, content, addedOn));
+        return Apply(new UserMessageAdded(
+            MessageNumber: GetNextMessageNumber(),
+            Content: content,
+            AddedOn: addedOn));
     }
 
     public Thread UpdateTitle(string title)

@@ -10,11 +10,11 @@ public sealed record MessageDto(
     string Content,
     DateTimeOffset CreatedOn)
 {
-    public static MessageDto FromModel(ThreadIdentifier threadIdentifier, Message message) =>
+    public static MessageDto FromModel(ThreadIdentifier threadIdentifier, UserMessage message) =>
          new(
             ThreadId: threadIdentifier,
             MessageNumber: message.Number,
-            Source: message.Source.ToString().ToLowerInvariant(),
+            Source: MessageSource.User.ToString().ToLowerInvariant(),
             Content: message.Content,
             CreatedOn: message.CreatedOn);
 
@@ -26,8 +26,8 @@ public sealed record MessageDto(
             Content: e.Content,
             CreatedOn: e.AddedOn);
 
-    public Message ToModel() =>
-        new((int)MessageNumber, MessageSource.User, Content, CreatedOn);
+    public UserMessage ToModel() =>
+        new((int)MessageNumber, Content, CreatedOn);
 
-    public static Message ToModel(MessageDto dto) => dto.ToModel();
+    public static UserMessage ToModel(MessageDto dto) => dto.ToModel();
 }

@@ -217,7 +217,6 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
             thread.Messages[i].Number.ShouldBe(i + 1);
             thread.Messages[i].Content.ShouldBe(events[i].Content);
             thread.Messages[i].CreatedOn.ShouldBe(events[i].AddedOn);
-            thread.Messages[i].Source.ShouldBe(MessageSource.User);
         }
     }
 
@@ -257,11 +256,11 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
 
-        var expectedMessages = new Message[]
+        var expectedMessages = new UserMessage[]
         {
-            new(1, MessageSource.User, _fixture.Create<string>(), thread.CreatedOn.AddSeconds(1)),
-            new(2, MessageSource.User, _fixture.Create<string>(), thread.CreatedOn.AddSeconds(2)),
-            new(3, MessageSource.User, _fixture.Create<string>(), thread.CreatedOn.AddSeconds(3)),
+            new(1, _fixture.Create<string>(), thread.CreatedOn.AddSeconds(1)),
+            new(2, _fixture.Create<string>(), thread.CreatedOn.AddSeconds(2)),
+            new(3, _fixture.Create<string>(), thread.CreatedOn.AddSeconds(3)),
         };
 
         thread.ForEach(expectedMessages, (t, e) => thread.AddUserMessage(e.Content, e.CreatedOn));
@@ -279,9 +278,9 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>()).UpdateTitle(_fixture.Create<string>());
 
-        var expectedMessages = new List<Message>
+        var expectedMessages = new List<UserMessage>
         {
-            new(1, MessageSource.User, _fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1))
+            new(1, _fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1))
         };
 
         thread.ForEach(expectedMessages, (t, e) => thread.AddUserMessage(e.Content, e.CreatedOn));
@@ -289,7 +288,7 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
         (await _sut.SaveThread(thread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
 
         var conflictThread = (await _sut.GetThread(thread.Id, TestContext.Current.CancellationToken)).ValueOrFailure;
-        expectedMessages.Add(new(2, MessageSource.User, _fixture.Create<string>(), conflictThread.ModifiedOn.AddSeconds(1)));
+        expectedMessages.Add(new(2, _fixture.Create<string>(), conflictThread.ModifiedOn.AddSeconds(1)));
 
         conflictThread.AddUserMessage(expectedMessages[1].Content, expectedMessages[1].CreatedOn);
 
@@ -321,16 +320,16 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
         var newTitle = _fixture.Create<string>();
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>()).UpdateTitle(_fixture.Create<string>());
 
-        var expectedMessages = new List<Message>
+        var expectedMessages = new List<UserMessage>
         {
-            new(1,MessageSource.User, _fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1))
+            new(1, _fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1))
         };
 
         thread.ForEach(expectedMessages, (t, e) => thread.AddUserMessage(e.Content, e.CreatedOn));
 
         (await _sut.SaveThread(thread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
 
-        expectedMessages.Add(new(2, MessageSource.User, _fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1)));
+        expectedMessages.Add(new(2, _fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1)));
 
         thread.AddUserMessage(expectedMessages[1].Content, expectedMessages[1].CreatedOn);
         thread.UpdateTitle(newTitle);
@@ -398,11 +397,11 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
     public async Task GetMessage_ShouldReturnExpectedMessage(int messageNumber, int index)
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
-        var expectedMessages = new Message[]
+        var expectedMessages = new UserMessage[]
         {
-            new(1, MessageSource.User, _fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1)),
-            new(2, MessageSource.User, _fixture.Create<string>(), thread.ModifiedOn.AddSeconds(2)),
-            new(3, MessageSource.User, _fixture.Create<string>(), thread.ModifiedOn.AddSeconds(3)),
+            new(1, _fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1)),
+            new(2, _fixture.Create<string>(), thread.ModifiedOn.AddSeconds(2)),
+            new(3, _fixture.Create<string>(), thread.ModifiedOn.AddSeconds(3)),
         };
 
         thread.ForEach(expectedMessages, (t, e) => thread.AddUserMessage(e.Content, e.CreatedOn));
@@ -548,8 +547,8 @@ public abstract class BaseThreadRepositoryTests<TRepository>(TRepository reposit
         }
 
 
-        List<Message> GenerateExpectedMessages(int[] messageNumbers) =>
-           [.. messageNumbers.Select(i => new Message(i, MessageSource.User, $"Message_{i}", thread.CreatedOn.AddSeconds(i)))];
+        List<UserMessage> GenerateExpectedMessages(int[] messageNumbers) =>
+           [.. messageNumbers.Select(i => new UserMessage(i, $"Message_{i}", thread.CreatedOn.AddSeconds(i)))];
     }
 
 #pragma warning restore

@@ -68,7 +68,6 @@ public class ThreadTests
         thread.Messages.Single().Content.ShouldBe(messageContent);
         thread.Messages.Single().CreatedOn.ShouldBe(addedOn);
         thread.Messages.Single().Number.ShouldBe(1);
-        thread.Messages.Single().Source.ShouldBe(MessageSource.User);
 
 
         thread.NewVersion.ShouldNotBe(thread.OldVersion);

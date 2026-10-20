@@ -47,7 +47,7 @@ public sealed class SqliteThreadRepository : IThreadRepository
 
          }, cancellationToken);
 
-    public async Task<Option<Message>> GetMessage(ThreadIdentifier identifier, int messageNumber, CancellationToken cancellationToken)
+    public async Task<Option<UserMessage>> GetMessage(ThreadIdentifier identifier, int messageNumber, CancellationToken cancellationToken)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(messageNumber, 1);
 
@@ -63,7 +63,7 @@ public sealed class SqliteThreadRepository : IThreadRepository
         }, cancellationToken);
     }
 
-    public async Task<Option<IAsyncEnumerable<Message>>> GetMessages(ThreadIdentifier identifier, CancellationToken cancellationToken)
+    public async Task<Option<IAsyncEnumerable<UserMessage>>> GetMessages(ThreadIdentifier identifier, CancellationToken cancellationToken)
     {
         return await ThreadExists(identifier, cancellationToken) switch
         {
@@ -71,9 +71,9 @@ public sealed class SqliteThreadRepository : IThreadRepository
             true => GetEnumerable(cancellationToken).Some()
         };
 
-        async IAsyncEnumerable<Message> GetEnumerable([EnumeratorCancellation] CancellationToken cancellationToken)
+        async IAsyncEnumerable<UserMessage> GetEnumerable([EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            Option<Message> messageOrNone = None.Default;
+            Option<UserMessage> messageOrNone = None.Default;
             var messageNumber = 1;
             do
             {

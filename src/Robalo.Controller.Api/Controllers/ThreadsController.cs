@@ -119,7 +119,7 @@ public class ThreadsController : ControllerBase
         return await _threadRepository.GetMessage(threadIdOrNone.ValueOrFailure, number, cancellationToken) switch
         {
             None => NotFound(),
-            Some<Message> some => GetMessageResource(some.Value, threadIdOrNone.ValueOrFailure).AsOk()
+            Some<UserMessage> some => GetMessageResource(some.Value, threadIdOrNone.ValueOrFailure).AsOk()
         };
     }
 
@@ -231,10 +231,10 @@ public class ThreadsController : ControllerBase
             thread.CreatedOn,
             thread.ModifiedOn));
 
-    MessageResource GetMessageResource(Message message, ThreadIdentifier threadId) => new(
+    MessageResource GetMessageResource(UserMessage message, ThreadIdentifier threadId) => new(
         message.Content,
         message.CreatedOn,
-        message.Source.ToString().ToLowerInvariant().ToLowerInvariant(),
+        MessageSource.User.ToString().ToLowerInvariant(),
         threadId.IdString,
         message.Number,
         new MessageLinks(
