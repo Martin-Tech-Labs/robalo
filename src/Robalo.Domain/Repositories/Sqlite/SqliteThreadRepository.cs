@@ -22,11 +22,6 @@ public sealed class SqliteThreadRepository : IThreadRepository
     {
         _logger = logger.ForContext(GetType());
         _sqlConnectionFactory = sqlConnectionFactory;
-
-        SqlMapper.RemoveTypeMap(typeof(DateTimeOffset));
-        SqlMapper.AddTypeHandler(DateTimeOffsetTypeHandler.Default);
-        SqlMapper.AddTypeHandler(VersionTypeHandler.Default);
-        SqlMapper.AddTypeHandler(ThreadIdentifierTypeHandler.Default);
     }
     public async Task<SuccessOrNotFound> DeleteThread(ThreadIdentifier identifier, CancellationToken cancellationToken) =>
         await _sqlConnectionFactory.Execute<SuccessOrNotFound>(async connection =>
