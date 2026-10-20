@@ -1,9 +1,9 @@
 using Robalo.Common.Models;
-using Robalo.Domain.Services.Models;
+using Robalo.Domain.Clients.Models;
 
-namespace Robalo.Domain.Services;
+namespace Robalo.Domain.Clients;
 
-public interface ILlmService
+public interface ILlmClient
 {
     public Task<ServiceResult<LlmResponse, ClientError>> GetResponse(LlmRequest request, CancellationToken cancellationToken);
 }

@@ -1,3 +1,3 @@
-namespace Robalo.Domain.Services.Models;
+namespace Robalo.Domain.Clients.Models;
 
 public sealed record LlmRequest(string Content);
