@@ -20,7 +20,7 @@ public sealed class LlmService : ILlmService
         _chatClient = chatClient;
     }
 
-    public async Task<ServiceResult<LlmResponse, AuthError>> GetResponse(LlmRequest request, CancellationToken cancellationToken)
+    public async Task<ServiceResult<LlmResponse, ClientError>> GetResponse(LlmRequest request, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(request.Content);
 
@@ -41,12 +41,17 @@ public sealed class LlmService : ILlmService
         catch (ClientResultException ex) when (ex.Status is 401)
         {
             _logger.Error(ex, "LLM request failed with Unauthorized error with status {Status}", ex.Status);
-            return AuthError.AsUnauthorized();
+            return ClientError.AsUnauthorized();
         }
         catch (ClientResultException ex) when (ex.Status is 403)
         {
             _logger.Error(ex, "LLM request failed with Forbidden error with status {Status}", ex.Status);
-            return AuthError.AsForbidden();
+            return ClientError.AsForbidden();
+        }
+        catch (ClientResultException ex) when (ex.Status is 404)
+        {
+            _logger.Error(ex, "LLM request failed with NotFound error with status {Status}", ex.Status);
+            return ClientError.AsNotFound();
         }
         catch (ClientResultException ex)
         {

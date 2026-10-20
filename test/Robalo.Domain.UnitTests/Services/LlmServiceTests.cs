@@ -7,7 +7,7 @@ using Robalo.Common.Models;
 using Robalo.Domain.Services;
 using Robalo.Domain.Services.Models;
 using Serilog;
-using static Robalo.Common.Models.AuthError;
+using static Robalo.Common.Models.ClientError;
 
 namespace Robalo.Domain.UnitTests.Services;
 
@@ -59,12 +59,13 @@ public class LlmServiceTests
     }
 
     [Theory]
-    [InlineData(401, AuthErrorType.Unauthorized)]
-    [InlineData(403, AuthErrorType.Forbidden)]
-    public async Task ShouldReturn_AuthError_On_401_or_403(int status, AuthErrorType errorType)
+    [InlineData(401, ClientErrorType.Unauthorized)]
+    [InlineData(403, ClientErrorType.Forbidden)]
+    [InlineData(404, ClientErrorType.NotFound)]
+    public async Task ShouldReturn_ClientError_On_401_or_403_or_404(int status, ClientErrorType errorType)
     {
         var response = Mock.Of<PipelineResponse>((r => r.Status == status));
-        var exception = new ClientResultException("Unauthorized", response);
+        var exception = new ClientResultException(_fixture.Create<string>(), response);
 
         _chatClient
              .Setup(c => c.CompleteChatAsync(
@@ -74,8 +75,8 @@ public class LlmServiceTests
              .ThrowsAsync(exception);
 
         var result = await _sut.GetResponse(_fixture.Create<LlmRequest>(), TestContext.Current.CancellationToken);
-        result.Value.ShouldBeOfType<AuthError>();
-        var authError = (AuthError)result.Value;
+        result.Value.ShouldBeOfType<ClientError>();
+        var authError = (ClientError)result.Value;
         authError.ErrorType.ShouldBe(errorType);
     }
 

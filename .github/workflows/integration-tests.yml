@@ -29,7 +29,7 @@ jobs:
           global-json-file: global.json
       
       - name: Start dependencies
-        run: docker compose up -d seq --wait --wait-timeout 30
+        run: docker compose up -d ollama --wait --wait-timeout 30
 
       - name: Integration Tests
         run: dotnet run cake.cs -- --target=IntegrationTests --configuration=Release

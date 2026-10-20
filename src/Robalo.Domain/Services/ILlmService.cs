@@ -5,5 +5,5 @@ namespace Robalo.Domain.Services;
 
 public interface ILlmService
 {
-    public Task<ServiceResult<LlmResponse, AuthError>> GetResponse(LlmRequest request, CancellationToken cancellationToken);
+    public Task<ServiceResult<LlmResponse, ClientError>> GetResponse(LlmRequest request, CancellationToken cancellationToken);
 }
