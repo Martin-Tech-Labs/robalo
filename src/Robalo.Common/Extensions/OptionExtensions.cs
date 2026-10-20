@@ -13,7 +13,9 @@ public static class OptionExtensions
         };
     }
 
-    public static Option<T> AsOption<T>(this None none) where T : notnull => none;
+    public static Option<T> AsOption<T>(this T? value) where T : notnull =>
+        value is null ? None.Default : value;
+
     public static Option<T> Some<T>(this T value) where T : notnull => value;
 
 #pragma warning disable CC001
