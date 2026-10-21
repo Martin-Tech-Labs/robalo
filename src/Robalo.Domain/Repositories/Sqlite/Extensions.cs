@@ -33,6 +33,8 @@ public static class Extensions
     {
         SqlMapper.RemoveTypeMap(typeof(DateTimeOffset));
         SqlMapper.AddTypeHandler(DateTimeOffsetTypeHandler.Default);
+        SqlMapper.RemoveTypeMap(typeof(int));
+        SqlMapper.AddTypeHandler(IntTypeHandler.Default);
         SqlMapper.AddTypeHandler(VersionTypeHandler.Default);
         SqlMapper.AddTypeHandler(ThreadIdentifierTypeHandler.Default);
     }

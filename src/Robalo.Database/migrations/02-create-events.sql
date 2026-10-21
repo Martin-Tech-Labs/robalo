@@ -1,8 +1,9 @@
-CREATE TABLE Messages (
+CREATE TABLE ThreadEvents (
     ThreadId TEXT,
     MessageNumber INTEGER,
-    Source TEXT,
+    EventType TEXT,
     Content TEXT,
+    RepliedToMessage INTEGER,
     CreatedOn TEXT,
     PRIMARY KEY (ThreadId, MessageNumber)
 ) WITHOUT ROWID;
