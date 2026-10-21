@@ -58,7 +58,7 @@ public sealed class SqliteThreadRepository : IThreadRepository
                 {
                     ThreadId = identifier,
                     MessageNumber = messageNumber
-                })).SingleOrNone(EventDto.ToMessage);
+                })).Select(EventDto.ToModel).SingleOrNone(Message.FromModel);
 
         }, cancellationToken);
     }
@@ -194,7 +194,7 @@ public sealed class SqliteThreadRepository : IThreadRepository
             // we have tried to fetch (limit+1) and if we have succeeded, this means, we have a next page available
             var isNextAvailable = dtos.Count == limit + 1;
 
-            var messages = dtos.OrderBy(m => m.MessageNumber).Take(limit).Select(EventDto.ToMessage).ToList();
+            var messages = dtos.OrderBy(m => m.MessageNumber).Take(limit).Select(EventDto.ToModel).Select(Message.FromModel).ToList();
 
             Cursor self = Cursor.Create(limit: cursor.Limit, reference: messages[0].Number)
                 .DoIf(cursor => messages.Count < cursor.Limit, cursor => cursor.WithOneOffLimitOverride(messages.Count));

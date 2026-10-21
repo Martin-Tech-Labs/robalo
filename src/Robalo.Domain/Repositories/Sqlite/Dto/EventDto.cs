@@ -59,21 +59,4 @@ public sealed record EventDto(
            RepliedToMessage: llmMessageAdded.RepliedToMessage,
            CreatedOn: llmMessageAdded.AddedOn)
     };
-
-    public static Message ToMessage(EventDto dto)
-    {
-        var messageSource = dto.EventType switch
-        {
-            nameof(UserMessageAdded) => MessageSource.User,
-            nameof(LlmMessageAdded) => MessageSource.LLM,
-
-            _ => throw new ArgumentOutOfRangeException(nameof(dto))
-        };
-        return new(
-            Number: dto.MessageNumber,
-            Source: messageSource,
-            Content: dto.Content,
-            RepliedToMessage: dto.RepliedToMessage.AsOption(),
-            CreatedOn: dto.CreatedOn);
-    }
 }

@@ -28,24 +28,14 @@ public sealed class Thread : AggregateRoot<Thread>
 
         When<UserMessageAdded>(@event =>
         {
-            _messages.Add(new Message(
-                Number: @event.MessageNumber,
-                Source: MessageSource.User,
-                Content: @event.Content,
-                RepliedToMessage: None.Default,
-                CreatedOn: @event.AddedOn));
+            _messages.Add(Message.FromModel(@event));
 
             IsAnswered = false;
         });
 
         When<LlmMessageAdded>(@event =>
         {
-            _messages.Add(new Message(
-                Number: @event.MessageNumber,
-                Source: MessageSource.LLM,
-                Content: @event.Content,
-                RepliedToMessage: @event.RepliedToMessage,
-                CreatedOn: @event.AddedOn));
+            _messages.Add(Message.FromModel(@event));
 
             // Arriving LLM Message cannot change status to Unanswered
             if (IsAnswered)
