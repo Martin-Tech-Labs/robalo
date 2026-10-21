@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Robalo.Common.Extensions;
 
-namespace Robalo.Domain.Services.Configuration;
+namespace Robalo.Domain.Clients.Configuration;
 
 public sealed class LlmOptions
 {

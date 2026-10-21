@@ -1,13 +1,13 @@
 using System.ClientModel;
 using OpenAI.Chat;
 using Robalo.Common.Models;
-using Robalo.Domain.Services;
-using Robalo.Domain.Services.Models;
+using Robalo.Domain.Clients;
+using Robalo.Domain.Clients.Models;
 using Serilog;
 
-namespace Robalo.Domain.IntegrationTests.Services;
+namespace Robalo.Domain.IntegrationTests.Clients;
 
-public class LlmServiceTests
+public class LlmClientTests
 {
     [Fact]
     public async Task ShouldReturn_Success()
@@ -20,7 +20,7 @@ public class LlmServiceTests
               Endpoint = new Uri("http://localhost:11500/v1/"),
           });
 
-        var sut = new LlmService(Log.Logger, client);
+        var sut = new LlmClient(Log.Logger, client);
 
         var result = await sut.GetResponse(new LlmRequest("Hi there"), TestContext.Current.CancellationToken);
         result.Value.ShouldBeOfType<LlmResponse>();
@@ -40,7 +40,7 @@ public class LlmServiceTests
               Endpoint = new Uri("http://localhost:11500/vd1/"),
           });
 
-        var sut = new LlmService(Log.Logger, client);
+        var sut = new LlmClient(Log.Logger, client);
 
         var result = await sut.GetResponse(new LlmRequest("Hi there"), TestContext.Current.CancellationToken);
         result.Value.ShouldBeOfType<ClientError>();
@@ -60,7 +60,7 @@ public class LlmServiceTests
               Endpoint = new Uri("http://localhost:11500/v1/"),
           });
 
-        var sut = new LlmService(Log.Logger, client);
+        var sut = new LlmClient(Log.Logger, client);
 
         using var cts = new CancellationTokenSource();
         cts.Cancel();

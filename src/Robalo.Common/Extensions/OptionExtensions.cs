@@ -16,6 +16,9 @@ public static class OptionExtensions
     public static Option<T> AsOption<T>(this T? value) where T : notnull =>
         value is null ? None.Default : value;
 
+    public static Option<T> AsOption<T>(this T? value) where T : struct =>
+        value is null ? None.Default : value.Value;
+
     public static Option<T> Some<T>(this T value) where T : notnull => value;
 
 #pragma warning disable CC001
@@ -55,6 +58,13 @@ public static class OptionExtensions
         {
             Some<T> some => some,
             _ => alternativeValue
+        };
+
+    public static T? ValueOrNull<T>(this Option<T> value) where T : struct =>
+        value switch
+        {
+            Some<T> some => some,
+            _ => default(T?)
         };
 
     public static string ValueOrString<T>(this Option<T> value, string alternativeValue) where T : notnull =>

@@ -1,3 +1,6 @@
+#!/usr/bin/env dotnet
+
+
 #:package SimpleBase@5.6.4
 
 using System.Globalization;
@@ -6,35 +9,69 @@ using SimpleBase;
 var utc = DateTimeOffset.UtcNow.ToString("o");
 
 
-var coll = new List<string> { "a", "b", "c", "d", "e" };
+List<int> list = [1, 2, 3, 4, 5, 6, 9, 11, 12, 44, 45, 46];
 
-var coll2 = coll[^3..^0];
-
-Console.WriteLine("Hello");
-
-Guid id = Guid.NewGuid();
-
-Console.WriteLine(id.ToString("N"));
-Console.WriteLine(id.ToString("N").Length);
+Convert(list);
 
 
-//26 characters, no "=" padding
-string encoded = Base32.Rfc4648.Encode(id.ToByteArray(), padding: false).ToLowerInvariant();
+void Convert(string str)
+{
+    var ranges = str.Split(',').Select(s => s.Split('-')).Select(s => new NumberRange(int.Parse(s[0]), int.Parse(s[1])));
 
-Console.WriteLine(encoded);
+    foreach (var range in ranges)
+    {
+        yield return range.ToNumbers();
+    }
+}
 
-// Decode back to the original GUID
-Guid decoded = new Guid(Base32.Rfc4648.Decode(encoded));
+void Convert(List<int> numbers)
+{
+    if (numbers.Count == 0)
+    {
+        return;
+    }
+    var sorted = numbers.Order().ToList();
+    List<NumberRange> ranges = [];
 
-Console.WriteLine(decoded.ToString("N"));
+    var range = new NumberRange(sorted[0], sorted[0]);
+    foreach (var number in sorted.Skip(1))
+    {
+        if (number == range.To + 1)
+        {
+            range = range with { To = number };
+        }
+        else
+        {
+            ranges.Add(range);
+            range = new(number, number);
+        }
+    }
+    ranges.Add(range);
 
-Console.WriteLine(new Option<int>(new Some<int>(23)).ToString());
-Console.WriteLine(new Option<int>(new None()).ToString());
+    if (ranges.Count == 1)
+    {
+        Console.WriteLine(ranges[0].ToString());
+        return;
+    }
 
-Option<int> d = default;
-Option<int> d2 = new Some<int>(4);
-Option<int> d3 = new None();
-Console.WriteLine(d);
+
+    var res = ranges[1..^0].Aggregate(ranges[0].ToString(), (a, r) => a += $",{r}");
+    Console.WriteLine(res);
+
+}
+
+public record NumberRange(int From, int To)
+{
+    public override string ToString()
+    {
+        if (From == To) return $"{From}";
+        return $"{From}-{To}";
+    }
+    public IEnumerable<int> ToNumbers()
+    {
+       return Enumerable.Range(From, To - From + 1);
+    }
+}
 
 public struct None
 {

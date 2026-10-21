@@ -1,4 +1,5 @@
 using Robalo.Common.Models;
+using Robalo.Domain.Events;
 
 namespace Robalo.Domain.Models;
 
@@ -8,10 +9,10 @@ public abstract class AggregateRoot<TSelf> where TSelf : AggregateRoot<TSelf>
     public Option<Version> OldVersion { get; protected set; } = None.Default;
     public Version NewVersion { get; protected set; }
 
-    public IReadOnlyList<object> PendingEvents { get; }
+    public IReadOnlyList<MessageAdded> PendingEvents { get; }
 
-    readonly Dictionary<Type, Action<object>> _eventHandlers = [];
-    readonly List<object> _pendingEvents = [];
+    readonly Dictionary<Type, Action<MessageAdded>> _eventHandlers = [];
+    readonly List<MessageAdded> _pendingEvents = [];
 
     public AggregateRoot(ThreadIdentifier id, Version version)
     {
@@ -20,7 +21,7 @@ public abstract class AggregateRoot<TSelf> where TSelf : AggregateRoot<TSelf>
         PendingEvents = _pendingEvents.AsReadOnly();
     }
 
-    protected void When<TEvent>(Action<TEvent> actionType)
+    protected void When<TEvent>(Action<TEvent> actionType) where TEvent : MessageAdded
     {
         if (_eventHandlers.ContainsKey(typeof(TEvent)))
         {
@@ -29,7 +30,7 @@ public abstract class AggregateRoot<TSelf> where TSelf : AggregateRoot<TSelf>
         _eventHandlers[typeof(TEvent)] = obj => actionType((TEvent)obj);
     }
 
-    protected TSelf Apply<TEvent>(TEvent @event) where TEvent : notnull
+    protected TSelf Apply<TEvent>(TEvent @event) where TEvent : MessageAdded
     {
         if (_eventHandlers.TryGetValue(@event.GetType(), out var action))
         {
