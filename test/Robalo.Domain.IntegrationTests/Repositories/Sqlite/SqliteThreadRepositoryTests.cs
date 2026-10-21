@@ -202,15 +202,22 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
     {
         var newThread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
 
-        var @event1 = new UserMessageAdded(1, _fixture.Create<string>(), newThread.CreatedOn);
-        var @event2 = new UserMessageAdded(2, _fixture.Create<string>(), newThread.CreatedOn.AddSeconds(1));
-        var @event3 = new UserMessageAdded(3, _fixture.Create<string>(), newThread.CreatedOn.AddSeconds(2));
+        var event1 = new UserMessageAdded(1, _fixture.Create<string>(), newThread.CreatedOn);
+        var event2 = new UserMessageAdded(2, _fixture.Create<string>(), newThread.CreatedOn.AddSeconds(1));
+        var event3 = new UserMessageAdded(3, _fixture.Create<string>(), newThread.CreatedOn.AddSeconds(2));
+        var event4 = new LlmMessageAdded(4, _fixture.Create<string>(), 3, newThread.CreatedOn.AddSeconds(3));
+        var event5 = new UserMessageAdded(5, _fixture.Create<string>(), newThread.CreatedOn.AddSeconds(4));
+        var event6 = new LlmMessageAdded(6, _fixture.Create<string>(), 5, newThread.CreatedOn.AddSeconds(5));
 
-        var events = new[] { @event1, @event2, @event3 };
+        var events = new MessageAdded[] { event1, event2, event3, event4, event5, event6 };
 
         foreach (var @event in events)
         {
-            newThread.AddUserMessage(@event.Content, @event.AddedOn);
+            _ = @event switch
+            {
+                UserMessageAdded userMessageAdded => newThread.AddUserMessage(userMessageAdded.Content, userMessageAdded.AddedOn),
+                LlmMessageAdded llmMessageAdded => newThread.AddLlmMessage(llmMessageAdded.Content, llmMessageAdded.RepliedToMessage, llmMessageAdded.AddedOn)
+            };
         }
 
         (await _sut.SaveThread(newThread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
@@ -219,13 +226,27 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
         threadOrNone.HasValue.ShouldBeTrue();
         var thread = threadOrNone.ValueOrFailure;
 
-        thread.Messages.Count.ShouldBe(3);
+        thread.Messages.Count.ShouldBe(events.Length);
         for (var i = 0; i < thread.Messages.Count; i++)
         {
             thread.Messages[i].Number.ShouldBe(i + 1);
             thread.Messages[i].Content.ShouldBe(events[i].Content);
             thread.Messages[i].CreatedOn.ShouldBe(events[i].AddedOn);
-            thread.Messages[i].Source.ShouldBe(MessageSource.User);
+
+            if (events[i] is UserMessageAdded userMessageAdded)
+            {
+                thread.Messages[i].Source.ShouldBe(MessageSource.User);
+                thread.Messages[i].RepliedToMessage.ShouldBeNone();
+            }
+            else if (events[i] is LlmMessageAdded llmMessageAdded)
+            {
+                thread.Messages[i].Source.ShouldBe(MessageSource.LLM);
+                thread.Messages[i].RepliedToMessage.ShouldBe(llmMessageAdded.RepliedToMessage);
+            }
+            else
+            {
+                throw new InvalidOperationException("Unexpected type of message");
+            }
         }
     }
 

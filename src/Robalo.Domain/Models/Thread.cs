@@ -64,7 +64,7 @@ public sealed class Thread : AggregateRoot<Thread>
         return new(ThreadIdentifier.NewIdentifier(), Version.NewVersion(), createdOn);
     }
 
-    public Thread AddLlmMessage(string content, int referenceNumber, DateTimeOffset addedOn)
+    public Thread AddLlmMessage(string content, int repliedToMessage, DateTimeOffset addedOn)
     {
         if (_messages.Count == 0)
         {
@@ -72,13 +72,13 @@ public sealed class Thread : AggregateRoot<Thread>
         }
 
         ArgumentOutOfRangeException.ThrowIfLessThan(addedOn, ModifiedOn);
-        ArgumentOutOfRangeException.ThrowIfLessThan(referenceNumber, 1);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(referenceNumber, _messages.Count);
+        ArgumentOutOfRangeException.ThrowIfLessThan(repliedToMessage, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(repliedToMessage, _messages.Count);
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
 
         NewVersion = Version.NewVersion();
-        return Apply(new LlmMessageAdded(GetNextMessageNumber(), content, referenceNumber, addedOn));
+        return Apply(new LlmMessageAdded(GetNextMessageNumber(), content, repliedToMessage, addedOn));
     }
 
     public Thread AddUserMessage(string content, DateTimeOffset addedOn)
