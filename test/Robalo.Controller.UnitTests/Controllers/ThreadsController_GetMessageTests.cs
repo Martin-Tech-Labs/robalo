@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Moq;
+using Robalo.Common.Extensions;
 using Robalo.Common.Models;
 using Robalo.Common.Services;
 using Robalo.Controller.Api.Controllers;
@@ -16,13 +17,15 @@ namespace Robalo.Controller.UnitTests.Controllers;
 
 public class ThreadsController_GetMessageTests : ThreadsControllerTests
 {
-    [Fact]
-    public async Task ShouldReturnOk_OnExistingMessage()
+    [Theory]
+    [InlineData(MessageSource.User, null)]
+    [InlineData(MessageSource.LLM, 3)]
+    public async Task ShouldReturnOk_OnExistingMessage(MessageSource source, int? repliedToMessage)
     {
         var id = ThreadIdentifier.NewIdentifier();
         var number = _fixture.Create<int>();
 
-        var message = _fixture.Create<Message>() with { Number = number };
+        var message = _fixture.Create<Message>() with { Number = number, Source = source, RepliedToMessage = repliedToMessage.AsOption() };
 
         _repository
             .Setup(r => r.GetMessage(id, number, TestContext.Current.CancellationToken))
