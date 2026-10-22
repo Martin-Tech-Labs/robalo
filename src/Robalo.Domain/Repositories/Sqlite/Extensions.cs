@@ -37,5 +37,6 @@ public static class Extensions
         SqlMapper.AddTypeHandler(IntTypeHandler.Default);
         SqlMapper.AddTypeHandler(VersionTypeHandler.Default);
         SqlMapper.AddTypeHandler(ThreadIdentifierTypeHandler.Default);
+        SqlMapper.AddTypeHandler(MessageIdentifierTypeHandler.Default);
     }
 }
