@@ -120,8 +120,8 @@ public sealed class SqliteThreadRepository : IThreadRepository
                 identifier: identifier,
                 createdOn: threadDto.CreatedOn,
                 title: threadDto.Title,
-                version: threadDto.Version,
-                events: events.Select(EventDto.ToModel));
+                persistedVersion: threadDto.Version,
+                events: events.Select(EventDto.ToModel).ToArray());
 
             return thread.Some();
         }, cancellationToken);
@@ -225,8 +225,8 @@ public sealed class SqliteThreadRepository : IThreadRepository
                      Id = thread.Id,
                      Title = thread.Title,
                      ModifiedOn = thread.ModifiedOn,
-                     NewVersion = thread.NewVersion,
-                     OldVersion = thread.OldVersion.ValueOrFailure
+                     NewVersion = thread.PendingVersion,
+                     OldVersion = thread.PersistedVersion.ValueOrFailure
                  });
 
         if (rowsAffected == 0)
@@ -278,14 +278,14 @@ public sealed class SqliteThreadRepository : IThreadRepository
         await _sqlConnectionFactory.Execute(async connection =>
         {
             // No changes
-            if (thread.OldVersion == thread.NewVersion)
+            if (thread.PersistedVersion == thread.PendingVersion)
             {
                 return new NoChanges();
             }
 
-            return thread.OldVersion switch
+            return thread.PersistedVersion switch
             {
-                Some<Version> _ => await UpdateThread(thread, connection, cancellationToken),
+                Some<int> _ => await UpdateThread(thread, connection, cancellationToken),
                 _ => await CreateThread(thread, connection, cancellationToken)
             };
 

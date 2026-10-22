@@ -1,3 +1,4 @@
+using Robalo.Common.Extensions;
 using Robalo.Common.Models;
 using Robalo.Domain.Events;
 
@@ -6,18 +7,17 @@ namespace Robalo.Domain.Models;
 public abstract class AggregateRoot<TSelf> where TSelf : AggregateRoot<TSelf>
 {
     public ThreadIdentifier Id { get; }
-    public Option<Version> OldVersion { get; protected set; } = None.Default;
-    public Version NewVersion { get; protected set; }
-
+    public Option<int> PersistedVersion { get; protected set; } = None.Default;
+    public int PendingVersion => _pendingEvents.Count + PersistedVersion.ValueOr(0);
     public IReadOnlyList<MessageAdded> PendingEvents { get; }
 
     readonly Dictionary<Type, Action<MessageAdded>> _eventHandlers = [];
     readonly List<MessageAdded> _pendingEvents = [];
 
-    public AggregateRoot(ThreadIdentifier id, Version version)
+    public AggregateRoot(ThreadIdentifier id, Option<int> persistedVersion)
     {
         Id = id;
-        NewVersion = version;
+        PersistedVersion = persistedVersion;
         PendingEvents = _pendingEvents.AsReadOnly();
     }
 
@@ -29,6 +29,8 @@ public abstract class AggregateRoot<TSelf> where TSelf : AggregateRoot<TSelf>
         }
         _eventHandlers[typeof(TEvent)] = obj => actionType((TEvent)obj);
     }
+
+
 
     protected TSelf Apply<TEvent>(TEvent @event) where TEvent : MessageAdded
     {
@@ -42,15 +44,22 @@ public abstract class AggregateRoot<TSelf> where TSelf : AggregateRoot<TSelf>
         throw new InvalidOperationException($"Missing registration for event {@event.GetType().Name}");
     }
 
+    protected TSelf ReplayEvents<TEvent>(IReadOnlyList<TEvent> events) where TEvent : MessageAdded
+    {
+        this.ForEach(events, (t, e) => Apply(e));
+        _pendingEvents.Clear();
+        return (TSelf)this;
+    }
+
     public TSelf MarkAggregateAsSynchronized()
     {
-        if (_pendingEvents.Count == 0 && OldVersion == NewVersion)
+        if (PersistedVersion == PendingVersion)
         {
             throw new InvalidOperationException("Cannot mark aggregate as synchronized: Aggregate is already synchonized");
         }
 
+        PersistedVersion = PendingVersion;
         _pendingEvents.Clear();
-        OldVersion = NewVersion;
 
         return (TSelf)this;
     }

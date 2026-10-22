@@ -6,7 +6,13 @@ namespace Robalo.Domain.UnitTests.Models;
 
 public class ThreadTests
 {
-    private readonly Fixture _fixture = new();
+    readonly Fixture _fixture = new();
+    readonly DateTimeOffset _utcNow;
+
+    public ThreadTests()
+    {
+        _utcNow = _fixture.Create<DateTimeOffset>();
+    }
 
     [Fact]
     public void NewThread_ShouldThrowOnInvalidDate()
@@ -25,8 +31,8 @@ public class ThreadTests
         thread.Id.ShouldNotBeNull();
         thread.Messages.ShouldBeEmpty();
         thread.PendingEvents.ShouldBeEmpty();
-        thread.NewVersion.ShouldNotBeNull();
-        thread.OldVersion.ShouldBeNone();
+        thread.PendingVersion.ShouldBe(0);
+        thread.PersistedVersion.ShouldBeNone();
     }
 
     [Fact]
@@ -55,7 +61,6 @@ public class ThreadTests
     {
         var createdOn = _fixture.Create<DateTimeOffset>();
         var thread = Thread.NewThread(createdOn);
-        var oldVersion = thread.OldVersion;
 
         var messageContent = _fixture.Create<string>();
         var addedOn = createdOn.AddSeconds(1);
@@ -71,8 +76,8 @@ public class ThreadTests
         thread.Messages.Single().RepliedToMessage.ShouldBeNone();
 
 
-        thread.NewVersion.ShouldNotBe(thread.OldVersion);
-        thread.OldVersion.ShouldBe(oldVersion);
+        thread.PendingVersion.ShouldBe(1);
+        thread.PersistedVersion.ShouldBeNone();
         thread.PendingEvents.Count.ShouldBe(1);
 
         thread.ModifiedOn.ShouldBe(addedOn);
@@ -101,20 +106,17 @@ public class ThreadTests
     {
         var createdOn = _fixture.Create<DateTimeOffset>();
         var thread = Thread.NewThread(createdOn);
-        var oldVersion = thread.OldVersion;
-
+        var oldVersion = thread.PersistedVersion;
 
         thread.AddUserMessage(_fixture.Create<string>(), createdOn.AddSeconds(1));
-        var newVersion1 = thread.NewVersion;
         thread.AddUserMessage(_fixture.Create<string>(), createdOn.AddSeconds(2));
 
         thread.Messages.Count.ShouldBe(2);
         thread.Messages[0].Number.ShouldBe(1);
         thread.Messages[1].Number.ShouldBe(2);
 
-        thread.NewVersion.ShouldNotBe(thread.OldVersion);
-        thread.NewVersion.ShouldNotBe(newVersion1);
-        thread.OldVersion.ShouldBe(oldVersion);
+        thread.PendingVersion.ShouldBe(2);
+        thread.PersistedVersion.ShouldBeNone();
 
         thread.ModifiedOn.ShouldBe(createdOn.AddSeconds(2));
 
@@ -177,7 +179,7 @@ public class ThreadTests
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
 
-        var versionBeforeLlmMessage = thread.NewVersion;
+        var versionBeforeLlmMessage = thread.PendingVersion;
         var content = _fixture.Create<string>();
         var addedOn = thread.CreatedOn.AddSeconds(1);
 
@@ -186,7 +188,7 @@ public class ThreadTests
         thread.IsAnswered.ShouldBe(isAnswered);
         thread.Messages.Count.ShouldBe(3);
 
-        thread.NewVersion.ShouldNotBe(versionBeforeLlmMessage);
+        thread.PendingVersion.ShouldNotBe(versionBeforeLlmMessage);
         thread.ModifiedOn.ShouldBe(thread.CreatedOn.AddSeconds(1));
 
         thread.PendingEvents.Count.ShouldBe(3);
@@ -244,11 +246,9 @@ public class ThreadTests
         thread.AddUserMessage(_fixture.Create<string>(), createdOn);
         thread.AddUserMessage(_fixture.Create<string>(), createdOn);
 
-        var newVersion = thread.NewVersion;
-
         thread.MarkAggregateAsSynchronized();
-        thread.OldVersion.ShouldBe(newVersion);
-        thread.OldVersion.ShouldBe(thread.NewVersion);
+        thread.PersistedVersion.ShouldBe(2);
+        thread.PendingVersion.ShouldBe(2);
 
         thread.Messages.Count.ShouldBe(2);
         thread.PendingEvents.ShouldBeEmpty();
@@ -263,31 +263,106 @@ public class ThreadTests
         thread.AddUserMessage(_fixture.Create<string>(), createdOn);
         thread.AddUserMessage(_fixture.Create<string>(), createdOn);
 
-        var newVersion = thread.NewVersion;
-
         thread.MarkAggregateAsSynchronized();
 
         Should.Throw<InvalidOperationException>(() => thread.MarkAggregateAsSynchronized());
     }
 
     [Fact]
-    public void UpdateTitle_ShouldUpdateTitle()
+    public void Rehydrate_ShouldThrow_IfVersionIsLessThan0()
     {
-        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
-        var title = _fixture.Create<string>();
-        var modifiedOn = thread.ModifiedOn;
-        thread.UpdateTitle(title);
-        thread.Title.ShouldBe(title);
-        thread.NewVersion.ShouldNotBe(thread.OldVersion);
-        thread.ModifiedOn.ShouldBe(modifiedOn);
+        Should.Throw<ArgumentOutOfRangeException>(() => Thread.Rehydrate(
+            identifier: ThreadIdentifier.NewIdentifier(),
+            createdOn: _fixture.Create<DateTimeOffset>(),
+            title: _fixture.Create<string>(),
+            persistedVersion: -1,
+            events: []));
     }
 
-    [Theory]
-    [InlineData("")]
-    [InlineData("  ")]
-    public void UpdateTitle_ShouldThrowOnBlankTitle(string title)
+    [Fact]
+    public void Rehydrate_ShouldThrow_IfVersionIsLessNumberOfEvents()
     {
-        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
-        Should.Throw<ArgumentException>(() => thread.UpdateTitle(title));
+        var createdOn = _fixture.Create<DateTimeOffset>();
+        Should.Throw<ArgumentOutOfRangeException>(() => Thread.Rehydrate(
+            identifier: ThreadIdentifier.NewIdentifier(),
+            createdOn: _utcNow,
+            title: _fixture.Create<string>(),
+            persistedVersion: 1,
+            events: [
+                new UserMessageAdded(1, _fixture.Create<string>(), _utcNow),
+                new UserMessageAdded(2, _fixture.Create<string>(), _utcNow)
+                ]));
     }
+
+    [Fact]
+    public void Rehydrate_ShouldSucceed_OnNoEvents()
+    {
+        var threadId = ThreadIdentifier.NewIdentifier();
+        var title = _fixture.Create<string>();
+        var createdOn = _fixture.Create<DateTimeOffset>();
+        var thread = Thread.Rehydrate(
+            identifier: threadId,
+            createdOn: createdOn,
+            title: title,
+            persistedVersion: 0,
+            events: []);
+
+        thread.Id.ShouldBe(threadId);
+        thread.Title.ShouldBe(title);
+        thread.CreatedOn.ShouldBe(createdOn);
+        thread.ModifiedOn.ShouldBe(createdOn);
+
+        thread.PendingEvents.ShouldBeEmpty();
+        thread.Messages.ShouldBeEmpty();
+
+        thread.PersistedVersion.ShouldBe(0);
+        thread.PendingVersion.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Rehydrate_ShouldSucceed_WithEvents()
+    {
+        var threadId = ThreadIdentifier.NewIdentifier();
+        var title = _fixture.Create<string>();
+
+        var thread = Thread.Rehydrate(
+            identifier: threadId,
+            createdOn: _utcNow,
+            title: title,
+            persistedVersion: 10,
+            events: [
+                new UserMessageAdded(7, _fixture.Create<string>(),_utcNow.AddSeconds(1)),
+                new UserMessageAdded(8, _fixture.Create<string>(),_utcNow.AddSeconds(2)),
+                new LlmMessageAdded(9, _fixture.Create<string>(), 2, _utcNow.AddSeconds(3)),
+                new UserMessageAdded(10, _fixture.Create<string>(),_utcNow.AddSeconds(4)),
+            ]);
+
+        thread.Id.ShouldBe(threadId);
+        thread.Title.ShouldBe(title);
+        thread.CreatedOn.ShouldBe(_utcNow);
+        thread.ModifiedOn.ShouldBe(_utcNow.AddSeconds(4));
+
+        thread.PendingEvents.ShouldBeEmpty();
+        thread.Messages.Count.ShouldBe(4);
+
+        thread.PersistedVersion.ShouldBe(10);
+        thread.PendingVersion.ShouldBe(10);
+        thread.IsAnswered.ShouldBeFalse();
+
+
+        thread.AddLlmMessage(_fixture.Create<string>(), 4, _utcNow.AddSeconds(5));
+
+        thread.ModifiedOn.ShouldBe(_utcNow.AddSeconds(5));
+
+        thread.PendingEvents.Count.ShouldBe(1);
+        thread.Messages.Count.ShouldBe(5);
+
+        thread.PersistedVersion.ShouldBe(10);
+        thread.PendingVersion.ShouldBe(11);
+
+        thread.IsAnswered.ShouldBeTrue();
+
+    }
+
+
 }

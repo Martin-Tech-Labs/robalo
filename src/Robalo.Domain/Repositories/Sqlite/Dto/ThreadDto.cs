@@ -7,14 +7,14 @@ public sealed record ThreadDto(
     string? Title,
     DateTimeOffset CreatedOn,
     DateTimeOffset ModifiedOn,
-    Version Version)
+    int Version)
 {
     public static ThreadDto FromModel(Thread thread) => new(
         Id: thread.Id.IdString,
         Title: thread.Title,
         CreatedOn: thread.CreatedOn,
         ModifiedOn: thread.ModifiedOn,
-        Version: thread.NewVersion);
+        Version: thread.PendingVersion);
 
     public ThreadInfo ToModel() => new(ThreadIdentifier.FromIdString(Id), Title, CreatedOn, ModifiedOn);
 
