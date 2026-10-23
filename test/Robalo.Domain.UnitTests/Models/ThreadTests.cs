@@ -163,11 +163,8 @@ public class ThreadTests
         Should.Throw<ArgumentException>(() => thread.AddLlmMessage(_fixture.Create<string>(), thread.Messages[0], thread.CreatedOn.AddSeconds(-5)));
     }
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-1)]
-    [InlineData(3)]
-    public void AddLlmMessage_ShouldThrowOnInvalidRepliedToMessage(int repliedToMessage)
+    [Fact]
+    public void AddLlmMessage_ShouldThrowOnInvalidRepliedToMessage()
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
