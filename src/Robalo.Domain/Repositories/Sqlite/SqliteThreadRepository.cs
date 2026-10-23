@@ -3,6 +3,7 @@ using System.Data.Common;
 using System.Runtime.CompilerServices;
 using Dapper;
 using Microsoft.Data.Sqlite;
+using OpenAI.Assistants;
 using Robalo.Common.Extensions;
 using Robalo.Common.Models;
 using Robalo.Domain.Events;
@@ -53,13 +54,19 @@ public sealed class SqliteThreadRepository : IThreadRepository
 
         return await _sqlConnectionFactory.Execute(async connection =>
         {
-            return (await connection.QueryAsync<EventDto>("SELECT * FROM ThreadEvents where ThreadId = @ThreadId AND MessageNumber = @MessageNumber",
+            return (await connection.QueryAsync<NumberedEventDto>(
+            """
+            SELECT *
+            FROM ThreadEvents
+            WHERE ThreadId = @ThreadId AND MessageNumber = @MessageNumber
+            """,
                 new
                 {
                     ThreadId = identifier,
                     MessageNumber = messageNumber
-                })).Select(EventDto.ToModel).SingleOrNone(Message.FromModel);
-
+                }))
+                .Select(dto => (Event: EventDto.ToModel(dto), dto.MessageNumber))
+                .SingleOrNone(row => Message.FromModel(row.Event, row.MessageNumber));
         }, cancellationToken);
     }
 
@@ -114,7 +121,13 @@ public sealed class SqliteThreadRepository : IThreadRepository
 
             var threadDto = result.Single();
 
-            var events = (await connection.QueryAsync<EventDto>("SELECT * FROM ThreadEvents WHERE ThreadId = @ThreadId", new { ThreadId = identifier })).OrderBy(m => m.MessageNumber);
+            var events = (await connection.QueryAsync<NumberedEventDto>(
+            """
+            SELECT *
+            FROM ThreadEvents 
+            WHERE ThreadId = @ThreadId
+            """,
+            new { ThreadId = identifier })).OrderBy(m => m.MessageNumber);
 
             var thread = Thread.Rehydrate(
                 identifier: identifier,
@@ -140,12 +153,18 @@ public sealed class SqliteThreadRepository : IThreadRepository
             true => await QueryMessages().Some()
         };
 
-        async Task<List<EventDto>> GetLastMessages(int limit)
+        async Task<List<NumberedEventDto>> GetLastMessages(int limit)
         {
             return await _sqlConnectionFactory.Execute(async connection =>
             {
-                return await connection.QueryAsync<EventDto>(
-                 "SELECT * FROM ThreadEvents WHERE ThreadId = @ThreadId ORDER BY MessageNumber DESC LIMIT @Limit",
+                return await connection.QueryAsync<NumberedEventDto>(
+                """
+                SELECT *
+                FROM ThreadEvents 
+                WHERE ThreadId = @ThreadId 
+                ORDER BY MessageNumber 
+                DESC LIMIT @Limit
+                """,
                  new
                  {
                      ThreadId = identifier,
@@ -154,15 +173,19 @@ public sealed class SqliteThreadRepository : IThreadRepository
             }, cancellationToken);
         }
 
-        async Task<List<EventDto>> GetSpecificMessages(int limit, int reference)
+        async Task<List<NumberedEventDto>> GetSpecificMessages(int limit, int reference)
         {
             var from = reference;
             var messagesToFetch = limit + 1; // we fetch one more message to check if theres a next page available
             var to = reference + messagesToFetch - 1;
             return await _sqlConnectionFactory.Execute(async connection =>
             {
-                return await connection.QueryAsync<EventDto>(
-                 "SELECT * FROM ThreadEvents WHERE ThreadId = @ThreadId AND MessageNumber BETWEEN @From AND @To",
+                return await connection.QueryAsync<NumberedEventDto>(
+                 """
+                 SELECT *
+                 FROM ThreadEvents 
+                 WHERE ThreadId = @ThreadId AND MessageNumber BETWEEN @From AND @To
+                 """,
                  new
                  {
                      ThreadId = identifier,
@@ -194,7 +217,10 @@ public sealed class SqliteThreadRepository : IThreadRepository
             // we have tried to fetch (limit+1) and if we have succeeded, this means, we have a next page available
             var isNextAvailable = dtos.Count == limit + 1;
 
-            var messages = dtos.OrderBy(m => m.MessageNumber).Take(limit).Select(EventDto.ToModel).Select(Message.FromModel).ToList();
+            var messages = dtos.OrderBy(m => m.MessageNumber)
+               .Take(limit)
+               .Select(dto => Message.FromModel(EventDto.ToModel(dto), dto.MessageNumber))
+               .ToList();
 
             Cursor self = Cursor.Create(limit: cursor.Limit, reference: messages[0].Number)
                 .DoIf(cursor => messages.Count < cursor.Limit, cursor => cursor.WithOneOffLimitOverride(messages.Count));
@@ -298,17 +324,21 @@ public sealed class SqliteThreadRepository : IThreadRepository
             return;
         }
 
+        var messageNumber = thread.PersistedVersion switch { Some<int> some => some.Value, _ => 0 };
         foreach (var @event in thread.PendingEvents)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             var rowsAffected = await connection.ExecuteAsync(
-                "INSERT INTO ThreadEvents VALUES(@ThreadId, @MessageId, @MessageNumber, @EventType, @Content, @RepliedToMessageId, @CreatedOn)",
-                EventDto.FromModel(thread.Id, @event));
+                """
+                INSERT INTO ThreadEvents(ThreadId, MessageId, EventType, Content, RepliedToMessageId, CreatedOn, MessageNumber) 
+                VALUES(@ThreadId, @MessageId, @EventType, @Content, @RepliedToMessageId, @CreatedOn, @MessageNumber)
+                """,
+               NumberedEventDto.FromEventDto(EventDto.FromModel(thread.Id, @event), ++messageNumber));
 
             if (rowsAffected != 1)
             {
-                _logger.Error("Could not persist message {MessageNumber} for thread {ThreadId}", @event.MessageNumber, thread.Id);
+                _logger.Error("Could not persist message {MessageId} for thread {ThreadId}", @event.MessageId, thread.Id);
                 throw new InvalidOperationException($"Expected rowsAffected 1 but got {rowsAffected}");
             }
         }

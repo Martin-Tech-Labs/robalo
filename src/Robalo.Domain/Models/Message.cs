@@ -12,7 +12,7 @@ public record Message(
     Option<MessageIdentifier> RepliedToMessageId,
     DateTimeOffset CreatedOn)
 {
-    public static Message FromModel(MessageAdded messageAdded)
+    public static Message FromModel(MessageAdded messageAdded, int messageNumber)
     {
         return messageAdded switch
         {
@@ -24,7 +24,7 @@ public record Message(
         {
             return new(
                 MessageId: e.MessageId,
-                Number: e.MessageNumber,
+                Number: messageNumber,
                 Source: MessageSource.User,
                 Content: e.Content,
                 RepliedToMessageId: None.Default,
@@ -35,7 +35,7 @@ public record Message(
         {
             return new(
                 MessageId: e.MessageId,
-                Number: e.MessageNumber,
+                Number: messageNumber,
                 Source: MessageSource.LLM,
                 Content: e.Content,
                 RepliedToMessageId: e.RepliedToMessageId.AsOption(),

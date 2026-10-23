@@ -28,14 +28,14 @@ public sealed class Thread : AggregateRoot<Thread>
 
         When<UserMessageAdded>(@event =>
         {
-            _messages.Add(Message.FromModel(@event));
+            _messages.Add(Message.FromModel(@event, GetNextMessageNumber()));
 
             IsAnswered = false;
         });
 
         When<LlmMessageAdded>(@event =>
         {
-            _messages.Add(Message.FromModel(@event));
+            _messages.Add(Message.FromModel(@event, GetNextMessageNumber()));
 
             // Arriving LLM Message cannot change status to Unanswered
             if (IsAnswered)
@@ -90,7 +90,6 @@ public sealed class Thread : AggregateRoot<Thread>
 
         return Apply(new LlmMessageAdded(
             MessageIdentifier.NewIdentifier(),
-            GetNextMessageNumber(),
             content,
             repliedToMessage.MessageId,
             addedOn));
@@ -101,7 +100,7 @@ public sealed class Thread : AggregateRoot<Thread>
         ArgumentOutOfRangeException.ThrowIfLessThan(addedOn, ModifiedOn);
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        return Apply(new UserMessageAdded(MessageIdentifier.NewIdentifier(), GetNextMessageNumber(), content, addedOn));
+        return Apply(new UserMessageAdded(MessageIdentifier.NewIdentifier(), content, addedOn));
     }
 
     public static Thread Rehydrate(
@@ -114,8 +113,13 @@ public sealed class Thread : AggregateRoot<Thread>
         ArgumentOutOfRangeException.ThrowIfLessThan(persistedVersion, 0);
         ArgumentOutOfRangeException.ThrowIfLessThan(persistedVersion, events.Count);
 
-        var thread = new Thread(identifier, persistedVersion, createdOn) { Title = title };
-        thread.ReplayEvents(events);
+        var thread = new Thread(identifier, persistedVersion - events.Count, createdOn) { Title = title };
+        thread.ForEach(events, (t, e) => t.Apply(e));
+
+        if (events.Count > 0)
+        {
+            thread.MarkAggregateAsSynchronized();
+        }
 
         return thread;
     }

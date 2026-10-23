@@ -44,13 +44,6 @@ public abstract class AggregateRoot<TSelf> where TSelf : AggregateRoot<TSelf>
         throw new InvalidOperationException($"Missing registration for event {@event.GetType().Name}");
     }
 
-    protected TSelf ReplayEvents<TEvent>(IReadOnlyList<TEvent> events) where TEvent : MessageAdded
-    {
-        this.ForEach(events, (t, e) => Apply(e));
-        _pendingEvents.Clear();
-        return (TSelf)this;
-    }
-
     public TSelf MarkAggregateAsSynchronized()
     {
         if (PersistedVersion == PendingVersion)
