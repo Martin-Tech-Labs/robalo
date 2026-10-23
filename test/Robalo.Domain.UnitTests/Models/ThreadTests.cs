@@ -1,3 +1,6 @@
+using System.Reflection.Metadata;
+using Robalo.Common.Extensions;
+using Robalo.Common.Models;
 using Robalo.Domain.Events;
 using Robalo.Domain.Models;
 using Robalo.Tests.Common;
@@ -81,6 +84,7 @@ public class ThreadTests
         thread.Messages[0].Number.ShouldBe(1);
         thread.Messages[0].Source.ShouldBe(MessageSource.User);
         thread.Messages[0].RepliedToMessage.ShouldBeNone();
+        thread.Messages[0].MessageId.ShouldBe(thread.PendingEvents[0].MessageId);
 
         thread.PendingVersion.ShouldBe(1);
         thread.PersistedVersion.ShouldBeNone();
@@ -114,6 +118,8 @@ public class ThreadTests
         thread.Messages[0].Number.ShouldBe(1);
         thread.Messages[1].Number.ShouldBe(2);
         thread.Messages.Select(v => v.MessageId).Distinct().Count().ShouldBe(2);
+        thread.Messages[0].MessageId.ShouldBe(thread.PendingEvents[0].MessageId);
+        thread.Messages[1].MessageId.ShouldBe(thread.PendingEvents[1].MessageId);
 
         thread.PendingVersion.ShouldBe(2);
         thread.PersistedVersion.ShouldBeNone();
@@ -209,6 +215,7 @@ public class ThreadTests
         thread.Messages[2].CreatedOn.ShouldBe(addedOn);
         thread.Messages[2].Source.ShouldBe(MessageSource.LLM);
         thread.Messages[2].RepliedToMessage.ShouldBe(repliedToMessage);
+        thread.Messages[2].MessageId.ShouldBe(thread.PendingEvents[2].MessageId);
     }
 
     [Fact]
@@ -330,16 +337,23 @@ public class ThreadTests
         var threadId = ThreadIdentifier.NewIdentifier();
         var title = _fixture.Create<string>();
 
+        List<Message> messages = [
+            new Message(MessageIdentifier.NewIdentifier(),7, MessageSource.User, _fixture.Create<string>(), None.Default, _utcNow.AddSeconds(1)),
+            new Message(MessageIdentifier.NewIdentifier(),8, MessageSource.User, _fixture.Create<string>(), None.Default, _utcNow.AddSeconds(2)),
+            new Message(MessageIdentifier.NewIdentifier(),9, MessageSource.LLM, _fixture.Create<string>(), 2, _utcNow.AddSeconds(3)),
+            new Message(MessageIdentifier.NewIdentifier(),10, MessageSource.User, _fixture.Create<string>(), None.Default, _utcNow.AddSeconds(4)),
+        ];
+
         var thread = Thread.Rehydrate(
             identifier: threadId,
             createdOn: _utcNow,
             title: title,
             persistedVersion: 10,
             events: [
-                new UserMessageAdded(MessageIdentifier.NewIdentifier(), 7, _fixture.Create<string>(),_utcNow.AddSeconds(1)),
-                new UserMessageAdded(MessageIdentifier.NewIdentifier(), 8, _fixture.Create<string>(),_utcNow.AddSeconds(2)),
-                new LlmMessageAdded(MessageIdentifier.NewIdentifier(), 9, _fixture.Create<string>(), 2, _utcNow.AddSeconds(3)),
-                new UserMessageAdded(MessageIdentifier.NewIdentifier(), 10, _fixture.Create<string>(),_utcNow.AddSeconds(4)),
+                new UserMessageAdded(messages[0].MessageId, messages[0].Number, messages[0].Content,  messages[0].CreatedOn),
+                new UserMessageAdded(messages[1].MessageId, messages[1].Number, messages[1].Content,  messages[1].CreatedOn),
+                new LlmMessageAdded(messages[2].MessageId, messages[2].Number, messages[2].Content, messages[2].RepliedToMessage.ValueOrFailure, messages[2].CreatedOn),
+                new UserMessageAdded(messages[3].MessageId, messages[3].Number, messages[3].Content,  messages[3].CreatedOn),
             ]);
 
         thread.Id.ShouldBe(threadId);
@@ -350,6 +364,8 @@ public class ThreadTests
         thread.PendingEvents.ShouldBeEmpty();
         thread.Messages.Count.ShouldBe(4);
         thread.Messages.Select(v => v.MessageId).Distinct().Count().ShouldBe(4);
+
+        thread.Messages.ToList().ShouldBeEquivalentTo(messages);
 
 
         thread.PersistedVersion.ShouldBe(10);
@@ -364,6 +380,7 @@ public class ThreadTests
         thread.PendingEvents.Count.ShouldBe(1);
         thread.Messages.Count.ShouldBe(5);
         thread.Messages.Select(v => v.MessageId).Distinct().Count().ShouldBe(5);
+        thread.Messages[4].MessageId.ShouldBe(thread.PendingEvents[0].MessageId);
 
 
         thread.PersistedVersion.ShouldBe(10);
