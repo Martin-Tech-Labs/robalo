@@ -76,7 +76,7 @@ public sealed class Thread : AggregateRoot<Thread>
         ArgumentOutOfRangeException.ThrowIfGreaterThan(repliedToMessage, _messages.Count);
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        return Apply(new LlmMessageAdded(GetNextMessageNumber(), content, repliedToMessage, addedOn));
+        return Apply(new LlmMessageAdded(MessageIdentifier.NewIdentifier(), GetNextMessageNumber(), content, repliedToMessage, addedOn));
     }
 
     public Thread AddUserMessage(string content, DateTimeOffset addedOn)
@@ -84,7 +84,7 @@ public sealed class Thread : AggregateRoot<Thread>
         ArgumentOutOfRangeException.ThrowIfLessThan(addedOn, ModifiedOn);
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        return Apply(new UserMessageAdded(GetNextMessageNumber(), content, addedOn));
+        return Apply(new UserMessageAdded(MessageIdentifier.NewIdentifier(), GetNextMessageNumber(), content, addedOn));
     }
 
     public static Thread Rehydrate(
@@ -99,7 +99,7 @@ public sealed class Thread : AggregateRoot<Thread>
 
         var thread = new Thread(identifier, persistedVersion, createdOn) { Title = title };
         thread.ReplayEvents(events);
-        
+
         return thread;
     }
 }

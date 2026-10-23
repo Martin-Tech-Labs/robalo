@@ -1,10 +1,36 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Robalo.Common.Models;
+using Robalo.Domain.Models;
 using Shouldly;
 
 namespace Robalo.Tests.Common;
 
-public static class OptionAssertions
+public static class Extensions
 {
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void ShouldBeEquivalentToWithIgnoreMessageId(
+        this IEnumerable<Message> actual,
+        IEnumerable<Message> expected,
+        string? customMessage = null)
+    {
+        var messageId = MessageIdentifier.NewIdentifier();
+        var newExpected = expected.Select(m => m with { MessageId = messageId }).ToList();
+        var newActual = actual.Select(m => m with { MessageId = messageId }).ToList();
+        newActual.ShouldBeEquivalentTo(newExpected);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void ShouldBeEquivalentToWithIgnoreMessageId(
+        this Message actual,
+        Message expected,
+        string? customMessage = null)
+    {
+     
+        expected.ShouldBe(actual with {MessageId = expected.MessageId});
+    }
+
+
     public static void ShouldBe<T>(
         this T actual,
         Option<T> expected) where T : notnull

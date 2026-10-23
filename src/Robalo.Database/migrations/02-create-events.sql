@@ -1,5 +1,6 @@
 CREATE TABLE ThreadEvents (
     ThreadId TEXT,
+    MessageId TEXT UNIQUE,
     MessageNumber INTEGER,
     EventType TEXT,
     Content TEXT,

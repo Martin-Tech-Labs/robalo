@@ -68,27 +68,26 @@ public class ThreadTests
         thread.AddUserMessage(messageContent, addedOn);
 
         thread.Messages.Count.ShouldBe(1);
-
-        thread.Messages.Single().Content.ShouldBe(messageContent);
-        thread.Messages.Single().CreatedOn.ShouldBe(addedOn);
-        thread.Messages.Single().Number.ShouldBe(1);
-        thread.Messages.Single().Source.ShouldBe(MessageSource.User);
-        thread.Messages.Single().RepliedToMessage.ShouldBeNone();
-
-
-        thread.PendingVersion.ShouldBe(1);
-        thread.PersistedVersion.ShouldBeNone();
         thread.PendingEvents.Count.ShouldBe(1);
-
-        thread.ModifiedOn.ShouldBe(addedOn);
-
-        thread.IsAnswered.ShouldBeFalse();
 
         thread.PendingEvents.Single().ShouldBeOfType<UserMessageAdded>();
         var @event = (UserMessageAdded)thread.PendingEvents.Single();
 
         @event.AddedOn.ShouldBe(addedOn);
         @event.Content.ShouldBe(messageContent);
+
+        thread.Messages[0].Content.ShouldBe(messageContent);
+        thread.Messages[0].CreatedOn.ShouldBe(addedOn);
+        thread.Messages[0].Number.ShouldBe(1);
+        thread.Messages[0].Source.ShouldBe(MessageSource.User);
+        thread.Messages[0].RepliedToMessage.ShouldBeNone();
+
+        thread.PendingVersion.ShouldBe(1);
+        thread.PersistedVersion.ShouldBeNone();
+
+        thread.ModifiedOn.ShouldBe(addedOn);
+
+        thread.IsAnswered.ShouldBeFalse();
     }
 
     [Fact]
@@ -289,8 +288,8 @@ public class ThreadTests
             title: _fixture.Create<string>(),
             persistedVersion: 1,
             events: [
-                new UserMessageAdded(1, _fixture.Create<string>(), _utcNow),
-                new UserMessageAdded(2, _fixture.Create<string>(), _utcNow)
+                new UserMessageAdded(MessageIdentifier.NewIdentifier(), 1, _fixture.Create<string>(), _utcNow),
+                new UserMessageAdded(MessageIdentifier.NewIdentifier(), 2, _fixture.Create<string>(), _utcNow)
                 ]));
     }
 
@@ -331,10 +330,10 @@ public class ThreadTests
             title: title,
             persistedVersion: 10,
             events: [
-                new UserMessageAdded(7, _fixture.Create<string>(),_utcNow.AddSeconds(1)),
-                new UserMessageAdded(8, _fixture.Create<string>(),_utcNow.AddSeconds(2)),
-                new LlmMessageAdded(9, _fixture.Create<string>(), 2, _utcNow.AddSeconds(3)),
-                new UserMessageAdded(10, _fixture.Create<string>(),_utcNow.AddSeconds(4)),
+                new UserMessageAdded(MessageIdentifier.NewIdentifier(), 7, _fixture.Create<string>(),_utcNow.AddSeconds(1)),
+                new UserMessageAdded(MessageIdentifier.NewIdentifier(), 8, _fixture.Create<string>(),_utcNow.AddSeconds(2)),
+                new LlmMessageAdded(MessageIdentifier.NewIdentifier(), 9, _fixture.Create<string>(), 2, _utcNow.AddSeconds(3)),
+                new UserMessageAdded(MessageIdentifier.NewIdentifier(), 10, _fixture.Create<string>(),_utcNow.AddSeconds(4)),
             ]);
 
         thread.Id.ShouldBe(threadId);
