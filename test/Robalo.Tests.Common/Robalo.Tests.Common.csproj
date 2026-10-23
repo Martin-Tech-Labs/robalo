@@ -24,6 +24,7 @@
 
     <ItemGroup>
       <ProjectReference Include="../../src/Robalo.Common/Robalo.Common.csproj" />
+      <ProjectReference Include="../../src/Robalo.Domain/Robalo.Domain.csproj" />
     </ItemGroup>
 
 

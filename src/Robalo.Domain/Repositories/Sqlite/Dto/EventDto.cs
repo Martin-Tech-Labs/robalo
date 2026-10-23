@@ -7,6 +7,7 @@ namespace Robalo.Domain.Repositories.Sqlite.Dto;
 
 public sealed record EventDto(
     ThreadIdentifier ThreadId,
+    MessageIdentifier MessageId,
     int MessageNumber,
     string EventType,
     string Content,
@@ -26,6 +27,7 @@ public sealed record EventDto(
         UserMessageAdded ToUserMessageAdded(EventDto dto)
         {
             return new UserMessageAdded(
+                MessageId: dto.MessageId,
                 MessageNumber: dto.MessageNumber,
                 Content: dto.Content,
                 AddedOn: dto.CreatedOn);
@@ -34,6 +36,7 @@ public sealed record EventDto(
         LlmMessageAdded ToLlmMessageAdded(EventDto dto)
         {
             return new LlmMessageAdded(
+                MessageId: dto.MessageId,
                 MessageNumber: dto.MessageNumber,
                 Content: dto.Content,
                 RepliedToMessage: dto.RepliedToMessage!.Value,
@@ -45,6 +48,7 @@ public sealed record EventDto(
     {
         UserMessageAdded userMessageAdded => new EventDto(
            ThreadId: threadIdentifier,
+           MessageId: userMessageAdded.MessageId,
            MessageNumber: userMessageAdded.MessageNumber,
            EventType: e.GetType().Name,
            Content: userMessageAdded.Content,
@@ -53,6 +57,7 @@ public sealed record EventDto(
 
         LlmMessageAdded llmMessageAdded => new EventDto(
            ThreadId: threadIdentifier,
+           MessageId: llmMessageAdded.MessageId,
            MessageNumber: llmMessageAdded.MessageNumber,
            EventType: e.GetType().Name,
            Content: llmMessageAdded.Content,

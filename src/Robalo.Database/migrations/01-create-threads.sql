@@ -3,5 +3,5 @@ CREATE TABLE Threads (
     Title TEXT,
     CreatedOn TEXT,
     ModifiedOn TEXT,
-    Version TEXT
+    Version INTEGER
 ) WITHOUT ROWID;

@@ -5,6 +5,7 @@ using Robalo.Domain.Events;
 namespace Robalo.Domain.Models;
 
 public record Message(
+    MessageIdentifier MessageId,
     int Number,
     MessageSource Source,
     string Content,
@@ -22,6 +23,7 @@ public record Message(
         Message FromUserMessageAdded(UserMessageAdded e)
         {
             return new(
+                MessageId: e.MessageId,
                 Number: e.MessageNumber,
                 Source: MessageSource.User,
                 Content: e.Content,
@@ -32,6 +34,7 @@ public record Message(
         Message FromLlmMessageAdded(LlmMessageAdded e)
         {
             return new(
+                MessageId: e.MessageId,
                 Number: e.MessageNumber,
                 Source: MessageSource.LLM,
                 Content: e.Content,

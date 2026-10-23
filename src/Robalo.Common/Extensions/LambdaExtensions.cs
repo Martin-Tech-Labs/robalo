@@ -2,14 +2,6 @@ namespace Robalo.Common.Extensions;
 
 public static class LambdaExtensions
 {
-    public static IEnumerable<T2> MapEach<T1, T2>(this IEnumerable<T1> items, Func<T1, T2> map)
-    {
-        foreach (var item in items)
-        {
-            yield return map(item);
-        }
-    }
-
     public static T1 ForEach<T1, T2>(this T1 value, IEnumerable<T2> items, Action<T1, T2> action)
         where T1 : notnull
         where T2 : notnull

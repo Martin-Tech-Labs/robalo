@@ -1,3 +1,6 @@
+using System.Reflection.Metadata;
+using Robalo.Common.Extensions;
+using Robalo.Common.Models;
 using Robalo.Domain.Events;
 using Robalo.Domain.Models;
 using Robalo.Tests.Common;
@@ -6,7 +9,13 @@ namespace Robalo.Domain.UnitTests.Models;
 
 public class ThreadTests
 {
-    private readonly Fixture _fixture = new();
+    readonly Fixture _fixture = new();
+    readonly DateTimeOffset _utcNow;
+
+    public ThreadTests()
+    {
+        _utcNow = _fixture.Create<DateTimeOffset>();
+    }
 
     [Fact]
     public void NewThread_ShouldThrowOnInvalidDate()
@@ -25,8 +34,8 @@ public class ThreadTests
         thread.Id.ShouldNotBeNull();
         thread.Messages.ShouldBeEmpty();
         thread.PendingEvents.ShouldBeEmpty();
-        thread.NewVersion.ShouldNotBeNull();
-        thread.OldVersion.ShouldBeNone();
+        thread.PendingVersion.ShouldBe(0);
+        thread.PersistedVersion.ShouldBeNone();
     }
 
     [Fact]
@@ -55,7 +64,6 @@ public class ThreadTests
     {
         var createdOn = _fixture.Create<DateTimeOffset>();
         var thread = Thread.NewThread(createdOn);
-        var oldVersion = thread.OldVersion;
 
         var messageContent = _fixture.Create<string>();
         var addedOn = createdOn.AddSeconds(1);
@@ -63,27 +71,27 @@ public class ThreadTests
         thread.AddUserMessage(messageContent, addedOn);
 
         thread.Messages.Count.ShouldBe(1);
-
-        thread.Messages.Single().Content.ShouldBe(messageContent);
-        thread.Messages.Single().CreatedOn.ShouldBe(addedOn);
-        thread.Messages.Single().Number.ShouldBe(1);
-        thread.Messages.Single().Source.ShouldBe(MessageSource.User);
-        thread.Messages.Single().RepliedToMessage.ShouldBeNone();
-
-
-        thread.NewVersion.ShouldNotBe(thread.OldVersion);
-        thread.OldVersion.ShouldBe(oldVersion);
         thread.PendingEvents.Count.ShouldBe(1);
-
-        thread.ModifiedOn.ShouldBe(addedOn);
-
-        thread.IsAnswered.ShouldBeFalse();
 
         thread.PendingEvents.Single().ShouldBeOfType<UserMessageAdded>();
         var @event = (UserMessageAdded)thread.PendingEvents.Single();
 
         @event.AddedOn.ShouldBe(addedOn);
         @event.Content.ShouldBe(messageContent);
+
+        thread.Messages[0].Content.ShouldBe(messageContent);
+        thread.Messages[0].CreatedOn.ShouldBe(addedOn);
+        thread.Messages[0].Number.ShouldBe(1);
+        thread.Messages[0].Source.ShouldBe(MessageSource.User);
+        thread.Messages[0].RepliedToMessage.ShouldBeNone();
+        thread.Messages[0].MessageId.ShouldBe(thread.PendingEvents[0].MessageId);
+
+        thread.PendingVersion.ShouldBe(1);
+        thread.PersistedVersion.ShouldBeNone();
+
+        thread.ModifiedOn.ShouldBe(addedOn);
+
+        thread.IsAnswered.ShouldBeFalse();
     }
 
     [Fact]
@@ -101,20 +109,20 @@ public class ThreadTests
     {
         var createdOn = _fixture.Create<DateTimeOffset>();
         var thread = Thread.NewThread(createdOn);
-        var oldVersion = thread.OldVersion;
-
+        var oldVersion = thread.PersistedVersion;
 
         thread.AddUserMessage(_fixture.Create<string>(), createdOn.AddSeconds(1));
-        var newVersion1 = thread.NewVersion;
         thread.AddUserMessage(_fixture.Create<string>(), createdOn.AddSeconds(2));
 
         thread.Messages.Count.ShouldBe(2);
         thread.Messages[0].Number.ShouldBe(1);
         thread.Messages[1].Number.ShouldBe(2);
+        thread.Messages.Select(v => v.MessageId).Distinct().Count().ShouldBe(2);
+        thread.Messages[0].MessageId.ShouldBe(thread.PendingEvents[0].MessageId);
+        thread.Messages[1].MessageId.ShouldBe(thread.PendingEvents[1].MessageId);
 
-        thread.NewVersion.ShouldNotBe(thread.OldVersion);
-        thread.NewVersion.ShouldNotBe(newVersion1);
-        thread.OldVersion.ShouldBe(oldVersion);
+        thread.PendingVersion.ShouldBe(2);
+        thread.PersistedVersion.ShouldBeNone();
 
         thread.ModifiedOn.ShouldBe(createdOn.AddSeconds(2));
 
@@ -177,7 +185,7 @@ public class ThreadTests
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
 
-        var versionBeforeLlmMessage = thread.NewVersion;
+        var versionBeforeLlmMessage = thread.PendingVersion;
         var content = _fixture.Create<string>();
         var addedOn = thread.CreatedOn.AddSeconds(1);
 
@@ -185,8 +193,10 @@ public class ThreadTests
 
         thread.IsAnswered.ShouldBe(isAnswered);
         thread.Messages.Count.ShouldBe(3);
+        thread.Messages.Select(v => v.MessageId).Distinct().Count().ShouldBe(3);
 
-        thread.NewVersion.ShouldNotBe(versionBeforeLlmMessage);
+
+        thread.PendingVersion.ShouldNotBe(versionBeforeLlmMessage);
         thread.ModifiedOn.ShouldBe(thread.CreatedOn.AddSeconds(1));
 
         thread.PendingEvents.Count.ShouldBe(3);
@@ -199,11 +209,13 @@ public class ThreadTests
         event3.RepliedToMessage.ShouldBe(repliedToMessage);
 
         thread.Messages.Count.ShouldBe(3);
+        thread.Messages.Select(v => v.MessageId).Distinct().Count().ShouldBe(3);
         thread.Messages[2].Number.ShouldBe(3);
         thread.Messages[2].Content.ShouldBe(content);
         thread.Messages[2].CreatedOn.ShouldBe(addedOn);
         thread.Messages[2].Source.ShouldBe(MessageSource.LLM);
         thread.Messages[2].RepliedToMessage.ShouldBe(repliedToMessage);
+        thread.Messages[2].MessageId.ShouldBe(thread.PendingEvents[2].MessageId);
     }
 
     [Fact]
@@ -244,13 +256,13 @@ public class ThreadTests
         thread.AddUserMessage(_fixture.Create<string>(), createdOn);
         thread.AddUserMessage(_fixture.Create<string>(), createdOn);
 
-        var newVersion = thread.NewVersion;
-
         thread.MarkAggregateAsSynchronized();
-        thread.OldVersion.ShouldBe(newVersion);
-        thread.OldVersion.ShouldBe(thread.NewVersion);
+        thread.PersistedVersion.ShouldBe(2);
+        thread.PendingVersion.ShouldBe(2);
 
         thread.Messages.Count.ShouldBe(2);
+        thread.Messages.Select(v => v.MessageId).Distinct().Count().ShouldBe(2);
+
         thread.PendingEvents.ShouldBeEmpty();
     }
 
@@ -263,31 +275,120 @@ public class ThreadTests
         thread.AddUserMessage(_fixture.Create<string>(), createdOn);
         thread.AddUserMessage(_fixture.Create<string>(), createdOn);
 
-        var newVersion = thread.NewVersion;
-
         thread.MarkAggregateAsSynchronized();
 
         Should.Throw<InvalidOperationException>(() => thread.MarkAggregateAsSynchronized());
     }
 
     [Fact]
-    public void UpdateTitle_ShouldUpdateTitle()
+    public void Rehydrate_ShouldThrow_IfVersionIsLessThan0()
     {
-        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
-        var title = _fixture.Create<string>();
-        var modifiedOn = thread.ModifiedOn;
-        thread.UpdateTitle(title);
-        thread.Title.ShouldBe(title);
-        thread.NewVersion.ShouldNotBe(thread.OldVersion);
-        thread.ModifiedOn.ShouldBe(modifiedOn);
+        Should.Throw<ArgumentOutOfRangeException>(() => Thread.Rehydrate(
+            identifier: ThreadIdentifier.NewIdentifier(),
+            createdOn: _fixture.Create<DateTimeOffset>(),
+            title: _fixture.Create<string>(),
+            persistedVersion: -1,
+            events: []));
     }
 
-    [Theory]
-    [InlineData("")]
-    [InlineData("  ")]
-    public void UpdateTitle_ShouldThrowOnBlankTitle(string title)
+    [Fact]
+    public void Rehydrate_ShouldThrow_IfVersionIsLessNumberOfEvents()
     {
-        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
-        Should.Throw<ArgumentException>(() => thread.UpdateTitle(title));
+        var createdOn = _fixture.Create<DateTimeOffset>();
+        Should.Throw<ArgumentOutOfRangeException>(() => Thread.Rehydrate(
+            identifier: ThreadIdentifier.NewIdentifier(),
+            createdOn: _utcNow,
+            title: _fixture.Create<string>(),
+            persistedVersion: 1,
+            events: [
+                new UserMessageAdded(MessageIdentifier.NewIdentifier(), 1, _fixture.Create<string>(), _utcNow),
+                new UserMessageAdded(MessageIdentifier.NewIdentifier(), 2, _fixture.Create<string>(), _utcNow)
+                ]));
     }
+
+    [Fact]
+    public void Rehydrate_ShouldSucceed_OnNoEvents()
+    {
+        var threadId = ThreadIdentifier.NewIdentifier();
+        var title = _fixture.Create<string>();
+        var createdOn = _fixture.Create<DateTimeOffset>();
+        var thread = Thread.Rehydrate(
+            identifier: threadId,
+            createdOn: createdOn,
+            title: title,
+            persistedVersion: 0,
+            events: []);
+
+        thread.Id.ShouldBe(threadId);
+        thread.Title.ShouldBe(title);
+        thread.CreatedOn.ShouldBe(createdOn);
+        thread.ModifiedOn.ShouldBe(createdOn);
+
+        thread.PendingEvents.ShouldBeEmpty();
+        thread.Messages.ShouldBeEmpty();
+
+        thread.PersistedVersion.ShouldBe(0);
+        thread.PendingVersion.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Rehydrate_ShouldSucceed_WithEvents()
+    {
+        var threadId = ThreadIdentifier.NewIdentifier();
+        var title = _fixture.Create<string>();
+
+        List<Message> messages = [
+            new Message(MessageIdentifier.NewIdentifier(),7, MessageSource.User, _fixture.Create<string>(), None.Default, _utcNow.AddSeconds(1)),
+            new Message(MessageIdentifier.NewIdentifier(),8, MessageSource.User, _fixture.Create<string>(), None.Default, _utcNow.AddSeconds(2)),
+            new Message(MessageIdentifier.NewIdentifier(),9, MessageSource.LLM, _fixture.Create<string>(), 2, _utcNow.AddSeconds(3)),
+            new Message(MessageIdentifier.NewIdentifier(),10, MessageSource.User, _fixture.Create<string>(), None.Default, _utcNow.AddSeconds(4)),
+        ];
+
+        var thread = Thread.Rehydrate(
+            identifier: threadId,
+            createdOn: _utcNow,
+            title: title,
+            persistedVersion: 10,
+            events: [
+                new UserMessageAdded(messages[0].MessageId, messages[0].Number, messages[0].Content,  messages[0].CreatedOn),
+                new UserMessageAdded(messages[1].MessageId, messages[1].Number, messages[1].Content,  messages[1].CreatedOn),
+                new LlmMessageAdded(messages[2].MessageId, messages[2].Number, messages[2].Content, messages[2].RepliedToMessage.ValueOrFailure, messages[2].CreatedOn),
+                new UserMessageAdded(messages[3].MessageId, messages[3].Number, messages[3].Content,  messages[3].CreatedOn),
+            ]);
+
+        thread.Id.ShouldBe(threadId);
+        thread.Title.ShouldBe(title);
+        thread.CreatedOn.ShouldBe(_utcNow);
+        thread.ModifiedOn.ShouldBe(_utcNow.AddSeconds(4));
+
+        thread.PendingEvents.ShouldBeEmpty();
+        thread.Messages.Count.ShouldBe(4);
+        thread.Messages.Select(v => v.MessageId).Distinct().Count().ShouldBe(4);
+
+        thread.Messages.ToList().ShouldBeEquivalentTo(messages);
+
+
+        thread.PersistedVersion.ShouldBe(10);
+        thread.PendingVersion.ShouldBe(10);
+        thread.IsAnswered.ShouldBeFalse();
+
+
+        thread.AddLlmMessage(_fixture.Create<string>(), 4, _utcNow.AddSeconds(5));
+
+        thread.ModifiedOn.ShouldBe(_utcNow.AddSeconds(5));
+
+        thread.PendingEvents.Count.ShouldBe(1);
+        thread.Messages.Count.ShouldBe(5);
+        thread.Messages.Select(v => v.MessageId).Distinct().Count().ShouldBe(5);
+        thread.Messages[4].MessageId.ShouldBe(thread.PendingEvents[0].MessageId);
+
+
+        thread.PersistedVersion.ShouldBe(10);
+        thread.PendingVersion.ShouldBe(11);
+
+        thread.IsAnswered.ShouldBeTrue();
+
+    }
+
+
 }

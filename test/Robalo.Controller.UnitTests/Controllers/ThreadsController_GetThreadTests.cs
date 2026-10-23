@@ -23,7 +23,6 @@ public class ThreadsController_GetThreadTests : ThreadsControllerTests
         var thread =
             Thread.NewThread(_utcNow)
             .AddUserMessage(_fixture.Create<string>(), modifiedOn)
-            .UpdateTitle(_fixture.Create<string>())
             .MarkAggregateAsSynchronized();
 
         _repository

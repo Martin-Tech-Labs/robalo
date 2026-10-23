@@ -19,9 +19,9 @@ public sealed class Thread : AggregateRoot<Thread>
 
     public bool IsAnswered { private set; get; }
 
-    private int GetNextMessageNumber() => _messages.Count == 0 ? 1 : _messages[^1].Number + 1;
+    private int GetNextMessageNumber() => PersistedVersion.ValueOr(0) + PendingEvents.Count + 1;
 
-    Thread(ThreadIdentifier id, Version version, DateTimeOffset createdOn) : base(id, version)
+    Thread(ThreadIdentifier id, Option<int> persistedVersion, DateTimeOffset createdOn) : base(id, persistedVersion)
     {
         CreatedOn = createdOn;
         Messages = _messages.AsReadOnly();
@@ -61,7 +61,7 @@ public sealed class Thread : AggregateRoot<Thread>
             throw new ArgumentOutOfRangeException(nameof(createdOn), "Invalid date");
         }
 
-        return new(ThreadIdentifier.NewIdentifier(), Version.NewVersion(), createdOn);
+        return new(ThreadIdentifier.NewIdentifier(), None.Default, createdOn);
     }
 
     public Thread AddLlmMessage(string content, int repliedToMessage, DateTimeOffset addedOn)
@@ -76,9 +76,7 @@ public sealed class Thread : AggregateRoot<Thread>
         ArgumentOutOfRangeException.ThrowIfGreaterThan(repliedToMessage, _messages.Count);
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-
-        NewVersion = Version.NewVersion();
-        return Apply(new LlmMessageAdded(GetNextMessageNumber(), content, repliedToMessage, addedOn));
+        return Apply(new LlmMessageAdded(MessageIdentifier.NewIdentifier(), GetNextMessageNumber(), content, repliedToMessage, addedOn));
     }
 
     public Thread AddUserMessage(string content, DateTimeOffset addedOn)
@@ -86,30 +84,21 @@ public sealed class Thread : AggregateRoot<Thread>
         ArgumentOutOfRangeException.ThrowIfLessThan(addedOn, ModifiedOn);
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        NewVersion = Version.NewVersion();
-        return Apply(new UserMessageAdded(GetNextMessageNumber(), content, addedOn));
-    }
-
-    public Thread UpdateTitle(string title)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(title);
-        Title = title;
-
-        NewVersion = Version.NewVersion();
-        return this;
+        return Apply(new UserMessageAdded(MessageIdentifier.NewIdentifier(), GetNextMessageNumber(), content, addedOn));
     }
 
     public static Thread Rehydrate(
         ThreadIdentifier identifier,
         DateTimeOffset createdOn,
         string? title,
-        Version version,
-        IEnumerable<MessageAdded> events)
+        int persistedVersion,
+        IReadOnlyList<MessageAdded> events)
     {
-        var thread = new Thread(identifier, version, createdOn) { Title = title };
-        thread.ForEach(events, (t, e) => thread.Apply(e));
+        ArgumentOutOfRangeException.ThrowIfLessThan(persistedVersion, 0);
+        ArgumentOutOfRangeException.ThrowIfLessThan(persistedVersion, events.Count);
 
-        thread.MarkAggregateAsSynchronized();
+        var thread = new Thread(identifier, persistedVersion, createdOn) { Title = title };
+        thread.ReplayEvents(events);
 
         return thread;
     }
