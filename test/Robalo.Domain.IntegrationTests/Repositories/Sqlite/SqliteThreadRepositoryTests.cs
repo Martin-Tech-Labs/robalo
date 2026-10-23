@@ -271,19 +271,24 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
         };
 
         thread.ForEach(expectedMessages, (t, e) => thread.AddUserMessage(e.Content, e.CreatedOn));
+        for (var i = 0; i < thread.PendingEvents.Count; i++)
+        {
+            expectedMessages[i] = expectedMessages[i] with { MessageId = thread.PendingEvents[i].MessageId };
+        }
 
         (await _sut.SaveThread(thread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
 
         var result = await _sut.GetMessages(thread.Id, TestContext.Current.CancellationToken);
         result.HasValue.ShouldBeTrue();
         var messages = await result.ValueOrFailure.ToArrayAsync(TestContext.Current.CancellationToken);
-        messages.ShouldBeEquivalentToWithIgnoreMessageId(expectedMessages);
+        messages.ShouldBeEquivalentTo(expectedMessages);
     }
 
     [Fact]
     public async Task SaveThread_OnConcurrencyConflictOnUpdate_ShouldNotPersistConflictingChanges()
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
+        var expectedMessageIds = new List<MessageIdentifier>();
 
         var expectedMessages = new List<Message>
         {
@@ -291,6 +296,7 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
         };
 
         thread.ForEach(expectedMessages, (t, e) => thread.AddUserMessage(e.Content, e.CreatedOn));
+        expectedMessageIds = thread.PendingEvents.Select(e => e.MessageId).ToList();
 
         (await _sut.SaveThread(thread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
 
@@ -298,6 +304,7 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
         expectedMessages.Add(new(MessageIdentifier.NewIdentifier(), 2, MessageSource.User, _fixture.Create<string>(), None.Default, conflictThread.ModifiedOn.AddSeconds(1)));
 
         conflictThread.AddUserMessage(expectedMessages[1].Content, expectedMessages[1].CreatedOn);
+        expectedMessageIds.Add(conflictThread.PendingEvents[0].MessageId);
 
         (await _sut.SaveThread(conflictThread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Updated>();
 
@@ -311,18 +318,19 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
         threadOrNone.ValueOrFailure.CreatedOn.ShouldBe(conflictThread.CreatedOn);
         threadOrNone.ValueOrFailure.ModifiedOn.ShouldBe(conflictThread.ModifiedOn);
 
-        threadOrNone.ValueOrFailure.Messages.ToArray().ShouldBeEquivalentToWithIgnoreMessageId(expectedMessages.ToArray());
+        threadOrNone.ValueOrFailure.Messages.ToArray().ShouldBeEquivalentToWithGivenMessageIds(expectedMessages, expectedMessageIds);
 
         var messagesOrNone = await _sut.GetMessages(conflictThread.Id, TestContext.Current.CancellationToken);
         messagesOrNone.HasValue.ShouldBeTrue();
         var messages = await messagesOrNone.ValueOrFailure.ToArrayAsync(TestContext.Current.CancellationToken);
-        messages.ShouldBeEquivalentToWithIgnoreMessageId(expectedMessages.ToArray());
+        messages.ShouldBeEquivalentToWithGivenMessageIds(expectedMessages, expectedMessageIds);
     }
 
     [Fact]
     public async Task SaveThread_ShouldCorrectlyHandleSubsequentUpdates()
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
+        var expectedMessageIds = new List<MessageIdentifier>();
 
         var expectedMessages = new List<Message>
         {
@@ -330,12 +338,14 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
         };
 
         thread.ForEach(expectedMessages, (t, e) => thread.AddUserMessage(e.Content, e.CreatedOn));
+        expectedMessageIds = thread.PendingEvents.Select(p => p.MessageId).ToList();
 
         (await _sut.SaveThread(thread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
 
         expectedMessages.Add(new(MessageIdentifier.NewIdentifier(), 2, MessageSource.User, _fixture.Create<string>(), None.Default, thread.ModifiedOn.AddSeconds(1)));
 
         thread.AddUserMessage(expectedMessages[1].Content, expectedMessages[1].CreatedOn);
+        expectedMessageIds.Add(thread.PendingEvents[0].MessageId);
 
         (await _sut.SaveThread(thread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Updated>();
 
@@ -344,12 +354,12 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
         threadOrNone.ValueOrFailure.CreatedOn.ShouldBe(thread.CreatedOn);
         threadOrNone.ValueOrFailure.ModifiedOn.ShouldBe(thread.ModifiedOn);
 
-        threadOrNone.ValueOrFailure.Messages.ToArray().ShouldBeEquivalentToWithIgnoreMessageId(expectedMessages.ToArray());
+        threadOrNone.ValueOrFailure.Messages.ToArray().ShouldBeEquivalentToWithGivenMessageIds(expectedMessages, expectedMessageIds);
 
         var messagesOrNone = await _sut.GetMessages(thread.Id, TestContext.Current.CancellationToken);
         messagesOrNone.HasValue.ShouldBeTrue();
         var messages = await messagesOrNone.ValueOrFailure.ToArrayAsync(TestContext.Current.CancellationToken);
-        messages.ShouldBeEquivalentToWithIgnoreMessageId(expectedMessages.ToArray());
+        messages.ShouldBeEquivalentToWithGivenMessageIds(expectedMessages, expectedMessageIds);
     }
 
     [Fact]
@@ -407,11 +417,17 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
         };
 
         thread.ForEach(expectedMessages, (t, e) => thread.AddUserMessage(e.Content, e.CreatedOn));
+
+        for (var i = 0; i < thread.PendingEvents.Count; i++)
+        {
+            expectedMessages[i] = expectedMessages[i] with { MessageId = thread.PendingEvents[i].MessageId };
+        }
+
         await _sut.SaveThread(thread, TestContext.Current.CancellationToken);
 
         var result = await _sut.GetMessage(thread.Id, messageNumber, TestContext.Current.CancellationToken);
         result.HasValue.ShouldBeTrue();
-        result.ValueOrFailure.ShouldBeEquivalentToWithIgnoreMessageId(expectedMessages[index]);
+        result.ValueOrFailure.ShouldBe(expectedMessages[index]);
     }
 
     [Fact]
@@ -474,9 +490,12 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
 
+
+        List<MessageIdentifier> expectedMessageIds = [];
         for (var i = 1; i <= numOfMessages; i++)
         {
             thread.AddUserMessage($"Message_{i}", thread.ModifiedOn.AddSeconds(1));
+            expectedMessageIds.Add(thread.PendingEvents[^1].MessageId);
         }
 
         (await _sut.SaveThread(thread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
@@ -497,13 +516,13 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
 
             var expectedMessages = GenerateExpectedMessages(expectedMessageNumbers);
 
-            queryResult.Messages.ToList().ShouldBeEquivalentToWithIgnoreMessageId(expectedMessages);
+            queryResult.Messages.ToList().ShouldBeEquivalentToWithGivenMessageIds(expectedMessages, expectedMessageIds);
 
             queryResult.Self.HasValue.ShouldBeTrue();
 
             var queryResultSelf = await _sut.QueryMessages(thread.Id, queryResult.Self.ValueOrFailure, TestContext.Current.CancellationToken);
             queryResultSelf.HasValue.ShouldBeTrue();
-            queryResultSelf.ValueOrFailure.Messages.ShouldBeEquivalentToWithIgnoreMessageId(expectedMessages);
+            queryResultSelf.ValueOrFailure.Messages.ShouldBeEquivalentToWithGivenMessageIds(expectedMessages, expectedMessageIds);
         }
         else
         {
@@ -517,14 +536,14 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
             var queryResultPrev = await _sut.QueryMessages(thread.Id, queryResult.Prev.ValueOrFailure, TestContext.Current.CancellationToken);
 
             queryResultPrev.HasValue.ShouldBeTrue();
-            queryResultPrev.ValueOrFailure.Messages.ShouldBeEquivalentToWithIgnoreMessageId(GenerateExpectedMessages(expectedMessageNumbersPrev));
+            queryResultPrev.ValueOrFailure.Messages.ShouldBeEquivalentToWithGivenMessageIds(GenerateExpectedMessages(expectedMessageNumbersPrev), expectedMessageIds);
 
             queryResultPrev.ValueOrFailure.Next.HasValue.ShouldBeTrue();
 
             var queryNextFromPrev = await _sut.QueryMessages(thread.Id, queryResultPrev.ValueOrFailure.Next.ValueOrFailure, TestContext.Current.CancellationToken);
 
             queryNextFromPrev.HasValue.ShouldBeTrue(nameof(queryNextFromPrev));
-            queryNextFromPrev.ValueOrFailure.Messages.ShouldBeEquivalentToWithIgnoreMessageId(GenerateExpectedMessages(expectedMessageNumbers));
+            queryNextFromPrev.ValueOrFailure.Messages.ShouldBeEquivalentToWithGivenMessageIds(GenerateExpectedMessages(expectedMessageNumbers), expectedMessageIds);
         }
         else
         {
@@ -537,11 +556,11 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
             var queryResultNext = await _sut.QueryMessages(thread.Id, queryResult.Next.ValueOrFailure, TestContext.Current.CancellationToken);
 
             queryResultNext.HasValue.ShouldBeTrue();
-            queryResultNext.ValueOrFailure.Messages.ShouldBeEquivalentToWithIgnoreMessageId(GenerateExpectedMessages(expectedMessageNumbersNext));
+            queryResultNext.ValueOrFailure.Messages.ShouldBeEquivalentToWithGivenMessageIds(GenerateExpectedMessages(expectedMessageNumbersNext), expectedMessageIds);
 
             var queryPrevFromNext = await _sut.QueryMessages(thread.Id, queryResultNext.ValueOrFailure.Prev.ValueOrFailure, TestContext.Current.CancellationToken);
             queryPrevFromNext.HasValue.ShouldBeTrue();
-            queryPrevFromNext.ValueOrFailure.Messages.ShouldBeEquivalentToWithIgnoreMessageId(GenerateExpectedMessages(expectedMessageNumbers));
+            queryPrevFromNext.ValueOrFailure.Messages.ShouldBeEquivalentToWithGivenMessageIds(GenerateExpectedMessages(expectedMessageNumbers), expectedMessageIds);
         }
         else
         {

@@ -9,27 +9,21 @@ namespace Robalo.Tests.Common;
 public static class Extensions
 {
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ShouldBeEquivalentToWithIgnoreMessageId(
+    public static void ShouldBeEquivalentToWithGivenMessageIds(
         this IEnumerable<Message> actual,
         IEnumerable<Message> expected,
+        IReadOnlyList<MessageIdentifier> messageIds,
         string? customMessage = null)
     {
-        var messageId = MessageIdentifier.NewIdentifier();
-        var newExpected = expected.Select(m => m with { MessageId = messageId }).ToList();
-        var newActual = actual.Select(m => m with { MessageId = messageId }).ToList();
-        newActual.ShouldBeEquivalentTo(newExpected);
-    }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ShouldBeEquivalentToWithIgnoreMessageId(
-        this Message actual,
-        Message expected,
-        string? customMessage = null)
-    {
-     
-        expected.ShouldBe(actual with {MessageId = expected.MessageId});
-    }
+        var newExpected = expected.ToList();
+        for (var i = 0; i < newExpected.Count; i++)
+        {
+            newExpected[i] = newExpected[i] with { MessageId = messageIds[newExpected[i].Number - 1] };
+        }
 
+        actual.ToList().ShouldBeEquivalentTo(newExpected);
+    }
 
     public static void ShouldBe<T>(
         this T actual,
