@@ -9,7 +9,7 @@ public record Message(
     int Number,
     MessageSource Source,
     string Content,
-    Option<int> RepliedToMessage,
+    Option<MessageIdentifier> RepliedToMessageId,
     DateTimeOffset CreatedOn)
 {
     public static Message FromModel(MessageAdded messageAdded)
@@ -27,7 +27,7 @@ public record Message(
                 Number: e.MessageNumber,
                 Source: MessageSource.User,
                 Content: e.Content,
-                RepliedToMessage: None.Default,
+                RepliedToMessageId: None.Default,
                 CreatedOn: e.AddedOn);
         }
 
@@ -38,7 +38,7 @@ public record Message(
                 Number: e.MessageNumber,
                 Source: MessageSource.LLM,
                 Content: e.Content,
-                RepliedToMessage: e.RepliedToMessage.AsOption(),
+                RepliedToMessageId: e.RepliedToMessageId.AsOption(),
                 CreatedOn: e.AddedOn);
         }
     }

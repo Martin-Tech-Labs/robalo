@@ -303,7 +303,7 @@ public sealed class SqliteThreadRepository : IThreadRepository
             cancellationToken.ThrowIfCancellationRequested();
 
             var rowsAffected = await connection.ExecuteAsync(
-                "INSERT INTO ThreadEvents VALUES(@ThreadId, @MessageId, @MessageNumber, @EventType, @Content, @RepliedToMessage, @CreatedOn)",
+                "INSERT INTO ThreadEvents VALUES(@ThreadId, @MessageId, @MessageNumber, @EventType, @Content, @RepliedToMessageId, @CreatedOn)",
                 EventDto.FromModel(thread.Id, @event));
 
             if (rowsAffected != 1)

@@ -83,7 +83,7 @@ public class ThreadTests
         thread.Messages[0].CreatedOn.ShouldBe(addedOn);
         thread.Messages[0].Number.ShouldBe(1);
         thread.Messages[0].Source.ShouldBe(MessageSource.User);
-        thread.Messages[0].RepliedToMessage.ShouldBeNone();
+        thread.Messages[0].RepliedToMessageId.ShouldBeNone();
         thread.Messages[0].MessageId.ShouldBe(thread.PendingEvents[0].MessageId);
 
         thread.PendingVersion.ShouldBe(1);
@@ -140,7 +140,7 @@ public class ThreadTests
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
 
-        Should.Throw<InvalidOperationException>(() => thread.AddLlmMessage(_fixture.Create<string>(), 1, thread.CreatedOn));
+        Should.Throw<InvalidOperationException>(() => thread.AddLlmMessage(_fixture.Create<string>(), _fixture.Create<Message>(), thread.CreatedOn));
     }
 
     [Theory]
@@ -151,7 +151,7 @@ public class ThreadTests
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
 
-        Should.Throw<ArgumentException>(() => thread.AddLlmMessage(content, thread.Messages[0].Number, thread.CreatedOn));
+        Should.Throw<ArgumentException>(() => thread.AddLlmMessage(content, thread.Messages[0], thread.CreatedOn));
     }
 
     [Fact]
@@ -160,26 +160,23 @@ public class ThreadTests
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
 
-        Should.Throw<ArgumentException>(() => thread.AddLlmMessage(_fixture.Create<string>(), thread.Messages[0].Number, thread.CreatedOn.AddSeconds(-5)));
+        Should.Throw<ArgumentException>(() => thread.AddLlmMessage(_fixture.Create<string>(), thread.Messages[0], thread.CreatedOn.AddSeconds(-5)));
     }
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-1)]
-    [InlineData(3)]
-    public void AddLlmMessage_ShouldThrowOnInvalidRepliedToMessage(int repliedToMessage)
+    [Fact]
+    public void AddLlmMessage_ShouldThrowOnInvalidRepliedToMessage()
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
 
-        Should.Throw<ArgumentException>(() => thread.AddLlmMessage(_fixture.Create<string>(), repliedToMessage, thread.CreatedOn));
+        Should.Throw<ArgumentException>(() => thread.AddLlmMessage(_fixture.Create<string>(), _fixture.Create<Message>(), thread.CreatedOn));
     }
 
     [Theory]
-    [InlineData(1, false)]
-    [InlineData(2, true)]
-    public void AddLlmMessage_ShouldAddLlmMessage_And_Set_Answered_Correctly(int repliedToMessage, bool isAnswered)
+    [InlineData(0, false)]
+    [InlineData(1, true)]
+    public void AddLlmMessage_ShouldAddLlmMessage_And_Set_Answered_Correctly(int repliedToMessageIndex, bool isAnswered)
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
@@ -189,7 +186,7 @@ public class ThreadTests
         var content = _fixture.Create<string>();
         var addedOn = thread.CreatedOn.AddSeconds(1);
 
-        thread.AddLlmMessage(content, repliedToMessage, addedOn);
+        thread.AddLlmMessage(content, thread.Messages[repliedToMessageIndex], addedOn);
 
         thread.IsAnswered.ShouldBe(isAnswered);
         thread.Messages.Count.ShouldBe(3);
@@ -206,7 +203,7 @@ public class ThreadTests
         event3.AddedOn.ShouldBe(addedOn);
         event3.MessageNumber.ShouldBe(3);
         event3.Content.ShouldBe(content);
-        event3.RepliedToMessage.ShouldBe(repliedToMessage);
+        event3.RepliedToMessageId.ShouldBe(thread.Messages[repliedToMessageIndex].MessageId);
 
         thread.Messages.Count.ShouldBe(3);
         thread.Messages.Select(v => v.MessageId).Distinct().Count().ShouldBe(3);
@@ -214,7 +211,7 @@ public class ThreadTests
         thread.Messages[2].Content.ShouldBe(content);
         thread.Messages[2].CreatedOn.ShouldBe(addedOn);
         thread.Messages[2].Source.ShouldBe(MessageSource.LLM);
-        thread.Messages[2].RepliedToMessage.ShouldBe(repliedToMessage);
+        thread.Messages[2].RepliedToMessageId.ShouldBe(thread.Messages[repliedToMessageIndex].MessageId);
         thread.Messages[2].MessageId.ShouldBe(thread.PendingEvents[2].MessageId);
     }
 
@@ -225,7 +222,7 @@ public class ThreadTests
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
         thread.IsAnswered.ShouldBeFalse();
 
-        thread.AddLlmMessage(_fixture.Create<string>(), 1, thread.CreatedOn);
+        thread.AddLlmMessage(_fixture.Create<string>(), thread.Messages[0], thread.CreatedOn);
         thread.IsAnswered.ShouldBeTrue();
 
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
@@ -240,10 +237,10 @@ public class ThreadTests
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
         thread.IsAnswered.ShouldBeFalse();
 
-        thread.AddLlmMessage(_fixture.Create<string>(), 2, thread.CreatedOn);
+        thread.AddLlmMessage(_fixture.Create<string>(), thread.Messages[1], thread.CreatedOn);
         thread.IsAnswered.ShouldBeTrue();
 
-        thread.AddLlmMessage(_fixture.Create<string>(), 1, thread.CreatedOn);
+        thread.AddLlmMessage(_fixture.Create<string>(), thread.Messages[0], thread.CreatedOn);
         thread.IsAnswered.ShouldBeTrue();
     }
 
@@ -337,12 +334,11 @@ public class ThreadTests
         var threadId = ThreadIdentifier.NewIdentifier();
         var title = _fixture.Create<string>();
 
-        List<Message> messages = [
-            new Message(MessageIdentifier.NewIdentifier(),7, MessageSource.User, _fixture.Create<string>(), None.Default, _utcNow.AddSeconds(1)),
-            new Message(MessageIdentifier.NewIdentifier(),8, MessageSource.User, _fixture.Create<string>(), None.Default, _utcNow.AddSeconds(2)),
-            new Message(MessageIdentifier.NewIdentifier(),9, MessageSource.LLM, _fixture.Create<string>(), 2, _utcNow.AddSeconds(3)),
-            new Message(MessageIdentifier.NewIdentifier(),10, MessageSource.User, _fixture.Create<string>(), None.Default, _utcNow.AddSeconds(4)),
-        ];
+        List<Message> messages = new List<Message>();
+        messages.Add(new Message(MessageIdentifier.NewIdentifier(), 7, MessageSource.User, _fixture.Create<string>(), None.Default, _utcNow.AddSeconds(1)));
+        messages.Add(new Message(MessageIdentifier.NewIdentifier(), 8, MessageSource.User, _fixture.Create<string>(), None.Default, _utcNow.AddSeconds(2)));
+        messages.Add(new Message(MessageIdentifier.NewIdentifier(), 9, MessageSource.LLM, _fixture.Create<string>(), messages[1].MessageId, _utcNow.AddSeconds(3)));
+        messages.Add(new Message(MessageIdentifier.NewIdentifier(), 10, MessageSource.User, _fixture.Create<string>(), None.Default, _utcNow.AddSeconds(4)));
 
         var thread = Thread.Rehydrate(
             identifier: threadId,
@@ -352,7 +348,7 @@ public class ThreadTests
             events: [
                 new UserMessageAdded(messages[0].MessageId, messages[0].Number, messages[0].Content,  messages[0].CreatedOn),
                 new UserMessageAdded(messages[1].MessageId, messages[1].Number, messages[1].Content,  messages[1].CreatedOn),
-                new LlmMessageAdded(messages[2].MessageId, messages[2].Number, messages[2].Content, messages[2].RepliedToMessage.ValueOrFailure, messages[2].CreatedOn),
+                new LlmMessageAdded(messages[2].MessageId, messages[2].Number, messages[2].Content, messages[2].RepliedToMessageId.ValueOrFailure, messages[2].CreatedOn),
                 new UserMessageAdded(messages[3].MessageId, messages[3].Number, messages[3].Content,  messages[3].CreatedOn),
             ]);
 
@@ -373,7 +369,7 @@ public class ThreadTests
         thread.IsAnswered.ShouldBeFalse();
 
 
-        thread.AddLlmMessage(_fixture.Create<string>(), 4, _utcNow.AddSeconds(5));
+        thread.AddLlmMessage(_fixture.Create<string>(), thread.Messages[3], _utcNow.AddSeconds(5));
 
         thread.ModifiedOn.ShouldBe(_utcNow.AddSeconds(5));
 
@@ -389,6 +385,5 @@ public class ThreadTests
         thread.IsAnswered.ShouldBeTrue();
 
     }
-
 
 }

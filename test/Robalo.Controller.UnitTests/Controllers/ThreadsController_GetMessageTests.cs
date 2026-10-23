@@ -18,18 +18,23 @@ namespace Robalo.Controller.UnitTests.Controllers;
 public class ThreadsController_GetMessageTests : ThreadsControllerTests
 {
     [Theory]
-    [InlineData(MessageSource.User, null)]
-    [InlineData(MessageSource.LLM, 3)]
-    public async Task ShouldReturnOk_OnExistingMessage(MessageSource source, int? repliedToMessage)
+    [InlineData(MessageSource.User, false)]
+    [InlineData(MessageSource.LLM, true)]
+    public async Task ShouldReturnOk_OnExistingMessage(MessageSource source, bool repliedToMessage)
     {
         var id = ThreadIdentifier.NewIdentifier();
         var number = _fixture.Create<int>();
 
-        var message = _fixture.Create<Message>() with { Number = number, Source = source, RepliedToMessage = repliedToMessage.AsOption() };
+        var message = _fixture.Create<Message>() with
+        {
+            Number = number,
+            Source = source,
+            RepliedToMessageId = repliedToMessage switch { true => MessageIdentifier.NewIdentifier().AsOption(), false => None.Default }
+        };
 
         _repository
             .Setup(r => r.GetMessage(id, number, TestContext.Current.CancellationToken))
-            .ReturnsAsync(message);
+                .ReturnsAsync(message);
 
         var result = await _sut.GetMessage(
             id: id,
