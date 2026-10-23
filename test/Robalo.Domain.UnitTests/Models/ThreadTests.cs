@@ -113,6 +113,7 @@ public class ThreadTests
         thread.Messages.Count.ShouldBe(2);
         thread.Messages[0].Number.ShouldBe(1);
         thread.Messages[1].Number.ShouldBe(2);
+        thread.Messages.Select(v => v.MessageId).Distinct().Count().ShouldBe(2);
 
         thread.PendingVersion.ShouldBe(2);
         thread.PersistedVersion.ShouldBeNone();
@@ -186,6 +187,8 @@ public class ThreadTests
 
         thread.IsAnswered.ShouldBe(isAnswered);
         thread.Messages.Count.ShouldBe(3);
+        thread.Messages.Select(v => v.MessageId).Distinct().Count().ShouldBe(3);
+
 
         thread.PendingVersion.ShouldNotBe(versionBeforeLlmMessage);
         thread.ModifiedOn.ShouldBe(thread.CreatedOn.AddSeconds(1));
@@ -200,6 +203,7 @@ public class ThreadTests
         event3.RepliedToMessage.ShouldBe(repliedToMessage);
 
         thread.Messages.Count.ShouldBe(3);
+        thread.Messages.Select(v => v.MessageId).Distinct().Count().ShouldBe(3);
         thread.Messages[2].Number.ShouldBe(3);
         thread.Messages[2].Content.ShouldBe(content);
         thread.Messages[2].CreatedOn.ShouldBe(addedOn);
@@ -250,6 +254,8 @@ public class ThreadTests
         thread.PendingVersion.ShouldBe(2);
 
         thread.Messages.Count.ShouldBe(2);
+        thread.Messages.Select(v => v.MessageId).Distinct().Count().ShouldBe(2);
+
         thread.PendingEvents.ShouldBeEmpty();
     }
 
@@ -343,6 +349,8 @@ public class ThreadTests
 
         thread.PendingEvents.ShouldBeEmpty();
         thread.Messages.Count.ShouldBe(4);
+        thread.Messages.Select(v => v.MessageId).Distinct().Count().ShouldBe(4);
+
 
         thread.PersistedVersion.ShouldBe(10);
         thread.PendingVersion.ShouldBe(10);
@@ -355,6 +363,8 @@ public class ThreadTests
 
         thread.PendingEvents.Count.ShouldBe(1);
         thread.Messages.Count.ShouldBe(5);
+        thread.Messages.Select(v => v.MessageId).Distinct().Count().ShouldBe(5);
+
 
         thread.PersistedVersion.ShouldBe(10);
         thread.PendingVersion.ShouldBe(11);
