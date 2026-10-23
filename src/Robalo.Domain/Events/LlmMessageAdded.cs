@@ -11,7 +11,6 @@ namespace Robalo.Domain.Events;
 /// <param name="AddedOn">Timestamp of the message</param>
 public record LlmMessageAdded(
     MessageIdentifier MessageId,
-    int MessageNumber,
     string Content,
     MessageIdentifier RepliedToMessageId,
-    DateTimeOffset AddedOn) : MessageAdded(MessageId, MessageNumber, Content, AddedOn);
+    DateTimeOffset AddedOn) : MessageAdded(MessageId, Content, AddedOn);

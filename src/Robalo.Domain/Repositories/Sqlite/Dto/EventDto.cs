@@ -5,15 +5,36 @@ using Robalo.Domain.Models;
 
 namespace Robalo.Domain.Repositories.Sqlite.Dto;
 
-public sealed record EventDto(
-    ThreadIdentifier ThreadId,
-    MessageIdentifier MessageId,
-    int MessageNumber,
-    string EventType,
-    string Content,
-    MessageIdentifier? RepliedToMessageId,
-    DateTimeOffset CreatedOn)
+public record EventDto
 {
+    public ThreadIdentifier? ThreadId { set; get; }
+    public MessageIdentifier? MessageId { set; get; }
+    public string? EventType { set; get; }
+    public string? Content { set; get; }
+    public MessageIdentifier? RepliedToMessageId { set; get; }
+    public DateTimeOffset CreatedOn { set; get; }
+
+    public EventDto()
+    {
+
+    }
+
+    public EventDto(
+        ThreadIdentifier threadId,
+        MessageIdentifier messageId,
+        string eventType,
+        string content,
+        MessageIdentifier? repliedToMessageId,
+        DateTimeOffset createdOn)
+    {
+        ThreadId = threadId;
+        MessageId = messageId;
+        EventType = eventType;
+        Content = content;
+        RepliedToMessageId = repliedToMessageId;
+        CreatedOn = createdOn;
+    }
+
     public static MessageAdded ToModel(EventDto dto)
     {
         return dto.EventType switch
@@ -27,18 +48,16 @@ public sealed record EventDto(
         UserMessageAdded ToUserMessageAdded(EventDto dto)
         {
             return new UserMessageAdded(
-                MessageId: dto.MessageId,
-                MessageNumber: dto.MessageNumber,
-                Content: dto.Content,
+                MessageId: dto.MessageId ?? throw new ArgumentNullException(nameof(dto), nameof(dto.MessageId)),
+                Content: dto.Content ?? throw new ArgumentNullException(nameof(dto), nameof(dto.Content)),
                 AddedOn: dto.CreatedOn);
         }
 
         LlmMessageAdded ToLlmMessageAdded(EventDto dto)
         {
             return new LlmMessageAdded(
-                MessageId: dto.MessageId,
-                MessageNumber: dto.MessageNumber,
-                Content: dto.Content,
+                MessageId: dto.MessageId ?? throw new ArgumentNullException(nameof(dto), nameof(dto.MessageId)),
+                Content: dto.Content ?? throw new ArgumentNullException(nameof(dto), nameof(dto.Content)),
                 RepliedToMessageId: dto.RepliedToMessageId!,
                 AddedOn: dto.CreatedOn);
         }
@@ -47,21 +66,19 @@ public sealed record EventDto(
     public static EventDto FromModel(ThreadIdentifier threadIdentifier, MessageAdded e) => e switch
     {
         UserMessageAdded userMessageAdded => new EventDto(
-           ThreadId: threadIdentifier,
-           MessageId: userMessageAdded.MessageId,
-           MessageNumber: userMessageAdded.MessageNumber,
-           EventType: e.GetType().Name,
-           Content: userMessageAdded.Content,
-           RepliedToMessageId: e is LlmMessageAdded llmMessageAdded1 ? llmMessageAdded1.RepliedToMessageId : null,
-           CreatedOn: userMessageAdded.AddedOn),
+           threadId: threadIdentifier,
+           messageId: userMessageAdded.MessageId,
+           eventType: e.GetType().Name,
+           content: userMessageAdded.Content,
+           repliedToMessageId: e is LlmMessageAdded llmMessageAdded1 ? llmMessageAdded1.RepliedToMessageId : null,
+           createdOn: userMessageAdded.AddedOn),
 
         LlmMessageAdded llmMessageAdded => new EventDto(
-           ThreadId: threadIdentifier,
-           MessageId: llmMessageAdded.MessageId,
-           MessageNumber: llmMessageAdded.MessageNumber,
-           EventType: e.GetType().Name,
-           Content: llmMessageAdded.Content,
-           RepliedToMessageId: llmMessageAdded.RepliedToMessageId,
-           CreatedOn: llmMessageAdded.AddedOn)
+           threadId: threadIdentifier,
+           messageId: llmMessageAdded.MessageId,
+           eventType: e.GetType().Name,
+           content: llmMessageAdded.Content,
+           repliedToMessageId: llmMessageAdded.RepliedToMessageId,
+           createdOn: llmMessageAdded.AddedOn)
     };
 }

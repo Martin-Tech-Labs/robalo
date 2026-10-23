@@ -201,7 +201,6 @@ public class ThreadTests
 
         var event3 = (LlmMessageAdded)thread.PendingEvents[2];
         event3.AddedOn.ShouldBe(addedOn);
-        event3.MessageNumber.ShouldBe(3);
         event3.Content.ShouldBe(content);
         event3.RepliedToMessageId.ShouldBe(thread.Messages[repliedToMessageIndex].MessageId);
 
@@ -298,8 +297,8 @@ public class ThreadTests
             title: _fixture.Create<string>(),
             persistedVersion: 1,
             events: [
-                new UserMessageAdded(MessageIdentifier.NewIdentifier(), 1, _fixture.Create<string>(), _utcNow),
-                new UserMessageAdded(MessageIdentifier.NewIdentifier(), 2, _fixture.Create<string>(), _utcNow)
+                new UserMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), _utcNow),
+                new UserMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), _utcNow)
                 ]));
     }
 
@@ -346,10 +345,10 @@ public class ThreadTests
             title: title,
             persistedVersion: 10,
             events: [
-                new UserMessageAdded(messages[0].MessageId, messages[0].Number, messages[0].Content,  messages[0].CreatedOn),
-                new UserMessageAdded(messages[1].MessageId, messages[1].Number, messages[1].Content,  messages[1].CreatedOn),
-                new LlmMessageAdded(messages[2].MessageId, messages[2].Number, messages[2].Content, messages[2].RepliedToMessageId.ValueOrFailure, messages[2].CreatedOn),
-                new UserMessageAdded(messages[3].MessageId, messages[3].Number, messages[3].Content,  messages[3].CreatedOn),
+                new UserMessageAdded(messages[0].MessageId, messages[0].Content,  messages[0].CreatedOn),
+                new UserMessageAdded(messages[1].MessageId,  messages[1].Content,  messages[1].CreatedOn),
+                new LlmMessageAdded(messages[2].MessageId,  messages[2].Content, messages[2].RepliedToMessageId.ValueOrFailure, messages[2].CreatedOn),
+                new UserMessageAdded(messages[3].MessageId, messages[3].Content,  messages[3].CreatedOn),
             ]);
 
         thread.Id.ShouldBe(threadId);
