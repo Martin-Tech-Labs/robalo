@@ -15,7 +15,7 @@ public sealed class Thread : AggregateRoot<Thread>
 
     public string? Title { get; private set; }
 
-    Option<int> _lastAnsweredMessage = None.Default;
+    Option<int> _lastAnsweredMessageIndex = None.Default;
 
     public bool IsAnswered { private set; get; }
 
@@ -43,11 +43,19 @@ public sealed class Thread : AggregateRoot<Thread>
                 return;
             }
 
+            var repliedToMessageIndex = _messages.FindIndex(m => m.MessageId == @event.RepliedToMessageId);
+
+            // Should not really happen, but if so, we still need to rehydrate the aggregate
+            if (repliedToMessageIndex == -1)
+            {
+                return;
+            }
+
             // Last answered message is max between the current LLM message and what's on record,
             // because it could be that it replies older messages, but newer have been replied already
-            _lastAnsweredMessage = Math.Max(_lastAnsweredMessage.ValueOr(-1), @event.RepliedToMessage);
+            _lastAnsweredMessageIndex = Math.Max(_lastAnsweredMessageIndex.ValueOr(-1), repliedToMessageIndex);
 
-            if (_messages[_lastAnsweredMessage.ValueOrFailure..].All(m => m.Source == MessageSource.LLM))
+            if (_messages[(_lastAnsweredMessageIndex.ValueOrFailure + 1)..].All(m => m.Source == MessageSource.LLM))
             {
                 IsAnswered = true;
             }
@@ -64,7 +72,7 @@ public sealed class Thread : AggregateRoot<Thread>
         return new(ThreadIdentifier.NewIdentifier(), None.Default, createdOn);
     }
 
-    public Thread AddLlmMessage(string content, int repliedToMessage, DateTimeOffset addedOn)
+    public Thread AddLlmMessage(string content, Message repliedToMessage, DateTimeOffset addedOn)
     {
         if (_messages.Count == 0)
         {
@@ -72,11 +80,20 @@ public sealed class Thread : AggregateRoot<Thread>
         }
 
         ArgumentOutOfRangeException.ThrowIfLessThan(addedOn, ModifiedOn);
-        ArgumentOutOfRangeException.ThrowIfLessThan(repliedToMessage, 1);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(repliedToMessage, _messages.Count);
+        var messageIndex = _messages.FindIndex(m => ReferenceEquals(m, repliedToMessage));
+        if (messageIndex == -1)
+        {
+            throw new ArgumentException("Invalid message", nameof(repliedToMessage));
+        }
+
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        return Apply(new LlmMessageAdded(MessageIdentifier.NewIdentifier(), GetNextMessageNumber(), content, repliedToMessage, addedOn));
+        return Apply(new LlmMessageAdded(
+            MessageIdentifier.NewIdentifier(),
+            GetNextMessageNumber(),
+            content,
+            repliedToMessage.MessageId,
+            addedOn));
     }
 
     public Thread AddUserMessage(string content, DateTimeOffset addedOn)

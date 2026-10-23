@@ -11,7 +11,7 @@ public sealed record EventDto(
     int MessageNumber,
     string EventType,
     string Content,
-    int? RepliedToMessage,
+    MessageIdentifier? RepliedToMessageId,
     DateTimeOffset CreatedOn)
 {
     public static MessageAdded ToModel(EventDto dto)
@@ -39,7 +39,7 @@ public sealed record EventDto(
                 MessageId: dto.MessageId,
                 MessageNumber: dto.MessageNumber,
                 Content: dto.Content,
-                RepliedToMessage: dto.RepliedToMessage!.Value,
+                RepliedToMessageId: dto.RepliedToMessageId!,
                 AddedOn: dto.CreatedOn);
         }
     }
@@ -52,7 +52,7 @@ public sealed record EventDto(
            MessageNumber: userMessageAdded.MessageNumber,
            EventType: e.GetType().Name,
            Content: userMessageAdded.Content,
-           RepliedToMessage: e is LlmMessageAdded llmMessageAdded1 ? llmMessageAdded1.RepliedToMessage : null,
+           RepliedToMessageId: e is LlmMessageAdded llmMessageAdded1 ? llmMessageAdded1.RepliedToMessageId : null,
            CreatedOn: userMessageAdded.AddedOn),
 
         LlmMessageAdded llmMessageAdded => new EventDto(
@@ -61,7 +61,7 @@ public sealed record EventDto(
            MessageNumber: llmMessageAdded.MessageNumber,
            EventType: e.GetType().Name,
            Content: llmMessageAdded.Content,
-           RepliedToMessage: llmMessageAdded.RepliedToMessage,
+           RepliedToMessageId: llmMessageAdded.RepliedToMessageId,
            CreatedOn: llmMessageAdded.AddedOn)
     };
 }

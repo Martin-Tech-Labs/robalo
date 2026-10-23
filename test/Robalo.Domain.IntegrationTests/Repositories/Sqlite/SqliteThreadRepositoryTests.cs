@@ -176,22 +176,24 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
         var newThread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
 
         var event1 = new UserMessageAdded(MessageIdentifier.NewIdentifier(), 1, _fixture.Create<string>(), newThread.CreatedOn);
+        newThread.AddUserMessage(event1.Content, event1.AddedOn);
+        
         var event2 = new UserMessageAdded(MessageIdentifier.NewIdentifier(), 2, _fixture.Create<string>(), newThread.CreatedOn.AddSeconds(1));
+        newThread.AddUserMessage(event2.Content, event2.AddedOn);
+        
         var event3 = new UserMessageAdded(MessageIdentifier.NewIdentifier(), 3, _fixture.Create<string>(), newThread.CreatedOn.AddSeconds(2));
-        var event4 = new LlmMessageAdded(MessageIdentifier.NewIdentifier(), 4, _fixture.Create<string>(), 3, newThread.CreatedOn.AddSeconds(3));
+        newThread.AddUserMessage(event3.Content, event3.AddedOn);
+        
+        var event4 = new LlmMessageAdded(MessageIdentifier.NewIdentifier(), 4, _fixture.Create<string>(), newThread.Messages[^1].MessageId, newThread.CreatedOn.AddSeconds(3));
+        newThread.AddLlmMessage(event4.Content, newThread.Messages[^1], event4.AddedOn);
+        
         var event5 = new UserMessageAdded(MessageIdentifier.NewIdentifier(), 5, _fixture.Create<string>(), newThread.CreatedOn.AddSeconds(4));
-        var event6 = new LlmMessageAdded(MessageIdentifier.NewIdentifier(), 6, _fixture.Create<string>(), 5, newThread.CreatedOn.AddSeconds(5));
+        newThread.AddUserMessage(event5.Content, event5.AddedOn);
+        
+        var event6 = new LlmMessageAdded(MessageIdentifier.NewIdentifier(), 6, _fixture.Create<string>(), newThread.Messages[^1].MessageId, newThread.CreatedOn.AddSeconds(5));
+        newThread.AddLlmMessage(event6.Content, newThread.Messages[^1], event6.AddedOn);
 
         var events = new MessageAdded[] { event1, event2, event3, event4, event5, event6 };
-
-        foreach (var @event in events)
-        {
-            _ = @event switch
-            {
-                UserMessageAdded userMessageAdded => newThread.AddUserMessage(userMessageAdded.Content, userMessageAdded.AddedOn),
-                LlmMessageAdded llmMessageAdded => newThread.AddLlmMessage(llmMessageAdded.Content, llmMessageAdded.RepliedToMessage, llmMessageAdded.AddedOn)
-            };
-        }
 
         var messageIds = newThread.PendingEvents.Select(p => p.MessageId).ToList();
         messageIds.Count.ShouldBe(events.Length);
@@ -213,12 +215,12 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
             if (events[i] is UserMessageAdded userMessageAdded)
             {
                 thread.Messages[i].Source.ShouldBe(MessageSource.User);
-                thread.Messages[i].RepliedToMessage.ShouldBeNone();
+                thread.Messages[i].RepliedToMessageId.ShouldBeNone();
             }
             else if (events[i] is LlmMessageAdded llmMessageAdded)
             {
                 thread.Messages[i].Source.ShouldBe(MessageSource.LLM);
-                thread.Messages[i].RepliedToMessage.ShouldBe(llmMessageAdded.RepliedToMessage);
+                thread.Messages[i].RepliedToMessageId.ShouldBe(llmMessageAdded.RepliedToMessageId, $"{i}");
             }
             else
             {

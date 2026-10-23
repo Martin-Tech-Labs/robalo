@@ -13,5 +13,5 @@ public record LlmMessageAdded(
     MessageIdentifier MessageId,
     int MessageNumber,
     string Content,
-    int RepliedToMessage,
+    MessageIdentifier RepliedToMessageId,
     DateTimeOffset AddedOn) : MessageAdded(MessageId, MessageNumber, Content, AddedOn);

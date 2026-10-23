@@ -54,13 +54,12 @@ public class AnswerThreadService : IAnswerThreadService
 
         var llmRequest = new LlmRequest(string.Concat(thread.Messages));
 
-        var lastMessage = thread.Messages[^1].Number;
 
         var llmResponse = await _llmClient.GetResponse(llmRequest, cancellationToken);
 
         if (llmResponse is LlmResponse response)
         {
-            thread.AddLlmMessage(response.Content, lastMessage, _dateTimeOffSetProvider.UtcNow);
+            thread.AddLlmMessage(response.Content, thread.Messages[^1], _dateTimeOffSetProvider.UtcNow);
             var result = await _threadRepository.SaveThread(thread, cancellationToken);
 
 
