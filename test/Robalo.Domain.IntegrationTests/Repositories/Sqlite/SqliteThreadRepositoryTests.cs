@@ -193,6 +193,9 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
             };
         }
 
+        var messageIds = newThread.PendingEvents.Select(p => p.MessageId).ToList();
+        messageIds.Count.ShouldBe(events.Length);
+
         (await _sut.SaveThread(newThread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
 
         var threadOrNone = await _sut.GetThread(newThread.Id, TestContext.Current.CancellationToken);
@@ -205,6 +208,7 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
             thread.Messages[i].Number.ShouldBe(i + 1);
             thread.Messages[i].Content.ShouldBe(events[i].Content);
             thread.Messages[i].CreatedOn.ShouldBe(events[i].AddedOn);
+            thread.Messages[i].MessageId.ShouldBe(messageIds[i]);
 
             if (events[i] is UserMessageAdded userMessageAdded)
             {
