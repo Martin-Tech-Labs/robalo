@@ -77,6 +77,11 @@ public static class OptionExtensions
     public static Option<T> SingleOrNone<T>(this IEnumerable<T> enumerable) where T : notnull =>
         enumerable.Any() ? enumerable.Single() : None.Default;
 
+#pragma warning disable CC001 // Public async method should have CancellationToken parameter
+    public async static Task<Option<T>> SingleOrNone<T>(this Task<IEnumerable<T>> enumerable) where T : notnull =>
+      (await enumerable).SingleOrNone();
+#pragma warning restore CC001 // Public async method should have CancellationToken parameter
+
     public static Option<T2> SingleOrNone<T1, T2>(this IEnumerable<T1> enumerable, Func<T1, T2> map)
         where T1 : notnull
         where T2 : notnull => enumerable.Select(map).SingleOrNone();

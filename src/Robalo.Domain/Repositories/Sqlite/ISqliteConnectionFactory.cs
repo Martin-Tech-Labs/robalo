@@ -8,4 +8,9 @@ public interface ISqliteConnectionFactory
     public Task<TResult> Execute<TResult>(
         Func<DbConnection, Task<TResult>> configure,
         CancellationToken cancellationToken);
+
+    public Task<TResult> ExecuteAsTransaction<TResult>(
+        Func<DbConnection, Task<TResult>> configure,
+        CancellationToken cancellationToken);
+
 }

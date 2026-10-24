@@ -32,4 +32,23 @@ public sealed class SqliteConnectionFactory : ISqliteConnectionFactory
         await connection.OpenAsync(cancellationToken);
         return await configure(connection);
     }
+
+    public async Task<TResult> ExecuteAsTransaction<TResult>(Func<DbConnection, Task<TResult>> configure, CancellationToken cancellationToken)
+    {
+        await using var connection = GetConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+        var returnValue = await configure(connection);
+        await transaction.CommitAsync(cancellationToken);
+        return returnValue;
+    }
+
+    private SqliteConnection GetConnection() => new SqliteConnection
+                (new SqliteConnectionStringBuilder
+                {
+                    DataSource = _databaseSettings.Database,
+                    Password = _databaseSettings.Password,
+                    Mode = SqliteOpenMode.ReadWrite
+                }.ToString());
 }
