@@ -1,8 +1,11 @@
 using System.Collections.Concurrent;
 using System.Formats.Asn1;
+using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
+using OpenAI.Responses;
 using Robalo.Common.Extensions;
 using Robalo.Common.Models;
+using Robalo.Common.Rop;
 using Robalo.Common.Semaphore;
 using Robalo.Common.Services;
 using Robalo.Domain.Clients;
@@ -77,45 +80,72 @@ public sealed class AnswerThreadService : IAnswerThreadService, IDisposable
         }
     }
 
-    public async Task Answer(ThreadIdentifier threadId, CancellationToken cancellationToken)
+    public async Task<SuccessOrFailure> Answer(ThreadIdentifier threadId, CancellationToken cancellationToken)
     {
         var threadOrNone = await GetThread(threadId, cancellationToken);
 
         if (!threadOrNone.HasValue)
         {
             _logger.Warning("Thread {ThreadId} does not exist", threadId);
-            return;
+            return SuccessOrFailure.AsSuccess();
         }
 
         using var semaphore = await AcquirerSemaphore(threadId, cancellationToken);
 
         var thread = threadOrNone.ValueOrFailure;
 
-        var refreshResult = await _repository.RefreshThread(thread, cancellationToken);
+        return await RefreshThread(thread)
+            .Bind(CheckIsAnswered)
+            .Bind(GetLlmResponse)
+            .Map(CheckLlmResponse)
+            .Either();
 
-        if (refreshResult is NotFound)
+        async Task<Result<Thread, SuccessOrFailure>> RefreshThread(Thread thread)
         {
-            _threads.Remove(thread.Id, out _);
+            var refreshResult = await _repository.RefreshThread(thread, cancellationToken);
 
-            lock (_lockSemaphors)
+            if (refreshResult is NotFound)
             {
-                _semaphors.Remove(threadId);
+                _threads.Remove(thread.Id, out _);
+
+                lock (_lockSemaphors)
+                {
+                    _semaphors.Remove(threadId);
+                }
+
+                return SuccessOrFailure.AsSuccess();
             }
 
-            return;
+            return thread;
         }
 
-        if (thread.IsAnswered)
+        Result<Thread, SuccessOrFailure> CheckIsAnswered(Thread thread)
         {
-            _logger.Information("Thread {ThreadId} is already answered", threadId);
-            return;
+            if (thread.IsAnswered)
+            {
+                _logger.Information("Thread {ThreadId} is already answered", threadId);
+                return SuccessOrFailure.AsSuccess();
+            }
+
+            return thread;
         }
 
-        var llmRequest = new LlmRequest(string.Concat(thread.Messages));
+        async Task<Result<LlmResponse, SuccessOrFailure>> GetLlmResponse(Thread thread)
+        {
+            var llmRequest = new LlmRequest(string.Concat(thread.Messages.Select(m => m.Content)));
 
-        var llmResponse = await _llmClient.GetResponse(llmRequest, cancellationToken);
+            var llmResponse = await _llmClient.GetResponse(llmRequest, cancellationToken);
 
-        if (llmResponse is LlmResponse response)
+            if (llmResponse is LlmResponse response)
+            {
+                return response;
+            }
+
+            _logger.Error("LLM returned an error respone {Error}", llmResponse.Value);
+            return SuccessOrFailure.AsFailure();
+        }
+
+        async Task<SuccessOrFailure> CheckLlmResponse(LlmResponse response)
         {
             var llmMessageAdded = thread.CreateLlmMessageAdded(response.Content, thread.Messages[^1], _dateTimeOffSetProvider.UtcNow);
             var result = await _repository.AppendEvent(threadId, llmMessageAdded, cancellationToken);
@@ -123,7 +153,7 @@ public sealed class AnswerThreadService : IAnswerThreadService, IDisposable
             if (result is Some<int> messageNumber)
             {
                 _logger.Information("LLM Message successfully added under number {MessageNumber} for Thread {ThreadId}", messageNumber.Value, threadId);
-                return;
+                return SuccessOrFailure.AsSuccess();
             }
 
             _threads.Remove(threadId, out _);
@@ -134,8 +164,7 @@ public sealed class AnswerThreadService : IAnswerThreadService, IDisposable
             }
 
             _logger.Warning("Thread {ThreadId} was deleted", threadId);
-            return;
-
+            return SuccessOrFailure.AsSuccess();
         }
     }
 
