@@ -37,7 +37,7 @@ public static class Extensions
         {
             TResult res => res,
             T t => await func(t),
-            _ => throw new InvalidOperationException("")
+            _ => throw new InvalidOperationException(value.GetType().Name)
         };
     }
 
@@ -47,7 +47,7 @@ public static class Extensions
         {
             TResult res => res,
             T t => await func(t),
-            _ => throw new InvalidOperationException("")
+            _ => throw new InvalidOperationException(value.GetType().Name)
         };
     }
 
@@ -57,17 +57,17 @@ public static class Extensions
         {
             TResult res => res,
             T t => func(t),
-            _ => throw new InvalidOperationException("")
+            _ => throw new InvalidOperationException(value.GetType().Name)
         };
     }
 
     public static async Task<Result<TNext, TResult>> Bind<T, TNext, TResult>(this Task<Result<T, TResult>> value, Func<T, Result<TNext, TResult>> func)
     {
-        return value switch
+        return await value switch
         {
             TResult res => res,
             T t => func(t),
-            _ => throw new InvalidOperationException("")
+            _ => throw new InvalidOperationException(value.GetType().Name)
         };
     }
 
@@ -77,7 +77,7 @@ public static class Extensions
         {
             TResult res => res,
             T t => func(t),
-            _ => throw new InvalidOperationException("")
+            _ => throw new InvalidOperationException(value.GetType().Name)
         };
     }
 
@@ -87,7 +87,7 @@ public static class Extensions
         {
             TResult res => new Exit<TResult>(res),
             T t => await func(t),
-            _ => throw new InvalidOperationException("")
+            _ => throw new InvalidOperationException(value.GetType().Name)
         };
     }
 
@@ -97,7 +97,7 @@ public static class Extensions
         {
             TResult res => res,
             Exit<TResult> exitRes => exitRes.Value,
-            _ => throw new InvalidOperationException("")
+            _ => throw new InvalidOperationException(value.GetType().Name)
         };
     }
 }
