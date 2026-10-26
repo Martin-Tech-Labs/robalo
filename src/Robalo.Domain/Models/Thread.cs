@@ -72,11 +72,11 @@ public sealed class Thread : AggregateRoot<Thread>
         return new(ThreadIdentifier.NewIdentifier(), None.Default, createdOn);
     }
 
-    public Thread AddLlmMessage(string content, Message repliedToMessage, DateTimeOffset addedOn)
+    public LlmMessageAdded CreateLlmMessageAdded(string content, Message repliedToMessage, DateTimeOffset addedOn)
     {
         if (_messages.Count == 0)
         {
-            throw new InvalidOperationException("Cannot add an LlmMessage to a thread without any user messages");
+            throw new InvalidOperationException("Cannot create an LlmMessage for a thread without any user messages");
         }
 
         ArgumentOutOfRangeException.ThrowIfLessThan(addedOn, ModifiedOn);
@@ -88,12 +88,11 @@ public sealed class Thread : AggregateRoot<Thread>
 
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        return Apply(new LlmMessageAdded(
-            MessageIdentifier.NewIdentifier(),
-            content,
-            repliedToMessage.MessageId,
-            addedOn));
+        return new LlmMessageAdded(MessageIdentifier.NewIdentifier(), content, repliedToMessage.MessageId, addedOn);
     }
+
+    public Thread AddLlmMessage(string content, Message repliedToMessage, DateTimeOffset addedOn) => 
+        Apply(CreateLlmMessageAdded(content, repliedToMessage, addedOn));
 
     public static UserMessageAdded CreateUserMessageAdded(string content, DateTimeOffset addedOn)
     {
