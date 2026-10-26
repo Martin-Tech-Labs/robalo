@@ -52,10 +52,11 @@ public class AnswerThreadServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task Answer_ShouldCorrectlyProcess_OneMessage()
+    public async Task Answer_ShouldCorrectlyProcess()
     {
         var thread = Thread.NewThread(_utcNow.AddSeconds(-4))
-            .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-2));
+            .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-2))
+            .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-1));
 
         _repository
             .Setup(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken))
@@ -66,15 +67,176 @@ public class AnswerThreadServiceTests : IDisposable
         result.Value.ShouldBeOfType<Success>();
 
         _llmClient.Verify(
-            l => l.GetResponse(It.Is<LlmRequest>(r => r.Content == thread.Messages[0].Content), TestContext.Current.CancellationToken), Times.Once());
+            l => l.GetResponse(It.Is<LlmRequest>(r => r.Content == string.Concat(thread.Messages[0].Content, thread.Messages[1].Content)),
+            TestContext.Current.CancellationToken), Times.Once());
         _llmClient.VerifyNoOtherCalls();
 
         _repository.Verify(r => r.AppendEvent(thread.Id, It.Is<LlmMessageAdded>(
             l => l.AddedOn == _utcNow
             && l.Content == _llmResponse.Content
-            && l.RepliedToMessageId == thread.Messages[0].MessageId
+            && l.RepliedToMessageId == thread.Messages[1].MessageId
             && l.MessageId != l.RepliedToMessageId),
             TestContext.Current.CancellationToken), Times.Once());
+
+        _repository.Verify(r => r.RefreshThread(thread, TestContext.Current.CancellationToken), Times.Once());
+    }
+
+    [Fact]
+    public async Task Answer_ShouldReturnSuccess_IfThreadGotDeletedAfterLlmRequest()
+    {
+        var thread = Thread.NewThread(_utcNow.AddSeconds(-4))
+            .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-2))
+            .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-1));
+
+        _repository
+            .Setup(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken))
+            .ReturnsAsync(thread);
+
+        _repository
+            .Setup(r => r.AppendEvent(It.IsAny<ThreadIdentifier>(), It.IsAny<LlmMessageAdded>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(None.Default);
+
+        var result = await _sut.Answer(thread.Id, TestContext.Current.CancellationToken);
+
+        result.Value.ShouldBeOfType<Success>();
+
+        _llmClient.Verify(
+            l => l.GetResponse(It.Is<LlmRequest>(r => r.Content == string.Concat(thread.Messages[0].Content, thread.Messages[1].Content)),
+            TestContext.Current.CancellationToken), Times.Once());
+        _llmClient.VerifyNoOtherCalls();
+
+        _repository.Verify(r => r.AppendEvent(thread.Id, It.Is<LlmMessageAdded>(
+            l => l.AddedOn == _utcNow
+            && l.Content == _llmResponse.Content
+            && l.RepliedToMessageId == thread.Messages[1].MessageId
+            && l.MessageId != l.RepliedToMessageId),
+            TestContext.Current.CancellationToken), Times.Once());
+    }
+
+    [Fact]
+    public async Task Answer_ShouldReturnSuccess_IfThreadGotDeletedAfterRefresh()
+    {
+        var thread = Thread.NewThread(_utcNow.AddSeconds(-4))
+            .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-2))
+            .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-1));
+
+        _repository
+            .Setup(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken))
+            .ReturnsAsync(thread);
+
+        _repository.Setup(r => r.RefreshThread(thread, TestContext.Current.CancellationToken))
+            .ReturnsAsync(new NotFound());
+
+
+        var result = await _sut.Answer(thread.Id, TestContext.Current.CancellationToken);
+
+        result.Value.ShouldBeOfType<Success>();
+
+        _llmClient.VerifyNoOtherCalls();
+
+        _repository.Verify(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken), Times.Once());
+        _repository.Verify(r => r.RefreshThread(thread, TestContext.Current.CancellationToken), Times.Once());
+        _repository.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task Answer_ShouldReturnSuccess_IfThreadAlreadyAnswered()
+    {
+        var thread = Thread.NewThread(_utcNow.AddSeconds(-4))
+            .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-2));
+
+        thread.AddLlmMessage(_fixture.Create<string>(), thread.Messages.Single(), _utcNow);
+        thread.IsAnswered.ShouldBeTrue();
+
+        _repository
+            .Setup(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken))
+            .ReturnsAsync(thread);
+
+        var result = await _sut.Answer(thread.Id, TestContext.Current.CancellationToken);
+
+        result.Value.ShouldBeOfType<Success>();
+
+        _llmClient.VerifyNoOtherCalls();
+
+        _repository.Verify(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken), Times.Once());
+        _repository.Verify(r => r.RefreshThread(thread, TestContext.Current.CancellationToken), Times.Once());
+        _repository.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task Answer_ShouldReturnSuccess_IfThreadAlreadyAnswered_AtRefresh()
+    {
+        var thread = Thread.NewThread(_utcNow.AddSeconds(-4))
+            .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-2));
+
+        thread.IsAnswered.ShouldBeFalse();
+
+        _repository
+            .Setup(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken))
+            .ReturnsAsync(thread);
+
+        _repository
+            .Setup(r => r.RefreshThread(thread, TestContext.Current.CancellationToken))
+            .ReturnsAsync(new Success())
+            .Callback(() => thread.AddLlmMessage(_fixture.Create<string>(), thread.Messages.Single(), _utcNow));
+
+        var result = await _sut.Answer(thread.Id, TestContext.Current.CancellationToken);
+
+        result.Value.ShouldBeOfType<Success>();
+
+        _llmClient.VerifyNoOtherCalls();
+
+        _repository.Verify(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken), Times.Once());
+        _repository.Verify(r => r.RefreshThread(thread, TestContext.Current.CancellationToken), Times.Once());
+        _repository.VerifyNoOtherCalls();
+    }
+
+    [Theory]
+    [InlineData(typeof(ClientError))]
+    [InlineData(typeof(UnexpectedError))]
+    [InlineData(typeof(ServiceError))]
+    public async Task Answer_ShouldReturnFailure_OnLlmFailure(Type llmFailure)
+    {
+        var thread = Thread.NewThread(_utcNow.AddSeconds(-4))
+            .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-2))
+            .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-1));
+
+        _repository
+            .Setup(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken))
+            .ReturnsAsync(thread);
+
+        _repository
+            .Setup(r => r.AppendEvent(It.IsAny<ThreadIdentifier>(), It.IsAny<LlmMessageAdded>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(None.Default);
+
+
+        ServiceResult<LlmResponse, ClientError> llmServiceError = new ServiceError();
+        if (llmFailure == typeof(UnexpectedError))
+        {
+            llmServiceError = new UnexpectedError();
+        }
+        if (llmFailure == typeof(ClientError))
+        {
+            llmServiceError = ClientError.AsForbidden();
+        }
+
+        _llmClient
+            .Setup(r => r.GetResponse(It.IsAny<LlmRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(llmServiceError);
+
+        var result = await _sut.Answer(thread.Id, TestContext.Current.CancellationToken);
+
+        result.Value.ShouldBeOfType<Failure>();
+
+        _llmClient.Verify(
+            l => l.GetResponse(It.Is<LlmRequest>(r => r.Content == string.Concat(thread.Messages[0].Content, thread.Messages[1].Content)),
+            TestContext.Current.CancellationToken), Times.Once());
+        _llmClient.VerifyNoOtherCalls();
+
+        _repository.Verify(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken), Times.Once());
+        _repository.Verify(r => r.RefreshThread(thread, TestContext.Current.CancellationToken), Times.Once());
+
+        _repository.VerifyNoOtherCalls();
     }
 
     public void Dispose()
