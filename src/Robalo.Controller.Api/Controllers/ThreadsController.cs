@@ -6,8 +6,10 @@ using Robalo.Common.Services;
 using Robalo.Controller.Api.Hypermedia;
 using Robalo.Controller.Api.Hypermedia.Resources;
 using Robalo.Controller.Api.Requests;
+using Robalo.Domain.Events;
 using Robalo.Domain.Models;
 using Robalo.Domain.Repositories;
+using Robalo.Domain.Repositories.Sqlite.Dto;
 
 namespace Robalo.Controller.Api.Controllers;
 
@@ -50,7 +52,7 @@ public class ThreadsController : ControllerBase
         return result switch
         {
             Created _ => GetThreadResource(thread).AsCreated(),
-            ConcurrencyConflict =>  throw new InvalidOperationException("Unexpected result ConcurrencyConflict on thread creation"),
+            ConcurrencyConflict => throw new InvalidOperationException("Unexpected result ConcurrencyConflict on thread creation"),
             Updated => throw new InvalidOperationException("Unexpected result Updated on thread creation"),
             NoChanges => throw new InvalidOperationException("Unexpected result NoChanges on thread creation")
         };
@@ -134,24 +136,14 @@ public class ThreadsController : ControllerBase
 
         var threadId = threadIdOrNone.ValueOrFailure;
 
-        var threadOrNone = await _threadRepository.GetThread(threadId, cancellationToken);
+        var userMessageAdded = Thread.CreateUserMessageAdded(request.Content!, _dateTimeOffsetProvider.UtcNow);
 
-        if (threadOrNone.IsNone)
-        {
-            return NotFound();
-        }
-
-        var thread = threadOrNone.ValueOrFailure;
-        thread.AddUserMessage(request.Content!, _dateTimeOffsetProvider.UtcNow);
-
-        var result = await _threadRepository.SaveThread(thread, cancellationToken);
+        var result = await _threadRepository.AppendEvent(threadId, userMessageAdded, cancellationToken);
 
         return result switch
         {
-            Created _ => throw new InvalidOperationException("Unexpected result Created on thread update"),
-            ConcurrencyConflict => GetConcurrencyResult("thread_updated_in_parallel"),
-            Updated => GetMessageResource(thread.Messages[thread.Messages.Count - 1], threadId).AsCreated(),
-            NoChanges => throw new InvalidOperationException("Unexpected result NoChanges on thread update")
+            Some<int> messageNumber => GetMessageResource(Message.FromModel(userMessageAdded, messageNumber), threadId).AsCreated(),
+            _ => NotFound()
         };
     }
 
@@ -241,11 +233,4 @@ public class ThreadsController : ControllerBase
             Self: _httpContextAccessor.LinkToMessageNumber(threadId, message.Number),
             Thread: _httpContextAccessor.LinkToThreadId(threadId),
             Events: _httpContextAccessor.LinkToEventsWithThreadId(threadId)));
-
-    ConflictObjectResult GetConcurrencyResult(string detail) => new(
-        _problemDetailsFactory.CreateProblemDetails(
-            httpContext: HttpContext,
-            statusCode: StatusCodes.Status409Conflict,
-            title: "Conflict",
-            detail: detail));
 }

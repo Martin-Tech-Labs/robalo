@@ -143,6 +143,16 @@ public class ThreadTests
         Should.Throw<InvalidOperationException>(() => thread.AddLlmMessage(_fixture.Create<string>(), _fixture.Create<Message>(), thread.CreatedOn));
     }
 
+    [Fact]
+    public void CreateLlmMessageAdded_ShouldThrowIfNoMessages()
+    {
+        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
+
+        Should.Throw<InvalidOperationException>(() => thread.CreateLlmMessageAdded(_fixture.Create<string>(), _fixture.Create<Message>(), thread.CreatedOn));
+    }
+
+
+
     [Theory]
     [InlineData("")]
     [InlineData(" ")]
@@ -152,6 +162,17 @@ public class ThreadTests
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
 
         Should.Throw<ArgumentException>(() => thread.AddLlmMessage(content, thread.Messages[0], thread.CreatedOn));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void CreateLlmMessage_ShouldThrowOnEmptyContent(string content)
+    {
+        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
+        thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
+
+        Should.Throw<ArgumentException>(() => thread.CreateLlmMessageAdded(content, thread.Messages[0], thread.CreatedOn));
     }
 
     [Fact]
@@ -164,6 +185,15 @@ public class ThreadTests
     }
 
     [Fact]
+    public void CreateLlmMessage_ShouldThrowOnInvalidDate()
+    {
+        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
+        thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
+
+        Should.Throw<ArgumentException>(() => thread.CreateLlmMessageAdded(_fixture.Create<string>(), thread.Messages[0], thread.CreatedOn.AddSeconds(-5)));
+    }
+
+    [Fact]
     public void AddLlmMessage_ShouldThrowOnInvalidRepliedToMessage()
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
@@ -171,6 +201,33 @@ public class ThreadTests
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
 
         Should.Throw<ArgumentException>(() => thread.AddLlmMessage(_fixture.Create<string>(), _fixture.Create<Message>(), thread.CreatedOn));
+    }
+
+    [Fact]
+    public void CreateLlmMessage_ShouldThrowOnInvalidRepliedToMessage()
+    {
+        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
+        thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
+        thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
+
+        Should.Throw<ArgumentException>(() => thread.CreateLlmMessageAdded(_fixture.Create<string>(), _fixture.Create<Message>(), thread.CreatedOn));
+    }
+
+    [Fact]
+    public void CreateLlmMessage_ShouldReturnEvent_And_Not_Change_Thread()
+    {
+        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
+        thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
+        thread.MarkAggregateAsSynchronized();
+
+        var content = _fixture.Create<string>();
+        var addedOn = thread.CreatedOn.AddSeconds(5);
+
+        var result = thread.CreateLlmMessageAdded(content, thread.Messages[^1], addedOn);
+        result.AddedOn.ShouldBe(addedOn);
+        result.Content.ShouldBe(content);
+        thread.PersistedVersion.ShouldBe(thread.PendingVersion);
+        thread.PendingEvents.Count.ShouldBe(0);
     }
 
     [Theory]
@@ -382,7 +439,22 @@ public class ThreadTests
         thread.PendingVersion.ShouldBe(11);
 
         thread.IsAnswered.ShouldBeTrue();
-
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void CreateUserMessageAdded_ThrowsOnInvalidContent(string content)
+    {
+        Should.Throw<ArgumentException>(() => Thread.CreateUserMessageAdded(content, _utcNow));
+    }
+
+    [Fact]
+    public void CreateUserMessageAdded_ShouldCreateValidEvent()
+    {
+        var content = _fixture.Create<string>();
+        var result = Thread.CreateUserMessageAdded(content, _utcNow);
+        result.Content.ShouldBe(content);
+        result.AddedOn.ShouldBe(_utcNow);
+    }
 }
