@@ -32,7 +32,7 @@ public abstract class AggregateRoot<TSelf> where TSelf : AggregateRoot<TSelf>
 
 
 
-    protected TSelf Apply<TEvent>(TEvent @event) where TEvent : MessageAdded
+    public TSelf Apply<TEvent>(TEvent @event) where TEvent : MessageAdded
     {
         if (_eventHandlers.TryGetValue(@event.GetType(), out var action))
         {
@@ -42,6 +42,17 @@ public abstract class AggregateRoot<TSelf> where TSelf : AggregateRoot<TSelf>
         }
 
         throw new InvalidOperationException($"Missing registration for event {@event.GetType().Name}");
+    }
+
+    public TSelf DiscardPendingChanges()
+    {
+        if (!PersistedVersion.HasValue)
+        {
+            throw new InvalidOperationException("Cannot clean pending changes: Aggregate does not have PersistedVersion");
+        }
+
+        _pendingEvents.Clear();
+        return (TSelf)this;
     }
 
     public TSelf MarkAggregateAsSynchronized()

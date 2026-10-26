@@ -346,6 +346,58 @@ public sealed class SqliteThreadRepository : IThreadRepository
         }
     }
 
+    public async Task<SuccessOrNotFound> RefreshThread(Thread thread, CancellationToken cancellationToken)
+    {
+        if (thread.PendingEvents.Count > 0)
+        {
+            throw new InvalidOperationException($"""
+            Cannot refresh a thread with pending changes. Persist changes with {nameof(SaveThread)} first, 
+            or discard them with {nameof(Thread)}.{nameof(Thread.DiscardPendingChanges)}
+            """);
+        }
+
+        if (!thread.PersistedVersion.HasValue)
+        {
+            throw new InvalidOperationException("Cannot refresh a thread with no PersistedVersion");
+        }
+
+        if (thread.Messages.Count == 0)
+        {
+            throw new InvalidOperationException($"Cannot refresh a thread with no Messages. Use {nameof(GetThread)} instead.");
+        }
+
+        return await _sqlConnectionFactory.Execute<SuccessOrNotFound>(
+            async connection =>
+            {
+                var events = (await connection.QueryAsync<NumberedEventDto>(
+                """
+                SELECT *
+                FROM ThreadEvents 
+                WHERE ThreadId = @ThreadId AND MessageNumber >= Version
+                """,
+                new
+                {
+                    ThreadId = thread.Id,
+                    Version = thread.PersistedVersion.ValueOrFailure
+                })).OrderBy(m => m.MessageNumber).ToList();
+
+                if (events.Count == 0)
+                {
+                    return new NotFound();
+                }
+
+                if (events.Count == 1)
+                {
+                    return new Success();
+                }
+
+                thread.ForEach(events[1..].Select(EventDto.ToModel), (t, e) => t.Apply(e));
+                thread.MarkAggregateAsSynchronized();
+
+                return new Success();
+            }, cancellationToken);
+    }
+
     public async Task<Option<int>> AppendEvent<T>(ThreadIdentifier identifier, T messageAdded, CancellationToken cancellationToken)
         where T : MessageAdded
     {

@@ -14,4 +14,5 @@ public interface IThreadRepository
     Task<Option<Message>> GetMessage(ThreadIdentifier identifier, int messageNumber, CancellationToken cancellationToken);
     Task<IReadOnlyList<ThreadInfo>> ListThreads(CancellationToken cancellationToken);
     Task<Option<int>> AppendEvent<T>(ThreadIdentifier identifier, T messageAdded, CancellationToken cancellationToken) where T : MessageAdded;
+    Task<SuccessOrNotFound> RefreshThread(Thread thread, CancellationToken cancellationToken);
 }
