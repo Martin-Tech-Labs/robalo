@@ -360,7 +360,7 @@ public sealed class SqliteThreadRepository : IThreadRepository
             throw new InvalidOperationException("Cannot refresh a thread with no PersistedVersion");
         }
 
-        if (thread.Messages.Count == 0)
+        if (thread.PersistedVersion == 0)
         {
             throw new InvalidOperationException($"Cannot refresh a thread with no Messages. Use {nameof(GetThread)} instead.");
         }
@@ -372,7 +372,7 @@ public sealed class SqliteThreadRepository : IThreadRepository
                 """
                 SELECT *
                 FROM ThreadEvents 
-                WHERE ThreadId = @ThreadId AND MessageNumber >= Version
+                WHERE ThreadId = @ThreadId AND MessageNumber >= @Version
                 """,
                 new
                 {

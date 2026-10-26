@@ -735,4 +735,103 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
         newThreadOrNone.ValueOrFailure.IsAnswered.ShouldBeFalse();
     }
 
+    [Fact]
+    public async Task RefreshThread_ShouldThrow_WithPendingEvents()
+    {
+        var thread = Thread.NewThread(_utcNow);
+        thread.AddUserMessage(_fixture.Create<string>(), _utcNow);
+        await _sut.SaveThread(thread, TestContext.Current.CancellationToken);
+
+        thread.AddUserMessage(_fixture.Create<string>(), _utcNow);
+        await Should.ThrowAsync<InvalidOperationException>(() => _sut.RefreshThread(thread, TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task RefreshThread_ShouldThrow_OnEmptyPersistedThread()
+    {
+        var thread = Thread.NewThread(_utcNow);
+        await _sut.SaveThread(thread, TestContext.Current.CancellationToken);
+
+        await Should.ThrowAsync<InvalidOperationException>(() => _sut.RefreshThread(thread, TestContext.Current.CancellationToken));
+    }
+
+
+    [Fact]
+    public async Task RefreshThread_ShouldThrow_OnNonPersistedThread()
+    {
+        var thread = Thread.NewThread(_utcNow);
+
+        thread.AddUserMessage(_fixture.Create<string>(), _utcNow);
+        await Should.ThrowAsync<InvalidOperationException>(() => _sut.RefreshThread(thread, TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task RefreshThread_ShouldReturnNotFound_OnDeletedThread()
+    {
+        var thread = Thread.NewThread(_utcNow);
+
+        thread.AddUserMessage(_fixture.Create<string>(), _utcNow);
+        await _sut.SaveThread(thread, TestContext.Current.CancellationToken);
+
+        await _sut.DeleteThread(thread.Id, TestContext.Current.CancellationToken);
+
+        var result = await _sut.RefreshThread(thread, TestContext.Current.CancellationToken);
+        result.Value.ShouldBeOfType<NotFound>();
+
+        await _sut.GetThread(thread.Id, TestContext.Current.CancellationToken).ShouldBeNone();
+    }
+
+    [Fact]
+    public async Task RefreshThread_ShouldReturnSuccess_OnNoChanges()
+    {
+        var thread = Thread.NewThread(_utcNow);
+
+        thread.AddUserMessage(_fixture.Create<string>(), _utcNow);
+        await _sut.SaveThread(thread, TestContext.Current.CancellationToken);
+
+        var result = await _sut.RefreshThread(thread, TestContext.Current.CancellationToken);
+        result.Value.ShouldBeOfType<Success>();
+    }
+
+    [Fact]
+    public async Task RefreshThread_ShouldRefreshThread()
+    {
+        var message1 = _fixture.Create<string>();
+        var message2 = _fixture.Create<string>();
+        var message3 = _fixture.Create<string>();
+
+        var thread = Thread.NewThread(_utcNow);
+        thread.AddUserMessage(message1, _utcNow);
+        var messageId1 = thread.PendingEvents[^1].MessageId;
+        thread.AddLlmMessage(message2, thread.Messages.Single(), _utcNow);
+        var messageId2 = thread.PendingEvents[^1].MessageId;
+        thread.IsAnswered.ShouldBeTrue();
+        await _sut.SaveThread(thread, TestContext.Current.CancellationToken);
+
+        var thread2 = (await _sut.GetThread(thread.Id, TestContext.Current.CancellationToken)).ValueOrFailure;
+        thread2.AddUserMessage(message3, _utcNow);
+        var messageId3 = thread2.PendingEvents[^1].MessageId;
+        await _sut.SaveThread(thread2, TestContext.Current.CancellationToken);
+
+        var result = await _sut.RefreshThread(thread, TestContext.Current.CancellationToken);
+        result.Value.ShouldBeOfType<Success>();
+
+        thread.Messages.Count.ShouldBe(3);
+        thread.PendingEvents.ShouldBeEmpty();
+        thread.PendingVersion.ShouldBe(3);
+        thread.PersistedVersion.ShouldBe(3);
+        thread.IsAnswered.ShouldBeFalse();
+
+        thread.Messages[0].Content.ShouldBe(message1);
+        thread.Messages[0].Number.ShouldBe(1);
+        thread.Messages[0].MessageId.ShouldBe(messageId1);
+
+        thread.Messages[1].Content.ShouldBe(message2);
+        thread.Messages[1].Number.ShouldBe(2);
+        thread.Messages[1].MessageId.ShouldBe(messageId2);
+
+        thread.Messages[2].Content.ShouldBe(message3);
+        thread.Messages[2].Number.ShouldBe(3);
+        thread.Messages[2].MessageId.ShouldBe(messageId3);
+    }
 }
