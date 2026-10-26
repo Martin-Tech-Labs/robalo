@@ -4,5 +4,5 @@ namespace Robalo.Domain.Services;
 
 public interface IAnswerThreadService
 {
-    Task Answer(ThreadIdentifier threadIdentifier, CancellationToken cancellationToken);
+    Task Answer(ThreadIdentifier threadId, CancellationToken cancellationToken);
 }
