@@ -95,12 +95,17 @@ public sealed class Thread : AggregateRoot<Thread>
             addedOn));
     }
 
+    public static UserMessageAdded CreateUserMessageAdded(string content, DateTimeOffset addedOn)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(content);
+        return new UserMessageAdded(MessageIdentifier.NewIdentifier(), content, addedOn);
+    }
+
     public Thread AddUserMessage(string content, DateTimeOffset addedOn)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(addedOn, ModifiedOn);
-        ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        return Apply(new UserMessageAdded(MessageIdentifier.NewIdentifier(), content, addedOn));
+        return Apply(CreateUserMessageAdded(content, addedOn));
     }
 
     public static Thread Rehydrate(
