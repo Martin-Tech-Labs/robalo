@@ -1,4 +1,5 @@
 using Robalo.Common.Models;
+using Robalo.Domain.Events;
 using Robalo.Domain.Models;
 
 namespace Robalo.Domain.Repositories;
@@ -12,4 +13,6 @@ public interface IThreadRepository
     Task<Option<QueryResult>> QueryMessages(ThreadIdentifier identifier, Cursor cursor, CancellationToken cancellationToken);
     Task<Option<Message>> GetMessage(ThreadIdentifier identifier, int messageNumber, CancellationToken cancellationToken);
     Task<IReadOnlyList<ThreadInfo>> ListThreads(CancellationToken cancellationToken);
+    Task<Option<int>> AppendEvent<T>(ThreadIdentifier identifier, T messageAdded, CancellationToken cancellationToken) where T : MessageAdded;
+    Task<SuccessOrNotFound> RefreshThread(Thread thread, CancellationToken cancellationToken);
 }

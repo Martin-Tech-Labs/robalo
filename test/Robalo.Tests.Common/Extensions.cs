@@ -25,6 +25,22 @@ public static class Extensions
         actual.ToList().ShouldBeEquivalentTo(newExpected);
     }
 
+    public static async Task ShouldBe<T>(this Task<T> actual, T expected) where T : notnull
+    {
+        (await actual).ShouldBe(expected);
+    }
+
+    public static async Task ShouldBe<T>(this Task<T> actual, Option<T> expected) where T : notnull
+    {
+        (await actual).ShouldBe(expected);
+    }
+
+    public static async Task ShouldBeNone<T>(this Task<Option<T>> actual) where T : notnull
+    {
+        (await actual).ShouldBeNone();
+    }
+
+
     public static void ShouldBe<T>(
         this T actual,
         Option<T> expected) where T : notnull

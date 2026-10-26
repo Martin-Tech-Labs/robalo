@@ -1,6 +1,7 @@
 using System.Data;
 using System.Data.Common;
 using System.Runtime.CompilerServices;
+using System.Transactions;
 using Dapper;
 using Microsoft.Data.Sqlite;
 using OpenAI.Assistants;
@@ -25,9 +26,8 @@ public sealed class SqliteThreadRepository : IThreadRepository
         _sqlConnectionFactory = sqlConnectionFactory;
     }
     public async Task<SuccessOrNotFound> DeleteThread(ThreadIdentifier identifier, CancellationToken cancellationToken) =>
-        await _sqlConnectionFactory.Execute<SuccessOrNotFound>(async connection =>
+        await _sqlConnectionFactory.ExecuteAsTransaction<SuccessOrNotFound>(async connection =>
          {
-             await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
              var rowsAffected = await connection.ExecuteAsync("DELETE FROM Threads WHERE Id = @ThreadId", new { ThreadId = identifier });
 
              if (rowsAffected == 0)
@@ -41,8 +41,6 @@ public sealed class SqliteThreadRepository : IThreadRepository
              }
 
              rowsAffected = await connection.ExecuteAsync("DELETE FROM ThreadEvents WHERE ThreadId = @ThreadId", new { ThreadId = identifier });
-
-             await transaction.CommitAsync(cancellationToken);
 
              return new Success();
 
@@ -328,19 +326,99 @@ public sealed class SqliteThreadRepository : IThreadRepository
         foreach (var @event in thread.PendingEvents)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            await InsertEvent(thread.Id, connection, ++messageNumber, @event);
+        }
+    }
 
-            var rowsAffected = await connection.ExecuteAsync(
-                """
+    private async Task InsertEvent(ThreadIdentifier threadId, DbConnection connection, int messageNumber, MessageAdded @event)
+    {
+        var rowsAffected = await connection.ExecuteAsync(
+                        """
                 INSERT INTO ThreadEvents(ThreadId, MessageId, EventType, Content, RepliedToMessageId, CreatedOn, MessageNumber) 
                 VALUES(@ThreadId, @MessageId, @EventType, @Content, @RepliedToMessageId, @CreatedOn, @MessageNumber)
                 """,
-               NumberedEventDto.FromEventDto(EventDto.FromModel(thread.Id, @event), ++messageNumber));
+                       NumberedEventDto.FromEventDto(EventDto.FromModel(threadId, @event), messageNumber));
 
-            if (rowsAffected != 1)
-            {
-                _logger.Error("Could not persist message {MessageId} for thread {ThreadId}", @event.MessageId, thread.Id);
-                throw new InvalidOperationException($"Expected rowsAffected 1 but got {rowsAffected}");
-            }
+        if (rowsAffected != 1)
+        {
+            _logger.Error("Could not persist message {MessageId} for thread {ThreadId}", @event.MessageId, threadId);
+            throw new InvalidOperationException($"Expected rowsAffected 1 but got {rowsAffected}");
         }
+    }
+
+    public async Task<SuccessOrNotFound> RefreshThread(Thread thread, CancellationToken cancellationToken)
+    {
+        if (thread.PendingEvents.Count > 0)
+        {
+            throw new InvalidOperationException($"""
+            Cannot refresh a thread with pending changes. Persist changes with {nameof(SaveThread)} first
+            """);
+        }
+
+        if (!thread.PersistedVersion.HasValue)
+        {
+            throw new InvalidOperationException("Cannot refresh a thread with no PersistedVersion");
+        }
+
+        if (thread.PersistedVersion == 0)
+        {
+            throw new InvalidOperationException($"Cannot refresh a thread with no Messages. Use {nameof(GetThread)} instead.");
+        }
+
+        return await _sqlConnectionFactory.Execute<SuccessOrNotFound>(
+            async connection =>
+            {
+                var events = (await connection.QueryAsync<NumberedEventDto>(
+                """
+                SELECT *
+                FROM ThreadEvents 
+                WHERE ThreadId = @ThreadId AND MessageNumber >= @Version
+                """,
+                new
+                {
+                    ThreadId = thread.Id,
+                    Version = thread.PersistedVersion.ValueOrFailure
+                })).OrderBy(m => m.MessageNumber).ToList();
+
+                if (events.Count == 0)
+                {
+                    return new NotFound();
+                }
+
+                if (events.Count == 1)
+                {
+                    return new Success();
+                }
+
+                thread.ForEach(events[1..].Select(EventDto.ToModel), (t, e) => t.Apply(e));
+                thread.MarkAggregateAsSynchronized();
+
+                return new Success();
+            }, cancellationToken);
+    }
+
+    public async Task<Option<int>> AppendEvent<T>(ThreadIdentifier identifier, T messageAdded, CancellationToken cancellationToken)
+        where T : MessageAdded
+    {
+        return await _sqlConnectionFactory.ExecuteAsTransaction<Option<int>>(async connection =>
+        {
+            var versionOrNone = await connection.QueryAsync<int>(
+             """
+             UPDATE Threads
+             SET Version = Version + 1
+             WHERE Id = @ThreadId
+             RETURNING Version
+            """, new { ThreadId = identifier }).SingleOrNone();
+
+            if (versionOrNone is Some<int> version)
+            {
+                await InsertEvent(identifier, connection, version, messageAdded);
+                return version;
+            }
+            else
+            {
+                return None.Default;
+            }
+        }, cancellationToken);
     }
 }

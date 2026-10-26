@@ -32,7 +32,7 @@ public abstract class AggregateRoot<TSelf> where TSelf : AggregateRoot<TSelf>
 
 
 
-    protected TSelf Apply<TEvent>(TEvent @event) where TEvent : MessageAdded
+    public TSelf Apply<TEvent>(TEvent @event) where TEvent : MessageAdded
     {
         if (_eventHandlers.TryGetValue(@event.GetType(), out var action))
         {
