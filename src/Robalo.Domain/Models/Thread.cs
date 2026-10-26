@@ -25,6 +25,7 @@ public sealed class Thread : AggregateRoot<Thread>
     {
         CreatedOn = createdOn;
         Messages = _messages.AsReadOnly();
+        IsAnswered = true;
 
         When<UserMessageAdded>(@event =>
         {

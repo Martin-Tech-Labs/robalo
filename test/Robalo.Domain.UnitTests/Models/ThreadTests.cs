@@ -36,6 +36,8 @@ public class ThreadTests
         thread.PendingEvents.ShouldBeEmpty();
         thread.PendingVersion.ShouldBe(0);
         thread.PersistedVersion.ShouldBeNone();
+
+        thread.IsAnswered.ShouldBeTrue();
     }
 
     [Fact]

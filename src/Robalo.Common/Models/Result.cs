@@ -5,7 +5,13 @@ public record Updated;
 public record NoChanges;
 public record ConcurrencyConflict;
 public record NotFound;
-public record Success;
+public struct Failure;
+public struct Success;
 
 public readonly union UpdateResult(Created, Updated, NoChanges, ConcurrencyConflict);
 public readonly union SuccessOrNotFound(Success, NotFound);
+public readonly union SuccessOrFailure(Success, Failure)
+{
+    public static SuccessOrFailure AsSuccess() => new Success();
+    public static SuccessOrFailure AsFailure() => new Failure();
+}
