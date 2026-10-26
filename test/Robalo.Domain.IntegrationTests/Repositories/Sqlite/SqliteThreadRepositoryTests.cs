@@ -15,8 +15,9 @@ namespace Robalo.Domain.IntegrationTests.Repositories;
 public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
 {
 
-    private readonly SqliteThreadRepository _sut;
-    private readonly Fixture _fixture = new();
+    readonly SqliteThreadRepository _sut;
+    readonly Fixture _fixture = new();
+    readonly DateTimeOffset _utcNow = DateTimeOffset.UtcNow;
 
     public SqliteThreadRepositoryTests(DatabaseFixture fixture)
     {
@@ -184,13 +185,13 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
         var event3 = new UserMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), newThread.CreatedOn.AddSeconds(2));
         newThread.AddUserMessage(event3.Content, event3.AddedOn);
 
-        var event4 = new LlmMessageAdded(MessageIdentifier.NewIdentifier(),_fixture.Create<string>(), newThread.Messages[^1].MessageId, newThread.CreatedOn.AddSeconds(3));
+        var event4 = new LlmMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), newThread.Messages[^1].MessageId, newThread.CreatedOn.AddSeconds(3));
         newThread.AddLlmMessage(event4.Content, newThread.Messages[^1], event4.AddedOn);
 
-        var event5 = new UserMessageAdded(MessageIdentifier.NewIdentifier(),  _fixture.Create<string>(), newThread.CreatedOn.AddSeconds(4));
+        var event5 = new UserMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), newThread.CreatedOn.AddSeconds(4));
         newThread.AddUserMessage(event5.Content, event5.AddedOn);
 
-        var event6 = new LlmMessageAdded(MessageIdentifier.NewIdentifier(),  _fixture.Create<string>(), newThread.Messages[^1].MessageId, newThread.CreatedOn.AddSeconds(5));
+        var event6 = new LlmMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), newThread.Messages[^1].MessageId, newThread.CreatedOn.AddSeconds(5));
         newThread.AddLlmMessage(event6.Content, newThread.Messages[^1], event6.AddedOn);
 
         var events = new MessageAdded[] { event1, event2, event3, event4, event5, event6 };
@@ -626,4 +627,112 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
         var result = await _sut.ListThreads(TestContext.Current.CancellationToken);
         result.ShouldBeEmpty();
     }
+
+    [Fact]
+    public async Task AppendEvent_ShouldReturnNoneIfThreadDoesNotExist()
+    {
+        var thread = Thread.NewThread(_utcNow);
+        thread.AddUserMessage(_fixture.Create<string>(), _utcNow);
+
+        var result = await _sut.AppendEvent(thread.Id, thread.PendingEvents[0], TestContext.Current.CancellationToken);
+        result.HasValue.ShouldBeFalse();
+
+        var threadOrNone = await _sut.GetThread(thread.Id, TestContext.Current.CancellationToken);
+        threadOrNone.HasValue.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task AppendEvent_ShouldReturnNoneIfThreadWasDeleted()
+    {
+        var thread = Thread.NewThread(_utcNow);
+        thread.AddUserMessage(_fixture.Create<string>(), _utcNow);
+        (await _sut.SaveThread(thread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
+
+        thread.AddUserMessage(_fixture.Create<string>(), _utcNow);
+
+        (await _sut.DeleteThread(thread.Id, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Success>();
+
+        var result = await _sut.AppendEvent(thread.Id, thread.PendingEvents[0], TestContext.Current.CancellationToken);
+        result.HasValue.ShouldBeFalse();
+
+        var threadOrNone = await _sut.GetThread(thread.Id, TestContext.Current.CancellationToken);
+        threadOrNone.HasValue.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task AppendEvent_ShouldAppendEvent()
+    {
+        var message1 = _fixture.Create<string>();
+        var message2 = _fixture.Create<string>();
+        var thread = Thread.NewThread(_utcNow);
+        thread.AddUserMessage(message1, _utcNow);
+
+        var messageId1 = thread.PendingEvents[0].MessageId;
+        (await _sut.SaveThread(thread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
+
+        thread.AddUserMessage(message2, _utcNow);
+        var messageId2 = thread.PendingEvents[0].MessageId;
+
+
+        var result = await _sut.AppendEvent(thread.Id, thread.PendingEvents[0], TestContext.Current.CancellationToken);
+        result.ShouldBe(2);
+
+        var newThreadOrNone = await _sut.GetThread(thread.Id, TestContext.Current.CancellationToken);
+        newThreadOrNone.HasValue.ShouldBeTrue();
+
+        newThreadOrNone.ValueOrFailure.Messages.Count.ShouldBe(2);
+        newThreadOrNone.ValueOrFailure.Messages[0].Content.ShouldBe(message1);
+        newThreadOrNone.ValueOrFailure.Messages[0].Number.ShouldBe(1);
+        newThreadOrNone.ValueOrFailure.Messages[0].MessageId.ShouldBe(messageId1);
+
+        newThreadOrNone.ValueOrFailure.Messages[1].Content.ShouldBe(message2);
+        newThreadOrNone.ValueOrFailure.Messages[1].Number.ShouldBe(2);
+        newThreadOrNone.ValueOrFailure.Messages[1].MessageId.ShouldBe(messageId2);
+    }
+
+    [Fact]
+    public async Task AppendEvent_ShouldAppendEvent_OnConcurrency()
+    {
+        var message1 = _fixture.Create<string>();
+        var message2 = _fixture.Create<string>();
+        var message3 = _fixture.Create<string>();
+
+        var thread = Thread.NewThread(_utcNow);
+        thread.AddUserMessage(message1, _utcNow);
+
+        var messageId1 = thread.PendingEvents[0].MessageId;
+        (await _sut.SaveThread(thread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
+
+        thread.AddLlmMessage(message3, thread.Messages[0], _utcNow);
+
+        thread.IsAnswered.ShouldBeTrue();
+        var messageId3 = thread.PendingEvents[0].MessageId;
+
+        var threadParallel = await _sut.GetThread(thread.Id, TestContext.Current.CancellationToken);
+        threadParallel.ValueOrFailure.AddUserMessage(message2, _utcNow);
+        var messageId2 = threadParallel.ValueOrFailure.PendingEvents[0].MessageId;
+        await _sut.SaveThread(threadParallel.ValueOrFailure, TestContext.Current.CancellationToken);
+
+        var result = await _sut.AppendEvent(thread.Id, thread.PendingEvents[0], TestContext.Current.CancellationToken);
+        result.ShouldBe(3);
+
+        var newThreadOrNone = await _sut.GetThread(thread.Id, TestContext.Current.CancellationToken);
+        newThreadOrNone.HasValue.ShouldBeTrue();
+
+        newThreadOrNone.ValueOrFailure.Messages.Count.ShouldBe(3);
+        newThreadOrNone.ValueOrFailure.Messages[0].Content.ShouldBe(message1);
+        newThreadOrNone.ValueOrFailure.Messages[0].Number.ShouldBe(1);
+        newThreadOrNone.ValueOrFailure.Messages[0].MessageId.ShouldBe(messageId1);
+
+        newThreadOrNone.ValueOrFailure.Messages[1].Content.ShouldBe(message2);
+        newThreadOrNone.ValueOrFailure.Messages[1].Number.ShouldBe(2);
+        newThreadOrNone.ValueOrFailure.Messages[1].MessageId.ShouldBe(messageId2);
+
+        newThreadOrNone.ValueOrFailure.Messages[2].Content.ShouldBe(message3);
+        newThreadOrNone.ValueOrFailure.Messages[2].Number.ShouldBe(3);
+        newThreadOrNone.ValueOrFailure.Messages[2].MessageId.ShouldBe(messageId3);
+
+        newThreadOrNone.ValueOrFailure.IsAnswered.ShouldBeFalse();
+    }
+
 }

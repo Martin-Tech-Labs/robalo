@@ -12,6 +12,12 @@ public record Some<T>(T Value) where T : notnull
     public static implicit operator Some<T>(T value) => new(value);
     public static implicit operator T(Some<T> value) => value.Value;
 
+    public static bool operator ==(Some<T> some, T value) => EqualityComparer<T>.Default.Equals(some.Value, value);
+    public static bool operator ==(T value, Some<T> some) => some == value;
+
+    public static bool operator !=(Some<T> some, T value) => !(some == value);
+    public static bool operator !=(T some, Some<T> value) => !(some == value);
+
     public override string ToString() => $"Some({Value})";
 }
 
@@ -27,8 +33,7 @@ public readonly union Option<T>(None, Some<T>) where T : notnull
         Some<T> some => EqualityComparer<T>.Default.Equals(some.Value, value),
         _ => false
     };
-    public static bool operator ==(T value, Option<T> option) =>
-    option == value;
+    public static bool operator ==(T value, Option<T> option) => option == value;
 
     public static bool operator !=(Option<T> option, T value) => !(option == value);
     public static bool operator !=(T value, Option<T> option) => !(option == value);
