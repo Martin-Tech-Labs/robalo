@@ -351,8 +351,7 @@ public sealed class SqliteThreadRepository : IThreadRepository
         if (thread.PendingEvents.Count > 0)
         {
             throw new InvalidOperationException($"""
-            Cannot refresh a thread with pending changes. Persist changes with {nameof(SaveThread)} first, 
-            or discard them with {nameof(Thread)}.{nameof(Thread.DiscardPendingChanges)}
+            Cannot refresh a thread with pending changes. Persist changes with {nameof(SaveThread)} first
             """);
         }
 
