@@ -382,7 +382,22 @@ public class ThreadTests
         thread.PendingVersion.ShouldBe(11);
 
         thread.IsAnswered.ShouldBeTrue();
-
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void CreateUserMessageAdded_ThrowsOnInvalidContent(string content)
+    {
+        Should.Throw<ArgumentException>(() => Thread.CreateUserMessageAdded(content, _utcNow));
+    }
+
+    [Fact]
+    public void CreateUserMessageAdded_ShouldCreateValidEvent()
+    {
+        var content = _fixture.Create<string>();
+        var result = Thread.CreateUserMessageAdded(content, _utcNow);
+        result.Content.ShouldBe(content);
+        result.AddedOn.ShouldBe(_utcNow);
+    }
 }
