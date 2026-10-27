@@ -132,7 +132,7 @@ public sealed class AnswerThreadService : IAnswerThreadService, IDisposable
 
         async Task<Result<LlmResponse, SuccessOrFailure>> GetLlmResponse(Thread thread)
         {
-            var llmRequest = new LlmRequest(string.Concat(thread.Messages.Select(m => m.Content)));
+            var llmRequest = new LlmRequest([.. thread.Messages.Select(ThreadMessage.FromMessage)]);
 
             var llmResponse = await _llmClient.GetResponse(llmRequest, cancellationToken);
 

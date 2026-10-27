@@ -6,6 +6,7 @@ using OpenAI.Chat;
 using Robalo.Common.Models;
 using Robalo.Domain.Clients;
 using Robalo.Domain.Clients.Models;
+using Robalo.Domain.Models;
 using Serilog;
 using static Robalo.Common.Models.ClientError;
 
@@ -26,16 +27,24 @@ public class LlmClientsTests
     public async Task ShouldReturn_Response_WithSinglePart()
     {
         var expectedResponse = _fixture.Create<string>();
-        var llmRequest = _fixture.Create<LlmRequest>();
+        var llmRequest = new LlmRequest(
+            new ThreadMessage(_fixture.Create<string>(), MessageSource.User),
+            new ThreadMessage(_fixture.Create<string>(), MessageSource.LLM),
+            new ThreadMessage(_fixture.Create<string>(), MessageSource.User));
+
         ConfigureResponse(expectedResponse);
 
         var result = await _sut.GetResponse(llmRequest, TestContext.Current.CancellationToken);
 
         _chatClient.Verify(c => c.CompleteChatAsync(
             It.Is<IEnumerable<ChatMessage>>(messages =>
-                messages.Count() == 1 &&
+                messages.Count() == 3 &&
                 messages.First() is UserChatMessage &&
-                messages.First().Content.Single().Text == llmRequest.Content),
+                messages.First().Content.Single().Text == llmRequest.Messages[0].Content &&
+                messages.ElementAt(1) is AssistantChatMessage &&
+                messages.ElementAt(1).Content.Single().Text == llmRequest.Messages[1].Content &&
+                messages.ElementAt(2) is UserChatMessage &&
+                messages.ElementAt(2).Content.Single().Text == llmRequest.Messages[2].Content),
             It.IsAny<ChatCompletionOptions>(),
             TestContext.Current.CancellationToken),
             Times.Once);
@@ -69,7 +78,7 @@ public class LlmClientsTests
 
         _chatClient
              .Setup(c => c.CompleteChatAsync(
-                 It.IsAny<ChatMessage[]>(),
+                 It.IsAny<IEnumerable<ChatMessage>>(),
                  It.IsAny<ChatCompletionOptions>(),
                  TestContext.Current.CancellationToken))
              .ThrowsAsync(exception);
@@ -90,7 +99,7 @@ public class LlmClientsTests
 
         _chatClient
              .Setup(c => c.CompleteChatAsync(
-                 It.IsAny<ChatMessage[]>(),
+                 It.IsAny<IEnumerable<ChatMessage>>(),
                  It.IsAny<ChatCompletionOptions>(),
                  TestContext.Current.CancellationToken))
              .ThrowsAsync(exception);
@@ -107,7 +116,7 @@ public class LlmClientsTests
 
         _chatClient
              .Setup(c => c.CompleteChatAsync(
-                 It.IsAny<ChatMessage[]>(),
+                 It.IsAny<IEnumerable<ChatMessage>>(),
                  It.IsAny<ChatCompletionOptions>(),
                  TestContext.Current.CancellationToken))
              .ThrowsAsync(exception);
@@ -116,14 +125,11 @@ public class LlmClientsTests
         result.Value.ShouldBeOfType<UnexpectedError>();
     }
 
-    [Theory]
-    [InlineData("")]
-    [InlineData(" ")]
-    public async Task ShouldThrow_If_RequestContent_Empty(string content)
+    [Fact]
+    public async Task ShouldThrow_If_NoMessages()
     {
-        await Should.ThrowAsync<ArgumentException>(() => _sut.GetResponse(new LlmRequest(content), TestContext.Current.CancellationToken));
+        await Should.ThrowAsync<ArgumentOutOfRangeException>(() => _sut.GetResponse(new LlmRequest(), TestContext.Current.CancellationToken));
     }
-
 
     private void ConfigureResponse(string expectedResponse)
     {
@@ -135,7 +141,7 @@ public class LlmClientsTests
 
         _chatClient
             .Setup(c => c.CompleteChatAsync(
-                It.IsAny<ChatMessage[]>(),
+                It.IsAny<IEnumerable<ChatMessage>>(),
                 It.IsAny<ChatCompletionOptions>(),
                 TestContext.Current.CancellationToken))
             .ReturnsAsync(chatClientResponse);
@@ -152,7 +158,7 @@ public class LlmClientsTests
 
         _chatClient
             .Setup(c => c.CompleteChatAsync(
-                It.IsAny<ChatMessage[]>(),
+                It.IsAny<IEnumerable<ChatMessage>>(),
                 It.IsAny<ChatCompletionOptions>(),
                 TestContext.Current.CancellationToken))
             .ReturnsAsync(chatClientResponse);
