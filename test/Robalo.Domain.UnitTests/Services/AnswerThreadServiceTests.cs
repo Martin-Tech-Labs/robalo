@@ -54,8 +54,9 @@ public class AnswerThreadServiceTests : IDisposable
     [Fact]
     public async Task Answer_ShouldCorrectlyProcess()
     {
-        var thread = Thread.NewThread(_utcNow.AddSeconds(-4))
-            .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-2))
+        var thread = Thread.NewThread(_utcNow.AddSeconds(-4));
+        thread.AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-3))
+            .AddLlmMessage(_fixture.Create<string>(), thread.Messages[^1], _utcNow.AddSeconds(-2))
             .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-1));
 
         _repository
@@ -67,14 +68,21 @@ public class AnswerThreadServiceTests : IDisposable
         result.Value.ShouldBeOfType<Success>();
 
         _llmClient.Verify(
-            l => l.GetResponse(It.Is<LlmRequest>(r => r.Messages.Length == 2),
+            l => l.GetResponse(It.Is<LlmRequest>(
+                r => r.Messages.Length == 3 &&
+                r.Messages[0].Content == thread.Messages[0].Content &&
+                r.Messages[0].Source == MessageSource.User &&
+                r.Messages[1].Content == thread.Messages[1].Content &&
+                r.Messages[1].Source == MessageSource.LLM &&
+                r.Messages[2].Content == thread.Messages[2].Content &&
+                r.Messages[2].Source == MessageSource.User),
             TestContext.Current.CancellationToken), Times.Once());
         _llmClient.VerifyNoOtherCalls();
 
         _repository.Verify(r => r.AppendEvent(thread.Id, It.Is<LlmMessageAdded>(
             l => l.AddedOn == _utcNow
             && l.Content == _llmResponse.Content
-            && l.RepliedToMessageId == thread.Messages[1].MessageId
+            && l.RepliedToMessageId == thread.Messages[2].MessageId
             && l.MessageId != l.RepliedToMessageId),
             TestContext.Current.CancellationToken), Times.Once());
 
