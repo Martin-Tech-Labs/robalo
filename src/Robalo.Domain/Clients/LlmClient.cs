@@ -22,12 +22,11 @@ public sealed class LlmClient : ILlmClient
 
     public async Task<ServiceResult<LlmResponse, ClientError>> GetResponse(LlmRequest request, CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(request.Content);
-
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(request.Messages.Length, 0, nameof(request.Messages));
         try
         {
             var response = await _chatClient.CompleteChatAsync(
-                messages: new[] { ChatMessage.CreateUserMessage(request.Content) },
+                messages: request.Messages.Select(ThreadMessage.ToChatMessage),
                 options: null,
                 cancellationToken: cancellationToken);
 

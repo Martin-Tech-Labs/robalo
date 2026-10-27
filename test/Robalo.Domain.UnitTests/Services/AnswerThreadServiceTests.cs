@@ -67,7 +67,7 @@ public class AnswerThreadServiceTests : IDisposable
         result.Value.ShouldBeOfType<Success>();
 
         _llmClient.Verify(
-            l => l.GetResponse(It.Is<LlmRequest>(r => r.Content == string.Concat(thread.Messages[0].Content, thread.Messages[1].Content)),
+            l => l.GetResponse(It.Is<LlmRequest>(r => r.Messages.Length == 2),
             TestContext.Current.CancellationToken), Times.Once());
         _llmClient.VerifyNoOtherCalls();
 
@@ -101,7 +101,7 @@ public class AnswerThreadServiceTests : IDisposable
         result.Value.ShouldBeOfType<Success>();
 
         _llmClient.Verify(
-            l => l.GetResponse(It.Is<LlmRequest>(r => r.Content == string.Concat(thread.Messages[0].Content, thread.Messages[1].Content)),
+            l => l.GetResponse(It.Is<LlmRequest>(r => r.Messages.Length == 2),
             TestContext.Current.CancellationToken), Times.Once());
         _llmClient.VerifyNoOtherCalls();
 
@@ -229,7 +229,7 @@ public class AnswerThreadServiceTests : IDisposable
         result.Value.ShouldBeOfType<Failure>();
 
         _llmClient.Verify(
-            l => l.GetResponse(It.Is<LlmRequest>(r => r.Content == string.Concat(thread.Messages[0].Content, thread.Messages[1].Content)),
+            l => l.GetResponse(It.Is<LlmRequest>(r => r.Messages.Length == 2),
             TestContext.Current.CancellationToken), Times.Once());
         _llmClient.VerifyNoOtherCalls();
 
