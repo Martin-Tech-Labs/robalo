@@ -6,7 +6,7 @@ namespace Robalo.Domain.Models;
 public sealed class ThreadIdentifier : Identifier, IEquatable<ThreadIdentifier>
 {
     protected override string Prefix => "trd_";
-    
+
     [JsonConstructor]
     private ThreadIdentifier(string idString) : base(idString) { }
 
@@ -37,4 +37,7 @@ public sealed class ThreadIdentifier : Identifier, IEquatable<ThreadIdentifier>
     public override bool Equals(object? obj) => base.Equals(obj);
 
     public override int GetHashCode() => base.GetHashCode();
+
+    public static bool operator ==(ThreadIdentifier id1, ThreadIdentifier id2) => id1.Equals(id2);
+    public static bool operator !=(ThreadIdentifier id1, ThreadIdentifier id2) => !id1.Equals(id2);
 }
