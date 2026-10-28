@@ -37,8 +37,8 @@ public sealed class LlmClient : ILlmClient
             _logger.Information(
                 "LLM response: FinishReason={FinishReason}, InputTokens={InputTokens}, OutputTokens={OutputTokens}, ContentParts={ContentParts}, TextLength={TextLength}",
                 completion.FinishReason,
-                completion.Usage.InputTokenCount,
-                completion.Usage.OutputTokenCount,
+                completion.Usage?.InputTokenCount,
+                completion.Usage?.OutputTokenCount,
                 completion.Content.Count,
                 text.Length);
 

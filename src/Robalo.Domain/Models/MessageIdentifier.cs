@@ -21,7 +21,4 @@ public sealed class MessageIdentifier : Identifier, IEquatable<MessageIdentifier
     public override bool Equals(object? obj) => base.Equals(obj);
 
     public override int GetHashCode() => base.GetHashCode();
-
-    public static bool operator ==(MessageIdentifier id1, MessageIdentifier id2) => id1.Equals(id2);
-    public static bool operator !=(MessageIdentifier id1, MessageIdentifier id2) => !id1.Equals(id2);
 }

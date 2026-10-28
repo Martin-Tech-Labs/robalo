@@ -53,4 +53,7 @@ public closed partial class Identifier
         && StringComparer.Ordinal.Equals(IdString, other.IdString);
 
     public override int GetHashCode() => HashCode.Combine(GetType(), StringComparer.Ordinal.GetHashCode(IdString));
+
+    public static bool operator ==(Identifier left, Identifier right) => left.Equals(right);
+    public static bool operator !=(Identifier left, Identifier right) => !left.Equals(right);
 }
