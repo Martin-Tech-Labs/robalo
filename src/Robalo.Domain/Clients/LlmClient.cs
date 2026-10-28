@@ -33,7 +33,7 @@ public sealed class LlmClient : ILlmClient
             var text = string.Concat(response.Value.Content.Select(c => c.Text));
             var completion = response.Value;
 
-     
+
             _logger.Information(
                 "LLM response: FinishReason={FinishReason}, InputTokens={InputTokens}, OutputTokens={OutputTokens}, ContentParts={ContentParts}, TextLength={TextLength}",
                 completion.FinishReason,
@@ -41,6 +41,12 @@ public sealed class LlmClient : ILlmClient
                 completion.Usage.OutputTokenCount,
                 completion.Content.Count,
                 text.Length);
+
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                _logger.Error("LLM responded with empty content.");
+                return new ServiceError();
+            }
 
             return new LlmResponse(text);
         }
