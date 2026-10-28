@@ -8,7 +8,7 @@ using Robalo.Domain.Repositories.Sqlite;
 using Robalo.Tests.Common;
 using Serilog;
 using Robalo.Common.Extensions;
-using Robalo.Domain.Events;
+using Robalo.Domain.Models.Events;
 
 namespace Robalo.Domain.IntegrationTests.Repositories;
 

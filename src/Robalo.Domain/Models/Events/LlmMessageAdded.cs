@@ -1,7 +1,7 @@
 using Robalo.Common.Extensions;
 using Robalo.Domain.Models;
 
-namespace Robalo.Domain.Events;
+namespace Robalo.Domain.Models.Events;
 
 /// <summary>
 /// Occurrs when a user adds a message to a thread (so-called prompt)
