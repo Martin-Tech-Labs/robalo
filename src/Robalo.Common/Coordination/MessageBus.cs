@@ -6,7 +6,7 @@ namespace Robalo.Common.Coordination;
 
 public sealed class MessageBus : IMessageBus
 {
-    record Subscription(string Id, Action<object> Action);
+    sealed record Subscription(string Id, Action<object> Action);
     readonly ILogger _logger;
     readonly ConcurrentDictionary<Type, IReadOnlyList<Subscription>> _subscribers = new();
     readonly IServiceProvider _serviceProvider;
@@ -24,29 +24,26 @@ public sealed class MessageBus : IMessageBus
             (_, list) => [.. list.Where(l => l.Id != subscriptionId.Id)]);
     }
 
-    public SubscriptionId<TMessage> On<TMessage>(Action<TMessage> action) where TMessage : notnull
+    public IMessageBus On<TMessage>(Action<TMessage> action, out SubscriptionId<TMessage> subscriptionId) where TMessage : notnull
     {
         var lambda = (object message) => { action((TMessage)message); };
-
-        return RegisterLambda<TMessage>(lambda);
+        subscriptionId = RegisterLambda<TMessage>(lambda);
+        return this;
     }
 
 
-    public SubscriptionId<TMessage> On<TMessage, THandler>(Action<TMessage, THandler> action)
+    public IMessageBus On<TMessage, THandler>(Action<TMessage, THandler> action, out SubscriptionId<TMessage> subscriptionId)
         where TMessage : notnull
         where THandler : notnull
     {
         var lambda = (object message) =>
         {
-            var handler = _serviceProvider.GetService<THandler>();
-            if (handler is null)
-            {
-                throw new InvalidOperationException($"Failed to retrieve an instance of {typeof(THandler)}");
-            }
+            var handler = _serviceProvider.GetRequiredService<THandler>();
             action((TMessage)message, handler);
         };
 
-        return RegisterLambda<TMessage>(lambda);
+        subscriptionId = RegisterLambda<TMessage>(lambda);
+        return this;
     }
 
     public void Send<TMessage>(TMessage message) where TMessage : notnull

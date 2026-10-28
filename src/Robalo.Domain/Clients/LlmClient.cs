@@ -31,6 +31,17 @@ public sealed class LlmClient : ILlmClient
                 cancellationToken: cancellationToken);
 
             var text = string.Concat(response.Value.Content.Select(c => c.Text));
+            var completion = response.Value;
+
+     
+            _logger.Information(
+                "LLM response: FinishReason={FinishReason}, InputTokens={InputTokens}, OutputTokens={OutputTokens}, ContentParts={ContentParts}, TextLength={TextLength}",
+                completion.FinishReason,
+                completion.Usage.InputTokenCount,
+                completion.Usage.OutputTokenCount,
+                completion.Content.Count,
+                text.Length);
+
             return new LlmResponse(text);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

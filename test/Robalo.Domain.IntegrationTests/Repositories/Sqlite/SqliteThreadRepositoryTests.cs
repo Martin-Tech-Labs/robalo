@@ -9,6 +9,8 @@ using Robalo.Tests.Common;
 using Serilog;
 using Robalo.Common.Extensions;
 using Robalo.Domain.Models.Events;
+using Moq;
+using Robalo.Common.Coordination;
 
 namespace Robalo.Domain.IntegrationTests.Repositories;
 
@@ -18,10 +20,14 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
     readonly SqliteThreadRepository _sut;
     readonly Fixture _fixture = new();
     readonly DateTimeOffset _utcNow = DateTimeOffset.UtcNow;
+    readonly Mock<IMessageBus> _messageBus = new();
 
     public SqliteThreadRepositoryTests(DatabaseFixture fixture)
     {
-        _sut = new SqliteThreadRepository(Log.Logger, new SqliteConnectionFactory(Log.Logger, new(fixture.Database, fixture.Password)));
+        _sut = new SqliteThreadRepository(
+            Log.Logger,
+            new SqliteConnectionFactory(Log.Logger, new(fixture.Database, fixture.Password)),
+            _messageBus.Object);
         Domain.Repositories.Sqlite.Extensions.AddDapperTypeHandlers();
     }
 
