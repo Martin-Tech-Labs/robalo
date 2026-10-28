@@ -36,6 +36,8 @@ public closed class BaseIdentifierTests<TIdentifier>(
         id1.Uuid.ShouldNotBe(id2.Uuid);
 
         id1.Equals(id2).ShouldBeFalse();
+        (id1 == id2).ShouldBeFalse();
+        (id1 != id2).ShouldBeTrue();
 
         id1.GetHashCode().ShouldNotBe(id2.GetHashCode());
     }
@@ -51,6 +53,8 @@ public closed class BaseIdentifierTests<TIdentifier>(
         id1.GetHashCode().ShouldBe(id2.GetHashCode());
 
         id1.Equals(id2).ShouldBeTrue();
+        (id1 == id2).ShouldBeTrue();
+        (id1 != id2).ShouldBeFalse();
     }
 
     [Fact]
@@ -64,6 +68,8 @@ public closed class BaseIdentifierTests<TIdentifier>(
         id1.GetHashCode().ShouldBe(id2.GetHashCode());
 
         id1.Equals(id2).ShouldBeTrue();
+        (id1 == id2).ShouldBeTrue();
+        (id1 != id2).ShouldBeFalse();
     }
 
 
