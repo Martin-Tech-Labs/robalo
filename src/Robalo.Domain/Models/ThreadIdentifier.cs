@@ -7,7 +7,6 @@ public sealed class ThreadIdentifier : Identifier, IEquatable<ThreadIdentifier>
 {
     protected override string Prefix => "trd_";
 
-    [JsonConstructor]
     private ThreadIdentifier(string idString) : base(idString) { }
 
     private ThreadIdentifier(Guid uuid) : base(uuid) { }

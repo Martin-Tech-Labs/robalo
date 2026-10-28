@@ -67,6 +67,7 @@ builder.Services.AddSqliteRepository(builder.Configuration);
 builder.Services.AddLlmClient(builder.Configuration);
 builder.Services.AddSingleton<IAnswerThreadService, AnswerThreadService>();
 builder.Services.AddSingleton<IAnswerThreadHandler, AnswerThreadHandler>();
+builder.Services.AddTransient<AnswerThreadJob>();
 builder.Services.AddMessageBus(
     configure: m => m.On<ThreadUpdated, IAnswerThreadHandler>((m, s) => s.Handle(m), out _));
 
