@@ -322,7 +322,10 @@ public sealed class SqliteThreadRepository : IThreadRepository
                 _ => await CreateThread(thread, connection, cancellationToken)
             };
 
-            _messageBus.Send(new ThreadUpdated(thread.Id));
+            if (result is not ConcurrencyConflict)
+            {
+                _messageBus.Send(new ThreadUpdated(thread.Id));
+            }
 
             return result;
 
