@@ -26,8 +26,22 @@ public sealed class MessageBus : IMessageBus
 
     public IMessageBus On<TMessage>(Action<TMessage> action, out SubscriptionId<TMessage> subscriptionId) where TMessage : notnull
     {
-        var lambda = (object message) => { action((TMessage)message); };
-        subscriptionId = RegisterLambda<TMessage>(lambda);
+        var id = new SubscriptionId<TMessage>(Guid.NewGuid().ToString("N"));
+
+        var lambda = (object message) =>
+        {
+            try
+            {
+                action((TMessage)message);
+            }
+            catch (Exception exc)
+            {
+                _logger.Error(exc, "Error during execution of lambda for type {TMessage} for Subscription {SubscriptionId}",
+                     typeof(TMessage), id.Id);
+            }
+        };
+        RegisterLambda(lambda, id);
+        subscriptionId = id;
         return this;
     }
 
@@ -36,13 +50,30 @@ public sealed class MessageBus : IMessageBus
         where TMessage : notnull
         where THandler : notnull
     {
+        var id = new SubscriptionId<TMessage>(Guid.NewGuid().ToString("N"));
         var lambda = (object message) =>
         {
-            var handler = _serviceProvider.GetRequiredService<THandler>();
-            action((TMessage)message, handler);
+            try
+            {
+                var handler = _serviceProvider.GetService<THandler>();
+                if (handler is null)
+                {
+                    _logger.Warning("Could not get service {THandler} from Service Provider for Subscription {SubscriptionId} of type {TMessage}. This subscriber will be skipped.",
+                        typeof(THandler), id.Id, typeof(TMessage));
+                    return;
+                }
+                action((TMessage)message, handler);
+            }
+
+            catch (Exception exc)
+            {
+                _logger.Error(exc, "Error during execution of handler {THandler} of type {TMessage} for Subscription {SubscriptionId}",
+                    typeof(THandler), typeof(TMessage), id.Id);
+            }
         };
 
-        subscriptionId = RegisterLambda<TMessage>(lambda);
+        RegisterLambda(lambda, id);
+        subscriptionId = id;
         return this;
     }
 
@@ -57,15 +88,12 @@ public sealed class MessageBus : IMessageBus
         }
     }
 
-    private SubscriptionId<TMessage> RegisterLambda<TMessage>(Action<object> lambda) where TMessage : notnull
+    private void RegisterLambda<TMessage>(Action<object> lambda, SubscriptionId<TMessage> subscriptionId) where TMessage : notnull
     {
-        var id = Guid.NewGuid().ToString("N");
-        var subscription = new Subscription(id, lambda);
+        var subscription = new Subscription(subscriptionId.Id, lambda);
         _subscribers.AddOrUpdate(
             typeof(TMessage),
             _ => [subscription],
             (_, list) => [.. list, subscription]);
-
-        return new(id);
     }
 }
