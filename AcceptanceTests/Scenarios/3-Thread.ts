@@ -14,6 +14,7 @@ import type { ProblemDetails } from '../Api/Types/problem-details.d.ts'
 import type { Message } from '../Api/Types/message.d.ts'
 
 import { randomUUID } from 'node:crypto';
+import { retry } from '../Api/retry.ts';
 
 describe('3 - Threads @drei @threads', () => {
     let serviceDiscovery: ServiceDiscovery;
@@ -105,11 +106,24 @@ describe('3 - Threads @drei @threads', () => {
 
         it("And I verfy the message", () => {
             messageQueryResult = response.body as MessageQueryResult;
-            expect(messageQueryResult._embedded.messages.length).to.equal(1);
+            expect(messageQueryResult._embedded.messages.length).to.be.greaterThan(0);
             expect(messageQueryResult._embedded.messages[0].content).to.equal(message1Content);
             expect(messageQueryResult._embedded.messages[0].source).to.equal("user");
             expect(messageQueryResult._embedded.messages[0].message_number).to.equal(1);
             expect(messageQueryResult._embedded.messages[0].created_on).to.equal(thread.created_on);
+        });
+
+        it("And I wait for the LLM response", retry(async () => {
+            response = await ControllerApi.get(thread._links.messages);
+            messageQueryResult = response.body as MessageQueryResult;
+            expect(messageQueryResult._embedded.messages.length).to.equal(2);
+        }
+        )).timeout(10000);
+
+        it("And I verfy the LLM response", () => {
+            expect(messageQueryResult._embedded.messages[1].content).to.not.be.empty;
+            expect(messageQueryResult._embedded.messages[1].source).to.equal("llm");
+            expect(messageQueryResult._embedded.messages[1].message_number).to.equal(2);
         });
 
         it("And I verfy next and prev links are null", () => {
@@ -159,8 +173,8 @@ describe('3 - Threads @drei @threads', () => {
             Date.parse(message.created_on).should.be.greaterThan(Date.parse(thread.created_on));
         });
 
-        it("And I verify the message number is 2", () => {
-            message.message_number.should.equal(2);
+        it("And I verify the message number is 3", () => {
+            message.message_number.should.equal(3);
         });
 
         it("When I go to message self link", async () => {
@@ -189,6 +203,28 @@ describe('3 - Threads @drei @threads', () => {
             resultSelf.modified_on.should.equal(message.created_on);
         });
 
+        it("And I wait for the LLM response", retry(async () => {
+            response = await ControllerApi.get(thread._links.messages);
+            messageQueryResult = response.body as MessageQueryResult;
+            expect(messageQueryResult._embedded.messages.length).to.equal(4);
+        }
+        )).timeout(10000);
+
+        it("And I verfy the LLM response", () => {
+            expect(messageQueryResult._embedded.messages[3].content).to.not.be.empty;
+            expect(messageQueryResult._embedded.messages[3].source).to.equal("llm");
+            expect(messageQueryResult._embedded.messages[3].message_number).to.equal(4);
+        });
+
+        it("When I reload the thread by going to its self link", async () => {
+            response = await ControllerApi.get(thread._links.self).expect(200);
+        });
+
+        it("Then I verify modified_on is updated to that of the last message", async () => {
+            let resultSelf = response.body as Thread;
+            resultSelf.created_on.should.equal(thread.created_on);
+            resultSelf.modified_on.should.equal(messageQueryResult._embedded.messages[3].created_on);
+        });
 
         it("When I delete the thread", async () => {
             response = await ControllerApi.delete(thread._links.self);
