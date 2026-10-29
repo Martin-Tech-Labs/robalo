@@ -1,4 +1,5 @@
 using System.ClientModel;
+using System.Diagnostics;
 using OpenAI;
 using OpenAI.Chat;
 using Robalo.Common.Extensions;
@@ -25,17 +26,22 @@ public sealed class LlmClient : ILlmClient
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(request.Messages.Length, 0, nameof(request.Messages));
         try
         {
+            var stopwatch = Stopwatch.StartNew();
+
             var response = await _chatClient.CompleteChatAsync(
                 messages: request.Messages.Select(ThreadMessage.ToChatMessage),
                 options: null,
                 cancellationToken: cancellationToken);
+
+                stopwatch.Stop();
 
             var text = string.Concat(response.Value.Content.Select(c => c.Text));
             var completion = response.Value;
 
 
             _logger.Information(
-                "LLM response: FinishReason={FinishReason}, InputTokens={InputTokens}, OutputTokens={OutputTokens}, ContentParts={ContentParts}, TextLength={TextLength}",
+                "LLM response ({ElapsedMilliseconds} ms): FinishReason={FinishReason}, InputTokens={InputTokens}, OutputTokens={OutputTokens}, ContentParts={ContentParts}, TextLength={TextLength}",
+                stopwatch.ElapsedMilliseconds,
                 completion.FinishReason,
                 completion.Usage?.InputTokenCount,
                 completion.Usage?.OutputTokenCount,

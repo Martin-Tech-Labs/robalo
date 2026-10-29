@@ -139,7 +139,7 @@ public sealed class SqliteThreadRepository : IThreadRepository
                 identifier: identifier,
                 createdOn: threadDto.CreatedOn,
                 title: threadDto.Title,
-                persistedVersion: threadDto.Version,
+                persistedVersion: events.Max(e => e.MessageNumber),
                 events: events.Select(EventDto.ToModel).ToArray());
 
             return thread.Some();
