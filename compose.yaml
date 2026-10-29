@@ -14,6 +14,9 @@ services:
       ROBALO_Serilog__WriteTo__1__args__serverURL: http://seq:5341
       ROBALO_Database__Database: /data/robalo.db
       ROBALO_Database__Password: "12345678"
+      ROBALO_Llm__Model: test-model
+      ROBALO_Llm__Endpoint: http://ollama:11434/v1/
+      ROBALO_Llm__Key: test
 
   seq:
     image: datalust/seq:2026.1.17182
