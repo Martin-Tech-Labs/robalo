@@ -44,13 +44,17 @@ public sealed class AnswerThreadService : IAnswerThreadService, IDisposable
     {
         if (_threads.TryGetValue(threadId, out var cachedThread))
         {
+            _logger.Debug("Retrieved thread {ThreadId} from internal cache", threadId);
             return cachedThread;
         }
 
         using var semaphore = await _semaphoreThreads.Wait(cancellationToken);
+        _logger.Debug("Acquiring global semaphore while trying to get thread {ThreadId}", threadId);
+
 
         if (_threads.TryGetValue(threadId, out var cachedThread2))
         {
+            _logger.Debug("Retrieved thread {ThreadId} from internal cache after semaphore wait.", threadId);
             return cachedThread2;
         }
 
@@ -58,9 +62,14 @@ public sealed class AnswerThreadService : IAnswerThreadService, IDisposable
 
         if (threadOrNone is Some<Thread> thread)
         {
+            _logger.Debug("Retrieved thread {ThreadId} from Repository.", threadId);
+
             _threads.TryAdd(threadId, thread);
             return _threads[threadId];
         }
+
+        _logger.Debug("Thread {ThreadId} does not exist.", threadId);
+
 
         return None.Default;
     }
@@ -82,6 +91,7 @@ public sealed class AnswerThreadService : IAnswerThreadService, IDisposable
 
     public async Task<SuccessOrFailure> Answer(ThreadIdentifier threadId, CancellationToken cancellationToken)
     {
+        _logger.Debug("Starting Answer for Thread {ThreadId}", threadId);
         var threadOrNone = await GetThread(threadId, cancellationToken);
 
         if (!threadOrNone.HasValue)
@@ -90,7 +100,10 @@ public sealed class AnswerThreadService : IAnswerThreadService, IDisposable
             return SuccessOrFailure.AsSuccess();
         }
 
+        _logger.Debug("Acquiring the semaphore for thread {ThreadId}.", threadId);
         using var semaphore = await AcquirerSemaphore(threadId, cancellationToken);
+        _logger.Debug("Acquired the semaphore for thread {ThreadId}.", threadId);
+
 
         var thread = threadOrNone.ValueOrFailure;
 
@@ -102,10 +115,16 @@ public sealed class AnswerThreadService : IAnswerThreadService, IDisposable
 
         async Task<Result<Thread, SuccessOrFailure>> RefreshThread(Thread thread)
         {
+            _logger.Debug("Refreshing thread {ThreadId} from the repository.", threadId);
+
+            var versionBefore = thread.PersistedVersion.ValueOrFailure;
+
             var refreshResult = await _repository.RefreshThread(thread, cancellationToken);
 
             if (refreshResult is NotFound)
             {
+                _logger.Debug("Refreshing thread {ThreadId} returned {Result}.", threadId, refreshResult.Value.GetType().Name);
+
                 _threads.Remove(thread.Id, out _);
 
                 lock (_lockSemaphors)
@@ -115,6 +134,8 @@ public sealed class AnswerThreadService : IAnswerThreadService, IDisposable
 
                 return SuccessOrFailure.AsSuccess();
             }
+
+            _logger.Debug("Refreshed thread {ThreadId}: Version {OldVersion} -> {NewVersion}", threadId, versionBefore, thread.PersistedVersion.ValueOrFailure);
 
             return thread;
         }
