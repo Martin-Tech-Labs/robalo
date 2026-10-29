@@ -11,6 +11,8 @@ using Robalo.Common.Extensions;
 using Robalo.Domain.Models.Events;
 using Moq;
 using Robalo.Common.Coordination;
+using OpenAI.Assistants;
+using Robalo.Domain.Models.MessageBus;
 
 namespace Robalo.Domain.IntegrationTests.Repositories;
 
@@ -64,6 +66,7 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
         thread.PendingEvents.ShouldBeEmpty();
         thread.PersistedVersion.HasValue.ShouldBeTrue();
         thread.PersistedVersion.ShouldBe(thread.PendingVersion);
+        _messageBus.Verify(m => m.Send(It.Is<ThreadUpdated>(t => t.ThreadId == thread.Id)), Times.Once());
     }
 
     [Fact]
@@ -102,6 +105,9 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
 
         var result = await _sut.SaveThread(thread2.ValueOrFailure, TestContext.Current.CancellationToken);
         result.Value.ShouldBeOfType<NoChanges>();
+
+        _messageBus.Verify(m => m.Send(It.Is<ThreadUpdated>(t => t.ThreadId == thread.Id)), Times.Once());
+        _messageBus.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -115,6 +121,9 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
         thread2.ValueOrFailure.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
         (await _sut.SaveThread(thread2.ValueOrFailure, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Updated>();
         (await _sut.SaveThread(thread2.ValueOrFailure, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<NoChanges>();
+
+        _messageBus.Verify(m => m.Send(It.Is<ThreadUpdated>(t => t.ThreadId == thread.Id)), Times.Exactly(2));
+        _messageBus.VerifyNoOtherCalls();
     }
 
 
@@ -175,6 +184,9 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
 
         var result = await _sut.SaveThread(thread, TestContext.Current.CancellationToken);
         result.Value.ShouldBeOfType<ConcurrencyConflict>();
+
+        _messageBus.Verify(m => m.Send(It.Is<ThreadUpdated>(t => t.ThreadId == thread.Id)), Times.Once());
+        _messageBus.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -234,6 +246,9 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
                 throw new InvalidOperationException("Unexpected type of message");
             }
         }
+
+        _messageBus.Verify(m => m.Send(It.Is<ThreadUpdated>(t => t.ThreadId == thread.Id)), Times.Once());
+        _messageBus.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -645,6 +660,8 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
 
         var threadOrNone = await _sut.GetThread(thread.Id, TestContext.Current.CancellationToken);
         threadOrNone.HasValue.ShouldBeFalse();
+
+        _messageBus.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -663,6 +680,9 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
 
         var threadOrNone = await _sut.GetThread(thread.Id, TestContext.Current.CancellationToken);
         threadOrNone.HasValue.ShouldBeFalse();
+
+        _messageBus.Verify(m => m.Send(It.Is<ThreadUpdated>(t => t.ThreadId == thread.Id)), Times.Once());
+        _messageBus.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -694,6 +714,9 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
         newThreadOrNone.ValueOrFailure.Messages[1].Content.ShouldBe(message2);
         newThreadOrNone.ValueOrFailure.Messages[1].Number.ShouldBe(2);
         newThreadOrNone.ValueOrFailure.Messages[1].MessageId.ShouldBe(messageId2);
+
+        _messageBus.Verify(m => m.Send(It.Is<ThreadUpdated>(t => t.ThreadId == thread.Id)), Times.Exactly(2));
+        _messageBus.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -739,6 +762,9 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
         newThreadOrNone.ValueOrFailure.Messages[2].MessageId.ShouldBe(messageId3);
 
         newThreadOrNone.ValueOrFailure.IsAnswered.ShouldBeFalse();
+
+        _messageBus.Verify(m => m.Send(It.Is<ThreadUpdated>(t => t.ThreadId == thread.Id)), Times.Exactly(3));
+        _messageBus.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -797,6 +823,9 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
 
         var result = await _sut.RefreshThread(thread, TestContext.Current.CancellationToken);
         result.Value.ShouldBeOfType<Success>();
+
+        _messageBus.Verify(m => m.Send(It.Is<ThreadUpdated>(t => t.ThreadId == thread.Id)), Times.Once());
+        _messageBus.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -839,5 +868,7 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
         thread.Messages[2].Content.ShouldBe(message3);
         thread.Messages[2].Number.ShouldBe(3);
         thread.Messages[2].MessageId.ShouldBe(messageId3);
+        _messageBus.Verify(m => m.Send(It.Is<ThreadUpdated>(t => t.ThreadId == thread.Id)), Times.Exactly(2));
+        _messageBus.VerifyNoOtherCalls();
     }
 }
