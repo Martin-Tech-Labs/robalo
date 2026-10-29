@@ -58,6 +58,7 @@ public class AnswerThreadServiceTests : IDisposable
         thread.AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-3))
             .AddLlmMessage(_fixture.Create<string>(), thread.Messages[^1], _utcNow.AddSeconds(-2))
             .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-1));
+        thread.MarkAggregateAsSynchronized();
 
         _repository
             .Setup(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken))
@@ -95,6 +96,7 @@ public class AnswerThreadServiceTests : IDisposable
         var thread = Thread.NewThread(_utcNow.AddSeconds(-4))
             .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-2))
             .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-1));
+        thread.MarkAggregateAsSynchronized();
 
         _repository
             .Setup(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken))
@@ -127,6 +129,7 @@ public class AnswerThreadServiceTests : IDisposable
         var thread = Thread.NewThread(_utcNow.AddSeconds(-4))
             .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-2))
             .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-1));
+        thread.MarkAggregateAsSynchronized();
 
         _repository
             .Setup(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken))
@@ -152,6 +155,7 @@ public class AnswerThreadServiceTests : IDisposable
     {
         var thread = Thread.NewThread(_utcNow.AddSeconds(-4))
             .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-2));
+        thread.MarkAggregateAsSynchronized();
 
         thread.AddLlmMessage(_fixture.Create<string>(), thread.Messages.Single(), _utcNow);
         thread.IsAnswered.ShouldBeTrue();
@@ -176,6 +180,7 @@ public class AnswerThreadServiceTests : IDisposable
     {
         var thread = Thread.NewThread(_utcNow.AddSeconds(-4))
             .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-2));
+        thread.MarkAggregateAsSynchronized();
 
         thread.IsAnswered.ShouldBeFalse();
 
@@ -208,6 +213,7 @@ public class AnswerThreadServiceTests : IDisposable
         var thread = Thread.NewThread(_utcNow.AddSeconds(-4))
             .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-2))
             .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-1));
+        thread.MarkAggregateAsSynchronized();
 
         _repository
             .Setup(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken))
