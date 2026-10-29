@@ -5,11 +5,14 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using FluentValidation;
+using Hangfire;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.Extensions.Options;
+using OpenAI.Assistants;
 using OpenTelemetry.Metrics;
+using Robalo.Common.Coordination.Extensions;
 using Robalo.Common.Health;
 using Robalo.Common.Models;
 using Robalo.Common.Services;
@@ -18,8 +21,11 @@ using Robalo.Controller.Api.Filters;
 using Robalo.Controller.Api.Requests;
 using Robalo.Controller.Api.Validation;
 using Robalo.Controller.Api.Validation.Requests;
+using Robalo.Domain.Clients.Extensions;
+using Robalo.Domain.Models.MessageBus;
 using Robalo.Domain.Repositories;
 using Robalo.Domain.Repositories.Sqlite;
+using Robalo.Domain.Services;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 
 var startTimeUtc = Process.GetCurrentProcess().StartTime.ToUniversalTime();
@@ -58,6 +64,16 @@ builder.Services.AddOpenTelemetry()
 builder.Services.AddOptions();
 builder.Services.AddTransient<IDateTimeOffsetProvider, DateTimeOffsetProvider>();
 builder.Services.AddSqliteRepository(builder.Configuration);
+builder.Services.AddLlmClient(builder.Configuration);
+builder.Services.AddSingleton<IAnswerThreadService, AnswerThreadService>();
+builder.Services.AddSingleton<IAnswerThreadHandler, AnswerThreadHandler>();
+builder.Services.AddTransient<AnswerThreadJob>();
+builder.Services.AddMessageBus(
+    configure: m => m.On<ThreadUpdated, IAnswerThreadHandler>((m, s) => s.Handle(m), out _));
+
+builder.Services.AddHangfire(configuration => configuration.UseInMemoryStorage());
+builder.Services.AddHangfireServer(options => options.WorkerCount = 10);
+
 builder.Services.AddFluentValidationAutoValidation(configuration =>
 {
     configuration.DisableBuiltInModelValidation = true;
@@ -106,6 +122,7 @@ var app = builder.Build();
 app.UseSerilogRequestLogging();
 app.UseForwardedHeaders();
 app.UseExceptionHandler();
+app.UseHangfireDashboard();
 
 var pathBase = Environment.GetEnvironmentVariable("ASPNETCORE_PATHBASE");
 if (!string.IsNullOrWhiteSpace(pathBase))

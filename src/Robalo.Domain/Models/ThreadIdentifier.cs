@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using Robalo.Common.Models;
 
 namespace Robalo.Domain.Models;
@@ -6,7 +7,7 @@ public sealed class ThreadIdentifier : Identifier, IEquatable<ThreadIdentifier>
 {
     protected override string Prefix => "trd_";
 
-    private ThreadIdentifier(string id) : base(id) { }
+    private ThreadIdentifier(string idString) : base(idString) { }
 
     private ThreadIdentifier(Guid uuid) : base(uuid) { }
 

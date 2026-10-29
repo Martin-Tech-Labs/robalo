@@ -5,10 +5,12 @@ using System.Transactions;
 using Dapper;
 using Microsoft.Data.Sqlite;
 using OpenAI.Assistants;
+using Robalo.Common.Coordination;
 using Robalo.Common.Extensions;
 using Robalo.Common.Models;
-using Robalo.Domain.Events;
 using Robalo.Domain.Models;
+using Robalo.Domain.Models.Events;
+using Robalo.Domain.Models.MessageBus;
 using Robalo.Domain.Repositories.Sqlite.Dto;
 using Serilog;
 using SQLitePCL;
@@ -19,12 +21,18 @@ public sealed class SqliteThreadRepository : IThreadRepository
 {
     readonly ILogger _logger;
     readonly ISqliteConnectionFactory _sqlConnectionFactory;
+    readonly IMessageBus _messageBus;
 
-    public SqliteThreadRepository(ILogger logger, ISqliteConnectionFactory sqlConnectionFactory)
+    public SqliteThreadRepository(
+        ILogger logger,
+        ISqliteConnectionFactory sqlConnectionFactory,
+        IMessageBus messageBus)
     {
         _logger = logger.ForContext(GetType());
         _sqlConnectionFactory = sqlConnectionFactory;
+        _messageBus = messageBus;
     }
+
     public async Task<SuccessOrNotFound> DeleteThread(ThreadIdentifier identifier, CancellationToken cancellationToken) =>
         await _sqlConnectionFactory.ExecuteAsTransaction<SuccessOrNotFound>(async connection =>
          {
@@ -125,13 +133,24 @@ public sealed class SqliteThreadRepository : IThreadRepository
             FROM ThreadEvents 
             WHERE ThreadId = @ThreadId
             """,
-            new { ThreadId = identifier })).OrderBy(m => m.MessageNumber);
+            new { ThreadId = identifier })).OrderBy(m => m.MessageNumber).ToArray();
+
+            // This means, the thread has been deleted in the mean time
+            if (threadDto.Version != 0 && events.Length == 0)
+            {
+                return None.Default;
+            }
+
+            if ((events.LastOrDefault()?.MessageNumber ?? 0) < threadDto.Version)
+            {
+                throw new InvalidOperationException("Last message number must not be less than the thread version");
+            }
 
             var thread = Thread.Rehydrate(
                 identifier: identifier,
                 createdOn: threadDto.CreatedOn,
                 title: threadDto.Title,
-                persistedVersion: threadDto.Version,
+                persistedVersion: events.LastOrDefault()?.MessageNumber ?? 0,
                 events: events.Select(EventDto.ToModel).ToArray());
 
             return thread.Some();
@@ -298,6 +317,7 @@ public sealed class SqliteThreadRepository : IThreadRepository
 
         return new Created();
     }
+
     public async Task<UpdateResult> SaveThread(Thread thread, CancellationToken cancellationToken) =>
         await _sqlConnectionFactory.Execute(async connection =>
         {
@@ -307,11 +327,18 @@ public sealed class SqliteThreadRepository : IThreadRepository
                 return new NoChanges();
             }
 
-            return thread.PersistedVersion switch
+            var result = thread.PersistedVersion switch
             {
                 Some<int> _ => await UpdateThread(thread, connection, cancellationToken),
                 _ => await CreateThread(thread, connection, cancellationToken)
             };
+
+            if (result is not ConcurrencyConflict)
+            {
+                _messageBus.Send(new ThreadUpdated(thread.Id));
+            }
+
+            return result;
 
         }, cancellationToken);
 
@@ -413,6 +440,7 @@ public sealed class SqliteThreadRepository : IThreadRepository
             if (versionOrNone is Some<int> version)
             {
                 await InsertEvent(identifier, connection, version, messageAdded);
+                _messageBus.Send(new ThreadUpdated(identifier));
                 return version;
             }
             else

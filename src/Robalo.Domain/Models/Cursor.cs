@@ -1,4 +1,5 @@
 using System.Globalization;
+using Hangfire;
 using Robalo.Common.Extensions;
 using Robalo.Common.Models;
 using SimpleBase;
@@ -29,6 +30,7 @@ public sealed partial record Cursor
         Limit = limit;
         Reference = referenceOrNone;
         OverrideLimit = overrideLimitOrNone;
+
 
         CursorString = _prefix + Base32.Rfc4648.Encode(
            $"{Limit}{_separator}{Reference.ValueOrString("none")}{_separator}{overrideLimitOrNone.ValueOrString("none")}".AsBytesUtf8(), padding: false).ToLowerInvariant();

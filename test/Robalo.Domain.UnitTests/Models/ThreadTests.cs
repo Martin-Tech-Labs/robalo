@@ -1,8 +1,8 @@
 using System.Reflection.Metadata;
 using Robalo.Common.Extensions;
 using Robalo.Common.Models;
-using Robalo.Domain.Events;
 using Robalo.Domain.Models;
+using Robalo.Domain.Models.Events;
 using Robalo.Tests.Common;
 
 namespace Robalo.Domain.UnitTests.Models;

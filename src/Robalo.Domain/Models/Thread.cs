@@ -1,6 +1,6 @@
 using Robalo.Common.Extensions;
 using Robalo.Common.Models;
-using Robalo.Domain.Events;
+using Robalo.Domain.Models.Events;
 
 namespace Robalo.Domain.Models;
 

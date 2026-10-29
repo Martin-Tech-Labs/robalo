@@ -7,7 +7,7 @@ using Robalo.Common.Services;
 using Robalo.Controller.Api.Controllers;
 using Robalo.Controller.Api.Hypermedia.Resources;
 using Robalo.Controller.Api.Requests;
-using Robalo.Domain.Events;
+using Robalo.Domain.Models.Events;
 using Robalo.Domain.Repositories;
 using Serilog;
 
