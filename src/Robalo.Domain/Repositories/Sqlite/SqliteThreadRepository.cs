@@ -133,13 +133,24 @@ public sealed class SqliteThreadRepository : IThreadRepository
             FROM ThreadEvents 
             WHERE ThreadId = @ThreadId
             """,
-            new { ThreadId = identifier })).OrderBy(m => m.MessageNumber);
+            new { ThreadId = identifier })).OrderBy(m => m.MessageNumber).ToArray();
+
+            // This means, the thread has been deleted in the mean time
+            if (threadDto.Version != 0 && events.Length == 0)
+            {
+                return None.Default;
+            }
+
+            if ((events.LastOrDefault()?.MessageNumber ?? 0) < threadDto.Version)
+            {
+                throw new InvalidOperationException("Last message number must not be less than the thread version");
+            }
 
             var thread = Thread.Rehydrate(
                 identifier: identifier,
                 createdOn: threadDto.CreatedOn,
                 title: threadDto.Title,
-                persistedVersion: events.Max(e => e.MessageNumber),
+                persistedVersion: events.LastOrDefault()?.MessageNumber ?? 0,
                 events: events.Select(EventDto.ToModel).ToArray());
 
             return thread.Some();
