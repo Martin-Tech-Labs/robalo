@@ -220,7 +220,8 @@ public class ThreadsController : ControllerBase
             thread.Id,
             thread.Title,
             thread.CreatedOn,
-            thread.ModifiedOn));
+            thread.ModifiedOn,
+            thread.PersistedVersion.ValueOrFailure));
 
     MessageResource GetMessageResource(Message message, ThreadIdentifier threadId) => new(
         message.Content,

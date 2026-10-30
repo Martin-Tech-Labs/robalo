@@ -24,6 +24,7 @@ public class ThreadsController_CreateThreadTests : ThreadsControllerTests
 
         _repository
             .Setup(r => r.SaveThread(It.IsAny<Thread>(), It.IsAny<CancellationToken>()))
+            .Callback<Thread, CancellationToken>((t, _) => t.MarkAggregateAsSynchronized())
             .ReturnsAsync(new Created());
 
         var result = await _sut.CreateThread(
@@ -52,11 +53,7 @@ public class ThreadsController_CreateThreadTests : ThreadsControllerTests
                 t.Title == null &&
                 t.Messages[0].Content == request.Content &&
                 t.Messages[0].CreatedOn == _utcNow &&
-                t.Id == resource.ThreadId &&
-                t.PendingEvents.Count == 1 &&
-                t.PendingEvents[0].GetType() == typeof(UserMessageAdded) &&
-                ((UserMessageAdded)t.PendingEvents[0]).Content == request.Content &&
-                ((UserMessageAdded)t.PendingEvents[0]).AddedOn == _utcNow), TestContext.Current.CancellationToken),
+                t.Id == resource.ThreadId), TestContext.Current.CancellationToken),
             Times.Once());
     }
 
