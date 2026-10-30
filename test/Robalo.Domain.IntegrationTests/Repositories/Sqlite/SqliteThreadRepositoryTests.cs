@@ -635,6 +635,7 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
             threadInfo.Id.ShouldBe(thread.Id);
             threadInfo.CreatedOn.ShouldBe(thread.CreatedOn);
             threadInfo.ModifiedOn.ShouldBe(thread.ModifiedOn);
+            threadInfo.Version.ShouldBe(thread.PersistedVersion.ValueOrFailure);
         }
     }
 

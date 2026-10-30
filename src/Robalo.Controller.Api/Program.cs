@@ -16,16 +16,19 @@ using Robalo.Common.Coordination.Extensions;
 using Robalo.Common.Health;
 using Robalo.Common.Models;
 using Robalo.Common.Services;
+using Robalo.Common.Streaming;
 using Robalo.Controller.Api;
 using Robalo.Controller.Api.Filters;
 using Robalo.Controller.Api.Requests;
 using Robalo.Controller.Api.Validation;
 using Robalo.Controller.Api.Validation.Requests;
 using Robalo.Domain.Clients.Extensions;
+using Robalo.Domain.Models;
 using Robalo.Domain.Models.MessageBus;
 using Robalo.Domain.Repositories;
 using Robalo.Domain.Repositories.Sqlite;
 using Robalo.Domain.Services;
+using Robalo.Domain.Streaming;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 
 var startTimeUtc = Process.GetCurrentProcess().StartTime.ToUniversalTime();
@@ -68,8 +71,16 @@ builder.Services.AddLlmClient(builder.Configuration);
 builder.Services.AddSingleton<IAnswerThreadService, AnswerThreadService>();
 builder.Services.AddSingleton<IAnswerThreadHandler, AnswerThreadHandler>();
 builder.Services.AddTransient<AnswerThreadJob>();
+
+builder.Services.AddSingleton<IStreamingService<ThreadIdentifier, Message, int>, StreamingService<ThreadIdentifier, Message, int>>();
+builder.Services.AddSingleton<IStreamThreadHandler, StreamThreadHandler>();
+builder.Services.AddTransient<StreamThreadJob>();
+builder.Services.AddTransient<IStreamingProvider<ThreadIdentifier, Message, int>, ThreadStreamingProvider>();
+
 builder.Services.AddMessageBus(
-    configure: m => m.On<ThreadUpdated, IAnswerThreadHandler>((m, s) => s.Handle(m), out _));
+configure: messageBus => messageBus
+            .On<ThreadUpdated, IAnswerThreadHandler>((m, s) => s.Handle(m), out _)
+            .On<ThreadUpdated, IStreamThreadHandler>((m, s) => s.Handle(m), out _));
 
 builder.Services.AddHangfire(configuration => configuration.UseInMemoryStorage());
 builder.Services.AddHangfireServer(options => options.WorkerCount = 10);

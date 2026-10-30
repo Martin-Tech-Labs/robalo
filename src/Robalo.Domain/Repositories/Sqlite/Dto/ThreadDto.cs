@@ -16,7 +16,7 @@ public sealed record ThreadDto(
         ModifiedOn: thread.ModifiedOn,
         Version: thread.PendingVersion);
 
-    public ThreadInfo ToModel() => new(ThreadIdentifier.FromIdString(Id), Title, CreatedOn, ModifiedOn);
+    public ThreadInfo ToModel() => new(ThreadIdentifier.FromIdString(Id), Title, CreatedOn, ModifiedOn, Version);
 
     public static ThreadInfo ToModel(ThreadDto dto) => dto.ToModel();
 }

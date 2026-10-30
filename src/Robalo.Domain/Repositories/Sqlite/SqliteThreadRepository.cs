@@ -239,7 +239,7 @@ public sealed class SqliteThreadRepository : IThreadRepository
                .Select(dto => Message.FromModel(EventDto.ToModel(dto), dto.MessageNumber))
                .ToList();
 
-            Cursor self = Cursor.Create(limit: cursor.Limit, reference: messages[0].Number)
+            Cursor self = Cursor.Create(limit: cursor.Limit, startReference: messages[0].Number)
                 .DoIf(cursor => messages.Count < cursor.Limit, cursor => cursor.WithOneOffLimitOverride(messages.Count));
 
             var prevReference = Math.Max(1, messages[0].Number - cursor.Limit);
@@ -247,11 +247,11 @@ public sealed class SqliteThreadRepository : IThreadRepository
 
             Option<Cursor> prev = messages[0].Number == 1 ?
                 None.Default :
-                Cursor.Create(limit: cursor.Limit, reference: prevReference)
+                Cursor.Create(limit: cursor.Limit, startReference: prevReference)
                 .DoIf(cursor => prevSize < cursor.Limit, cursor => cursor.WithOneOffLimitOverride(prevSize));
 
             Option<Cursor> next = isNextAvailable ?
-                 Cursor.Create(limit: cursor.Limit, reference: messages[^1].Number + 1) :
+                 Cursor.Create(limit: cursor.Limit, startReference: messages[^1].Number + 1) :
                  None.Default;
 
             return new(messages, self, prev, next);
