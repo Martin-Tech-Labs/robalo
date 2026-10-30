@@ -39,13 +39,13 @@ public sealed partial record Cursor
     public Cursor WithOneOffLimitOverride(int overrideLimit) =>
         new(limit: Limit, referenceOrNone: Reference, overrideLimitOrNone: overrideLimit);
 
-    public static Cursor Create(int limit, int reference) =>
-        new(limit, reference, None.Default);
+    public static Cursor Create(int limit, int startReference) =>
+        new(limit, startReference, None.Default);
 
     public static Cursor Last(int limit) =>
          new(limit, None.Default, None.Default);
 
-    public static Cursor First(int limit) => Create(limit: limit, reference: 1);
+    public static Cursor First(int limit) => Create(limit: limit, startReference: 1);
 
     public static implicit operator string(Cursor value) => value.ToString();
 

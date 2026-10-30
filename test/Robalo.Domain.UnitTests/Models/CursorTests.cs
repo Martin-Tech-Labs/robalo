@@ -13,7 +13,7 @@ public class CursorTests
     [InlineData(11_000)]
     public void Create_ShouldThrow_OnInvalidLimit(int limit)
     {
-        Should.Throw<ArgumentOutOfRangeException>(() => Cursor.Create(limit: limit, reference: 1));
+        Should.Throw<ArgumentOutOfRangeException>(() => Cursor.Create(limit: limit, startReference: 1));
     }
 
     [Theory]
@@ -37,7 +37,7 @@ public class CursorTests
     [Fact]
     public void Create_ShouldThrow_OnInvalidReference()
     {
-        Should.Throw<ArgumentOutOfRangeException>(() => Cursor.Create(limit: 1, reference: -1));
+        Should.Throw<ArgumentOutOfRangeException>(() => Cursor.Create(limit: 1, startReference: -1));
     }
 
     [Theory]
@@ -55,7 +55,7 @@ public class CursorTests
     {
         var limit = _fixture.Create<int>();
         var reference = _fixture.Create<int>();
-        var cursor = Cursor.Create(limit: limit, reference: reference);
+        var cursor = Cursor.Create(limit: limit, startReference: reference);
 
         cursor.Limit.ShouldBe(limit);
         cursor.Reference.ShouldBe(reference);
@@ -69,7 +69,7 @@ public class CursorTests
         var limit = 20;
         var overrideLimit = limit - 1;
         var reference = _fixture.Create<int>();
-        var cursor = Cursor.Create(limit: limit, reference: reference).WithOneOffLimitOverride(overrideLimit);
+        var cursor = Cursor.Create(limit: limit, startReference: reference).WithOneOffLimitOverride(overrideLimit);
 
         cursor.Limit.ShouldBe(limit);
         cursor.Reference.ShouldBe(reference);

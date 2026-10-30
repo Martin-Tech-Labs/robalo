@@ -16,6 +16,4 @@ public interface IStreamingProvider<TStreamId, TEvent, TCheckpoint>
         CancellationToken cancellationToken);
 
     public Task<IReadOnlyDictionary<TStreamId, TCheckpoint>> GetAllCheckpoints(CancellationToken cancellationToken);
-
-    public Task PushForStream(TStreamId streamId, CancellationToken cancellationToken);
 }

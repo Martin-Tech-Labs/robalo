@@ -23,4 +23,6 @@ public interface IStreamingService<TStreamId, TEvent, TCheckpoint>
         Option<TCheckpoint> checkpointOrNone,
         Func<TEvent, bool> filter,
         CancellationToken cancellationToken);
+
+    public Task PushForStream(TStreamId streamId, CancellationToken cancellationToken);
 }

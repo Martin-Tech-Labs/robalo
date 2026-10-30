@@ -16,7 +16,7 @@ sealed record Subscription<TStreamId, TEvent, TCheckpoint>(
     where TEvent : notnull
     where TCheckpoint : notnull, IComparisonOperators<TCheckpoint, TCheckpoint, bool>;
 
-public closed class StreamingService<TStreamId, TEvent, TCheckpoint> : IStreamingService<TStreamId, TEvent, TCheckpoint>, IDisposable
+public sealed class StreamingService<TStreamId, TEvent, TCheckpoint> : IStreamingService<TStreamId, TEvent, TCheckpoint>, IDisposable
     where TEvent : notnull
     where TStreamId : notnull
     where TCheckpoint : notnull, IComparisonOperators<TCheckpoint, TCheckpoint, bool>
@@ -171,18 +171,18 @@ public closed class StreamingService<TStreamId, TEvent, TCheckpoint> : IStreamin
     {
         await InitializeCheckpoints(cancellationToken);
         using var semaphore = await AcquireSemaphore(streamId, cancellationToken);
-        var events = await _streamingProvider.GetEvents(
+        var eventsOrNone = await _streamingProvider.GetEvents(
            streamId: streamId,
            fromExcluding: _liveCheckpoints.TryGetValue(streamId, out var checkpoint) ? checkpoint : None.Default,
            toIncluding: None.Default,
            cancellationToken).ToList();
 
-        if (events.Count == 0)
+        if (eventsOrNone.Count == 0)
         {
             return;
         }
 
-        foreach (var streamingEvent in events)
+        foreach (var streamingEvent in eventsOrNone)
         {
             _liveCheckpoints[streamId] = streamingEvent.Checkpoint;
             var subscriptions = _channels.Values.Where(s => s.Filter(streamingEvent)).ToArray();
