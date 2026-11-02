@@ -216,9 +216,12 @@ public sealed class StreamingService<TStreamId, TEvent, TCheckpoint> : IStreamin
             TStreamId streamId,
             CancellationToken cancellationToken)
     {
-        await InitializeCheckpoints(cancellationToken);
+        if(_channels.IsEmpty)
+        {
+            return;
+        }
+        
         using var semaphore = await AcquireSemaphore(streamId, cancellationToken);
-
 
         await foreach (var streamingEvent in _streamingProvider.GetEvents(
             streamId: streamId,
