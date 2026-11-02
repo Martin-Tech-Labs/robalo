@@ -52,16 +52,7 @@ public class EventsController : ControllerBase
                 _ => _streamingService.PullAll(cancellationToken)
             };
 
-            var mapResult = result.Map(s => _httpContextAccessor.GetMessageResource(s.Event, s.StreamId), cancellationToken);
-
-            if (Request.Query.TryGetValue("plain", out var values) && values.Count < 2 && values.SingleOrDefault()?.Equals("false", StringComparison.OrdinalIgnoreCase) != false)
-            {
-#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-                mapResult = mapResult.Map(s => s with { Links = null }, cancellationToken);
-#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
-            }
-
-            return Results.ServerSentEvents(mapResult);
+            return Results.ServerSentEvents(result.Map(s => _httpContextAccessor.GetMessageResource(s.Event, s.StreamId), cancellationToken));
         }
 
         Result<Option<int>, IResult> GetCheckpointOrNone(Option<Thread> threadIdOrNone)
