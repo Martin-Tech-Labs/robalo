@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http.Extensions;
+using Robalo.Controller.Api.Hypermedia.Resources;
 using Robalo.Domain.Models;
 
 namespace Robalo.Controller.Api.Hypermedia;
@@ -46,9 +47,29 @@ public static class Extensions
         ThreadIdentifier threadId)
             => accessor.HttpContext!.LinkToPath($"/events?thread_id={threadId}");
 
+    public static Link LinkToEventsWithThreadIdAndCheckpoint(
+        this IHttpContextAccessor accessor,
+        ThreadIdentifier threadId,
+        int checkpoint)
+            => accessor.HttpContext!.LinkToPath($"/events?thread_id={threadId}&checkpoint={checkpoint}");
+
     public static Link LinkToEvents(this IHttpContextAccessor accessor)
             => accessor.HttpContext!.LinkToPath($"/events");
 
     public static Link LinkToServiceDiscovery(this IHttpContextAccessor accessor)
         => accessor.HttpContext!.LinkToPath($"");
+
+    public static MessageResource GetMessageResource(
+        this IHttpContextAccessor httpContextAccessor,
+        Message message,
+        ThreadIdentifier threadId) => new(
+            Content: message.Content,
+            CreatedOn: message.CreatedOn,
+            Source: message.Source.ToString().ToLowerInvariant().ToLowerInvariant(),
+            ThreadId: threadId.IdString,
+            MessageNumber: message.Number,
+            Links: new MessageLinks(
+                Self: httpContextAccessor.LinkToMessageNumber(threadId, message.Number),
+                Thread: httpContextAccessor.LinkToThreadId(threadId),
+                Events: httpContextAccessor.LinkToEventsWithThreadIdAndCheckpoint(threadId, message.Number)));
 }

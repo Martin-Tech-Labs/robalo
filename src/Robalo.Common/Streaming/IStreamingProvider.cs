@@ -11,8 +11,7 @@ public interface IStreamingProvider<TStreamId, TEvent, TCheckpoint>
 {
     public Task<IEnumerable<StreamingEvent<TStreamId, TEvent, TCheckpoint>>> GetEvents(
         TStreamId streamId,
-        Option<TCheckpoint> fromExcluding,
-        Option<TCheckpoint> toIncluding,
+        Option<TCheckpoint> fromExcludingOrNone,
         CancellationToken cancellationToken);
 
     public Task<IReadOnlyDictionary<TStreamId, TCheckpoint>> GetAllCheckpoints(CancellationToken cancellationToken);

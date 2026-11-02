@@ -11,6 +11,10 @@ public static class OptionExtensions
             Some<T> some => some.Value,
             _ => throw new InvalidOperationException("Cannot get Value for None")
         };
+
+#pragma warning disable CA1000 // Do not declare static members on generic types
+        public static Option<T> None => None.Default;
+#pragma warning restore CA1000 // Do not declare static members on generic types
     }
 
     public static Option<T> AsOption<T>(this T? value) where T : notnull =>
@@ -20,6 +24,9 @@ public static class OptionExtensions
         value is null ? None.Default : value.Value;
 
     public static Option<T> Some<T>(this T value) where T : notnull => value;
+
+    public static Option<T> Some<T>(this T? value, Func<T, bool> predicate) where T : struct =>
+        value is not null && predicate(value.Value) ? value.Value : None.Default;
 
 #pragma warning disable CC001
     public static async Task<Option<T>> Some<T>(this Task<T> task) where T : notnull

@@ -25,6 +25,7 @@ public readonly union Option<T>(None, Some<T>) where T : notnull
 {
     public bool HasValue => this is Some<T>;
     public bool IsNone => !HasValue;
+
     public static implicit operator Option<T>(T value) => new Some<T>(value);
 
     public static bool operator ==(Option<T> option, T value) =>

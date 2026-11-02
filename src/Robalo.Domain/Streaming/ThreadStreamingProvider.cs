@@ -24,34 +24,30 @@ public sealed class ThreadStreamingProvider : IStreamingProvider<ThreadIdentifie
 
     public async Task<IEnumerable<StreamingEvent<ThreadIdentifier, Message, int>>> GetEvents(
         ThreadIdentifier threadId,
-        Option<int> fromExcluding,
-        Option<int> toIncluding,
+        Option<int> fromExcludingOrNone,
         CancellationToken cancellationToken)
     {
-        var limit = 10;
-        if (fromExcluding is Some<int> from && toIncluding is Some<int> to)
-        {
-            limit = to - from;
-        }
+        var from = fromExcludingOrNone switch { Some<int> some => Math.Max(1, some + 1), _ => 1 };
 
-        Option<Cursor> next = Cursor.Create(10, fromExcluding switch { Some<int> some => some + 1, _ => 1 });
+        Option<Cursor> next = Cursor.Create(10, from);
 
         var messages = new List<Message>();
-        QueryResult queryResult;
         do
         {
             cancellationToken.ThrowIfCancellationRequested();
             var result = await _repository.QueryMessages(threadId, next.ValueOrFailure, cancellationToken);
-            if (!result.HasValue)
+            if (result is Some<QueryResult> queryResult)
             {
-                return Enumerable.Empty<StreamingEvent<ThreadIdentifier, Message, int>>();
+                messages.AddRange(queryResult.Value.Messages);
+                next = queryResult.Value.Next;
             }
-            queryResult = result.ValueOrFailure;
-            messages.AddRange(queryResult.Messages);
-            next = queryResult.Next;
+            else
+            {
+                return [];
+            }
         }
-        while (next.HasValue && !toIncluding.HasValue);
-        
+        while (next.HasValue);
+
         return messages.Select(m => new StreamingEvent<ThreadIdentifier, Message, int>(threadId, m, m.Number));
     }
 }

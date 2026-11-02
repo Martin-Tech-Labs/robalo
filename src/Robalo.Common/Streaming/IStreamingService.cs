@@ -9,6 +9,9 @@ public interface IStreamingService<TStreamId, TEvent, TCheckpoint>
     where TEvent : notnull
     where TCheckpoint : notnull, IComparisonOperators<TCheckpoint, TCheckpoint, bool>
 {
+    public IAsyncEnumerable<StreamingEvent<TStreamId, TEvent, TCheckpoint>> PullAll(
+        CancellationToken cancellationToken);
+
     public IAsyncEnumerable<StreamingEvent<TStreamId, TEvent, TCheckpoint>> Pull(
         TStreamId streamId,
         Option<TCheckpoint> checkpointOrNone,

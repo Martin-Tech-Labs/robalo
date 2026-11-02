@@ -24,7 +24,7 @@ public sealed class StreamingService<TStreamId, TEvent, TCheckpoint> : IStreamin
     readonly ConcurrentDictionary<Guid, Subscription<TStreamId, TEvent, TCheckpoint>> _channels = new();
     ConcurrentDictionary<TStreamId, TCheckpoint> _liveCheckpoints;
     readonly Dictionary<TStreamId, SemaphoreWrapper> _semaphores = new();
-    private readonly SemaphoreWrapper _initSemaphore = new SemaphoreWrapper(new SemaphoreSlim(1, 1));
+    private readonly SemaphoreWrapper _initSemaphore = new(new SemaphoreSlim(1, 1));
 
     readonly Lock _lockSemaphores = new();
 
@@ -91,6 +91,10 @@ public sealed class StreamingService<TStreamId, TEvent, TCheckpoint> : IStreamin
        Func<StreamingEvent<TStreamId, TEvent, TCheckpoint>, bool> filter,
        CancellationToken cancellationToken) => RegisterAndPull(filter, None.Default, cancellationToken);
 
+
+    public IAsyncEnumerable<StreamingEvent<TStreamId, TEvent, TCheckpoint>> PullAll(
+        CancellationToken cancellationToken) => RegisterAndPull(_ => true, None.Default, cancellationToken);
+
     public IAsyncEnumerable<StreamingEvent<TStreamId, TEvent, TCheckpoint>> Pull(
         TStreamId streamId,
         Option<TCheckpoint> checkpointOrNone,
@@ -127,8 +131,7 @@ public sealed class StreamingService<TStreamId, TEvent, TCheckpoint> : IStreamin
                 var replayThrough = checkpoint;
                 foreach (var e in (await _streamingProvider.GetEvents(
                     streamId: streamId,
-                    fromExcluding: checkpoint,
-                    toIncluding: None.Default,
+                    fromExcludingOrNone: checkpoint,
                     cancellationToken)).Where(filter))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -173,8 +176,7 @@ public sealed class StreamingService<TStreamId, TEvent, TCheckpoint> : IStreamin
         using var semaphore = await AcquireSemaphore(streamId, cancellationToken);
         var eventsOrNone = await _streamingProvider.GetEvents(
            streamId: streamId,
-           fromExcluding: _liveCheckpoints.TryGetValue(streamId, out var checkpoint) ? checkpoint : None.Default,
-           toIncluding: None.Default,
+           fromExcludingOrNone: _liveCheckpoints.TryGetValue(streamId, out var checkpoint) ? checkpoint : None.Default,
            cancellationToken).ToList();
 
         if (eventsOrNone.Count == 0)

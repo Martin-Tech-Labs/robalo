@@ -1,5 +1,6 @@
 namespace Robalo.Controller.Api.Hypermedia.Resources;
 
+
 public record MessageResource(
     string Content,
     DateTimeOffset CreatedOn,

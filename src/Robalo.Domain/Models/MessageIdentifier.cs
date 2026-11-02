@@ -1,6 +1,6 @@
 namespace Robalo.Domain.Models;
 
-public sealed class MessageIdentifier : Identifier, IEquatable<MessageIdentifier>
+public sealed class MessageIdentifier : Identifier
 {
     protected override string Prefix => "msg_";
 
@@ -15,10 +15,4 @@ public sealed class MessageIdentifier : Identifier, IEquatable<MessageIdentifier
     public static MessageIdentifier FromUuid(Guid uuid) => new(uuid);
 
     public static MessageIdentifier NewIdentifier() => FromUuid(Guid.NewGuid());
-
-    public bool Equals(MessageIdentifier? other) => base.Equals(other);
-
-    public override bool Equals(object? obj) => base.Equals(obj);
-
-    public override int GetHashCode() => base.GetHashCode();
 }
