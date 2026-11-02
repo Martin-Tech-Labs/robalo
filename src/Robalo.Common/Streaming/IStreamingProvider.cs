@@ -9,7 +9,7 @@ public interface IStreamingProvider<TStreamId, TEvent, TCheckpoint>
     where TEvent : notnull
     where TCheckpoint : notnull, IComparisonOperators<TCheckpoint, TCheckpoint, bool>
 {
-    public Task<IEnumerable<StreamingEvent<TStreamId, TEvent, TCheckpoint>>> GetEvents(
+    public IAsyncEnumerable<StreamingEvent<TStreamId, TEvent, TCheckpoint>> GetEvents(
         TStreamId streamId,
         Option<TCheckpoint> fromExcludingOrNone,
         CancellationToken cancellationToken);

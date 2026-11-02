@@ -141,13 +141,43 @@ public sealed class StreamingService<TStreamId, TEvent, TCheckpoint> : IStreamin
         if (checkpointOrNone is Some<(TStreamId, TCheckpoint)> checkpointSome)
         {
             var (streamId, checkpoint) = checkpointSome.Value;
+
+            var replayThrough = checkpoint;
+
+            // To prevent blocking other clients when replying older messages, we only use semaphore after the  replay messages outside of it,
+            // to cover any possible remaining gap. Still, if there are lots of messages to replay, the client would only consume them
+            // once we have written all of them to a channel.
+
+            // So we have 3-step process:
+            // 1. Replay as enumerable with yield return
+            // 2. Replay in bulk (to prevent a big gap, if a client was very slow processing events, especially the last event)
+            // 3. Replay in bulk in a semaphore
+
+            await foreach (var e in _streamingProvider.GetEvents(
+                streamId: streamId,
+                fromExcludingOrNone: checkpoint, cancellationToken).Where(filter).WithCancellation(cancellationToken))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                yield return e;
+                replayThrough = e.Checkpoint;
+            }
+
+            await foreach (var e in _streamingProvider.GetEvents(
+                 streamId: streamId,
+                 fromExcludingOrNone: replayThrough,
+                 cancellationToken).Where(filter).WithCancellation(cancellationToken))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                await channel.Writer.WriteAsync(e, cancellationToken);
+                replayThrough = e.Checkpoint;
+            }
+
             using (var semaphore = await AcquireSemaphore(streamId, cancellationToken))
             {
-                var replayThrough = checkpoint;
-                foreach (var e in (await _streamingProvider.GetEvents(
-                    streamId: streamId,
-                    fromExcludingOrNone: checkpoint,
-                    cancellationToken)).Where(filter))
+                await foreach (var e in _streamingProvider.GetEvents(
+                      streamId: streamId,
+                      fromExcludingOrNone: replayThrough,
+                      cancellationToken).Where(filter).WithCancellation(cancellationToken))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     await channel.Writer.WriteAsync(e, cancellationToken);
@@ -156,18 +186,17 @@ public sealed class StreamingService<TStreamId, TEvent, TCheckpoint> : IStreamin
 
                 var originalFilter = subscription.Filter;
 
-                subscription = subscription with
+                _channels[id] = subscription with
                 {
                     Filter = e => originalFilter(e) && e.Checkpoint > replayThrough
                 };
-
-                _channels[id] = subscription;
             }
         }
         else
         {
             _channels[id] = subscription;
         }
+
         try
         {
             await foreach (var item in channel.Reader.ReadAllAsync(cancellationToken))
@@ -189,17 +218,12 @@ public sealed class StreamingService<TStreamId, TEvent, TCheckpoint> : IStreamin
     {
         await InitializeCheckpoints(cancellationToken);
         using var semaphore = await AcquireSemaphore(streamId, cancellationToken);
-        var eventsOrNone = await _streamingProvider.GetEvents(
-           streamId: streamId,
-           fromExcludingOrNone: _liveCheckpoints.TryGetValue(streamId, out var checkpoint) ? checkpoint : None.Default,
-           cancellationToken).ToList();
 
-        if (eventsOrNone.Count == 0)
-        {
-            return;
-        }
 
-        foreach (var streamingEvent in eventsOrNone)
+        await foreach (var streamingEvent in _streamingProvider.GetEvents(
+            streamId: streamId,
+            fromExcludingOrNone: _liveCheckpoints.TryGetValue(streamId, out var checkpoint) ? checkpoint : None.Default,
+            cancellationToken).WithCancellation(cancellationToken))
         {
             _liveCheckpoints[streamId] = streamingEvent.Checkpoint;
             var subscriptions = _channels.Values.Where(s => s.Filter(streamingEvent)).ToArray();
