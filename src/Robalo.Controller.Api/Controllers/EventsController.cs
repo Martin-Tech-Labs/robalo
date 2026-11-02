@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Robalo.Common.Extensions;
 using Robalo.Common.Models;
+using Robalo.Common.Rop;
 using Robalo.Common.Streaming;
 using Robalo.Controller.Api.Hypermedia;
 using Robalo.Controller.Api.Hypermedia.Resources;
@@ -33,20 +34,65 @@ public class EventsController : ControllerBase
 
     [HttpGet("")]
     public async Task<IResult> Get(
-        [FromQuery] string? threadId,
+        [FromQuery(Name = "thread_id")] string? threadId,
         [FromQuery] int? checkpoint,
         CancellationToken cancellationToken)
     {
-        var result = (threadId is not null ? ThreadIdentifier.TryGetFromId(threadId) : None.Default) switch
+
+        return await GetThreadOrNone()
+                  .Bind(threadOrNone => GetCheckpointOrNone(threadOrNone)
+                  .Map(checkpointOrNone => Subscribe(threadOrNone, checkpointOrNone)))
+                  .Either();
+
+        IResult Subscribe(Option<Thread> threadOrNone, Option<int> checkpointOrNone)
         {
-            Some<ThreadIdentifier> id => _streamingService.Pull(id, checkpoint.Some(c => c > 0), cancellationToken),
-            _ => _streamingService.PullAll(cancellationToken)
-        };
+            var result = threadOrNone switch
+            {
+                Some<Thread> thread => _streamingService.Pull(thread.Value.Id, checkpointOrNone, cancellationToken),
+                _ => _streamingService.PullAll(cancellationToken)
+            };
 
-        var mapResult = result.Map<StreamingEvent<ThreadIdentifier, Message, int>, object>(
-           Request.Query.ContainsKey("plain") ? s => s.Event :
-            s => _httpContextAccessor.GetMessageResource(s.Event, s.StreamId), cancellationToken);
+            var mapResult = result.Map(s => _httpContextAccessor.GetMessageResource(s.Event, s.StreamId), cancellationToken);
 
-        return Results.ServerSentEvents(mapResult);
+            if (Request.Query.TryGetValue("plain", out var values) && values.Count < 2 && values.SingleOrDefault()?.Equals("false", StringComparison.OrdinalIgnoreCase) != false)
+            {
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
+                mapResult = mapResult.Map(s => s with { Links = null }, cancellationToken);
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
+            }
+
+            return Results.ServerSentEvents(mapResult);
+        }
+
+        Result<Option<int>, IResult> GetCheckpointOrNone(Option<Thread> threadIdOrNone)
+        {
+            var isValidCheckpoint = threadIdOrNone switch
+            {
+                Some<Thread> thread => checkpoint is null || (checkpoint >= 1 && checkpoint <= thread.Value.PersistedVersion.ValueOrFailure),
+                _ => checkpoint is null
+            };
+
+            return isValidCheckpoint ? checkpoint.AsOption() : Results.NotFound();
+        }
+
+        async Task<Result<Option<Thread>, IResult>> GetThreadOrNone()
+        {
+            if (string.IsNullOrWhiteSpace(threadId))
+            {
+                return Option<Thread>.None;
+            }
+
+            var threadIdOrNone = ThreadIdentifier.TryGetFromId(threadId);
+            if (threadIdOrNone is not Some<ThreadIdentifier> threadIdentifier)
+            {
+                return Results.NotFound();
+            }
+
+            var threadOrNone = await _repository.GetThread(threadIdentifier, cancellationToken);
+
+            return threadOrNone.HasValue ?
+             threadOrNone :
+             Results.NotFound();
+        }
     }
 }

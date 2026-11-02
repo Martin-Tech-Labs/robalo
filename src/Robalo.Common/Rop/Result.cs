@@ -81,6 +81,16 @@ public static class Extensions
         };
     }
 
+    public static TResult Map<T, TResult>(this Result<T, TResult> value, Func<T, TResult> func)
+    {
+        return value switch
+        {
+            TResult res => res,
+            T t => func(t),
+            _ => throw new InvalidOperationException(value.GetType().Name)
+        };
+    }
+
     public static async Task<Result<TResult, Exit<TResult>>> Map<T, TResult>(this Task<Result<T, TResult>> value, Func<T, Task<TResult>> func)
     {
         return await value switch
@@ -91,7 +101,27 @@ public static class Extensions
         };
     }
 
+    public static async Task<Result<Exit<TResult>, TResult>> Bind<T, TResult>(this Task<Result<T, TResult>> value, Func<T, TResult> func)
+    {
+        return await value switch
+        {
+            TResult error => error,
+            T success => new Exit<TResult>(func(success)),
+            _ => throw new InvalidOperationException(value.GetType().Name)
+        };
+    }
+
     public static async Task<TResult> Either<TResult>(this Task<Result<TResult, Exit<TResult>>> value)
+    {
+        return await value switch
+        {
+            TResult res => res,
+            Exit<TResult> exitRes => exitRes.Value,
+            _ => throw new InvalidOperationException(value.GetType().Name)
+        };
+    }
+
+    public static async Task<TResult> Either<TResult>(this Task<Result<Exit<TResult>, TResult>> value)
     {
         return await value switch
         {

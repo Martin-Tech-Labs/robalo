@@ -47,6 +47,12 @@ public static class Extensions
         ThreadIdentifier threadId)
             => accessor.HttpContext!.LinkToPath($"/events?thread_id={threadId}");
 
+    public static Link LinkToEventsWithThreadIdAndCheckpoint(
+        this IHttpContextAccessor accessor,
+        ThreadIdentifier threadId,
+        int checkpoint)
+            => accessor.HttpContext!.LinkToPath($"/events?thread_id={threadId}&checkpoint={checkpoint}");
+
     public static Link LinkToEvents(this IHttpContextAccessor accessor)
             => accessor.HttpContext!.LinkToPath($"/events");
 
@@ -65,5 +71,5 @@ public static class Extensions
             Links: new MessageLinks(
                 Self: httpContextAccessor.LinkToMessageNumber(threadId, message.Number),
                 Thread: httpContextAccessor.LinkToThreadId(threadId),
-                Events: httpContextAccessor.LinkToEventsWithThreadId(threadId)));
+                Events: httpContextAccessor.LinkToEventsWithThreadIdAndCheckpoint(threadId, message.Number)));
 }

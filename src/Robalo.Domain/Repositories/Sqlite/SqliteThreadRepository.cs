@@ -86,18 +86,27 @@ public sealed class SqliteThreadRepository : IThreadRepository
 
         async IAsyncEnumerable<Message> GetEnumerable([EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            Option<Message> messageOrNone = None.Default;
-            var messageNumber = 1;
+            Option<Cursor> current = Cursor.First(10);
+
             do
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                messageOrNone = await GetMessage(identifier, messageNumber++, cancellationToken);
-                if (messageOrNone.HasValue)
+                var result = await QueryMessages(identifier, current.ValueOrFailure, cancellationToken);
+                if (result is Some<QueryResult> queryResult)
                 {
-                    yield return messageOrNone.ValueOrFailure;
+                    foreach (var message in queryResult.Value.Messages)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        yield return message;
+                    }
+                    current = queryResult.Value.Next;
+                }
+                else
+                {
+                    yield break;
                 }
             }
-            while (messageOrNone.HasValue);
+            while (current.HasValue);
         }
     }
 

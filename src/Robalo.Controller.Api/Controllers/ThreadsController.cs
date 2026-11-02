@@ -213,7 +213,7 @@ public class ThreadsController : ControllerBase
                   new ThreadLinks(
                       Self: _httpContextAccessor.LinkToThreadId(threadInfo.Id),
                       Messages: _httpContextAccessor.LinkToMessages(threadInfo.Id),
-                      Events: _httpContextAccessor.LinkToEventsWithThreadId(threadInfo.Id)));
+                      Events: _httpContextAccessor.LinkToEventsWithThreadIdAndCheckpoint(threadInfo.Id, threadInfo.Version)));
 
     ThreadResource GetThreadResource(Thread thread) =>
         GetThreadResource(new ThreadInfo(
