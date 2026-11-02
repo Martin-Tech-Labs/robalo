@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http.Extensions;
+using Robalo.Controller.Api.Hypermedia.Resources;
 using Robalo.Domain.Models;
 
 namespace Robalo.Controller.Api.Hypermedia;
@@ -51,4 +52,18 @@ public static class Extensions
 
     public static Link LinkToServiceDiscovery(this IHttpContextAccessor accessor)
         => accessor.HttpContext!.LinkToPath($"");
+
+    public static MessageResource GetMessageResource(
+        this IHttpContextAccessor httpContextAccessor,
+        Message message,
+        ThreadIdentifier threadId) => new(
+            Content: message.Content,
+            CreatedOn: message.CreatedOn,
+            Source: message.Source.ToString().ToLowerInvariant().ToLowerInvariant(),
+            ThreadId: threadId.IdString,
+            MessageNumber: message.Number,
+            Links: new MessageLinks(
+                Self: httpContextAccessor.LinkToMessageNumber(threadId, message.Number),
+                Thread: httpContextAccessor.LinkToThreadId(threadId),
+                Events: httpContextAccessor.LinkToEventsWithThreadId(threadId)));
 }

@@ -120,7 +120,7 @@ public class ThreadsController : ControllerBase
         return await _threadRepository.GetMessage(threadIdOrNone.ValueOrFailure, number, cancellationToken) switch
         {
             None => NotFound(),
-            Some<Message> some => GetMessageResource(some.Value, threadIdOrNone.ValueOrFailure).AsOk()
+            Some<Message> some =>_httpContextAccessor.GetMessageResource(some.Value, threadIdOrNone.ValueOrFailure).AsOk()
         };
     }
 
@@ -141,7 +141,7 @@ public class ThreadsController : ControllerBase
 
         return result switch
         {
-            Some<int> messageNumber => GetMessageResource(Message.FromModel(userMessageAdded, messageNumber), threadId).AsCreated(),
+            Some<int> messageNumber => _httpContextAccessor.GetMessageResource(Message.FromModel(userMessageAdded, messageNumber), threadId).AsCreated(),
             _ => NotFound()
         };
     }
@@ -186,7 +186,7 @@ public class ThreadsController : ControllerBase
         MessageQueryResource GetQueryResource(ThreadIdentifier threadId, QueryResult queryResult)
         {
             return new MessageQueryResource(
-                Embedded: new([.. queryResult.Messages.Select(m => GetMessageResource(m, threadId))]),
+                Embedded: new([.. queryResult.Messages.Select(m => _httpContextAccessor.GetMessageResource(m, threadId))]),
                 Links: new MessageQueryLinks(
                     Self: queryResult.Self switch
                     {
@@ -222,15 +222,4 @@ public class ThreadsController : ControllerBase
             thread.CreatedOn,
             thread.ModifiedOn,
             thread.PersistedVersion.ValueOrFailure));
-
-    MessageResource GetMessageResource(Message message, ThreadIdentifier threadId) => new(
-        message.Content,
-        message.CreatedOn,
-        message.Source.ToString().ToLowerInvariant().ToLowerInvariant(),
-        threadId.IdString,
-        message.Number,
-        new MessageLinks(
-            Self: _httpContextAccessor.LinkToMessageNumber(threadId, message.Number),
-            Thread: _httpContextAccessor.LinkToThreadId(threadId),
-            Events: _httpContextAccessor.LinkToEventsWithThreadId(threadId)));
 }

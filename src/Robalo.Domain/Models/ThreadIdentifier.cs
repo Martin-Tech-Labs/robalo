@@ -1,9 +1,10 @@
+using System.Collections;
 using Newtonsoft.Json;
 using Robalo.Common.Models;
 
 namespace Robalo.Domain.Models;
 
-public sealed class ThreadIdentifier : Identifier, IEquatable<ThreadIdentifier>
+public sealed class ThreadIdentifier : Identifier
 {
     protected override string Prefix => "trd_";
 
@@ -29,11 +30,5 @@ public sealed class ThreadIdentifier : Identifier, IEquatable<ThreadIdentifier>
 
     public static ThreadIdentifier FromUuid(Guid uuid) => new(uuid);
 
-    public static ThreadIdentifier NewIdentifier() => FromUuid(Guid.NewGuid());
-
-    public bool Equals(ThreadIdentifier? other) => base.Equals(other);
-
-    public override bool Equals(object? obj) => base.Equals(obj);
-
-    public override int GetHashCode() => base.GetHashCode();
+    public static ThreadIdentifier NewIdentifier() => FromUuid(Guid.NewGuid());  
 }

@@ -16,10 +16,10 @@ public static class OptionExtensions
     public static Option<T> AsOption<T>(this T? value) where T : notnull =>
         value is null ? None.Default : value;
 
-    public static Option<T> AsOption<T>(this T? value) where T : struct =>
-        value is null ? None.Default : value.Value;
-
     public static Option<T> Some<T>(this T value) where T : notnull => value;
+
+    public static Option<T> Some<T>(this T? value, Func<T, bool> predicate) where T : struct =>
+        value is not null && predicate(value.Value) ? value.Value : None.Default;
 
 #pragma warning disable CC001
     public static async Task<Option<T>> Some<T>(this Task<T> task) where T : notnull

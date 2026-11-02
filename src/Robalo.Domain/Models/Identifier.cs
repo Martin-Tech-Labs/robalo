@@ -3,7 +3,7 @@ using SimpleBase;
 
 namespace Robalo.Domain.Models;
 
-public closed partial class Identifier
+public closed partial class Identifier : IEquatable<Identifier>, IEquatable<string>
 {
     public string IdString { get; }
     public Guid Uuid { get; }
@@ -47,12 +47,26 @@ public closed partial class Identifier
 
     public override string ToString() => IdString;
 
-    public override bool Equals(object? obj) =>
-        obj is Identifier other
-        && GetType() == other.GetType()
-        && StringComparer.Ordinal.Equals(IdString, other.IdString);
+    public override bool Equals(object? obj)
+    {
+        if (obj is Identifier other)
+        {
+            return GetType() == other.GetType() &&
+                StringComparer.Ordinal.Equals(IdString, other.IdString);
+        }
+        else if (obj is string otherString)
+        {
+            return StringComparer.Ordinal.Equals(IdString, obj);
+        }
+
+        return false;
+    }
 
     public override int GetHashCode() => HashCode.Combine(GetType(), StringComparer.Ordinal.GetHashCode(IdString));
+
+    public bool Equals(string? other) => other is not null ? StringComparer.Ordinal.Equals(IdString, other) : false;
+
+    public bool Equals(Identifier? other) => other is not null ? StringComparer.Ordinal.Equals(IdString, other.IdString) : false;
 
     public static bool operator ==(Identifier left, Identifier right) => left.Equals(right);
     public static bool operator !=(Identifier left, Identifier right) => !left.Equals(right);

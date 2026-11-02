@@ -481,7 +481,28 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
     }
 
     [Fact]
-    public async Task QueryMessages_ShouldReturnEmptyEmpty_OnThreadWithNoMessages()
+    public async Task QueryMessages_ShouldReturnEmpty_OnReferenceGreaterThanMessagesNumber()
+    {
+        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
+        thread.AddUserMessage(_fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1));
+        thread.AddUserMessage(_fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1));
+        thread.AddUserMessage(_fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1));
+        thread.AddUserMessage(_fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1));
+        thread.AddUserMessage(_fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1));
+
+        await _sut.SaveThread(thread, TestContext.Current.CancellationToken);
+
+        var result = await _sut.QueryMessages(thread.Id, Cursor.Create(100, 100), TestContext.Current.CancellationToken);
+        result.HasValue.ShouldBeTrue();
+        var queryResult = result.ValueOrFailure;
+        queryResult.Messages.ShouldBeEmpty();
+        queryResult.Self.ShouldBeNone();
+        queryResult.Next.ShouldBeNone();
+        queryResult.Prev.ShouldBeNone();
+    }
+
+    [Fact]
+    public async Task QueryMessages_ShouldReturnEmpty_OnThreadWithNoMessages()
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         await _sut.SaveThread(thread, TestContext.Current.CancellationToken);

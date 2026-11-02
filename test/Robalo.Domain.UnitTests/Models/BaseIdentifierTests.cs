@@ -17,7 +17,7 @@ public closed class BaseIdentifierTests<TIdentifier>(
     private readonly Fixture _fixture = new();
 
     [Fact]
-    public void NewThreadId_ShouldCreateCorrectId()
+    public void NewId_ShouldCreateCorrectId()
     {
         var id = _newIdentifier();
 
@@ -27,7 +27,7 @@ public closed class BaseIdentifierTests<TIdentifier>(
     }
 
     [Fact]
-    public void NewThreadId_ShouldProduceDifferentObjects()
+    public void NewId_ShouldProduceDifferentObjects()
     {
         var id1 = _newIdentifier();
         var id2 = _newIdentifier();
@@ -43,7 +43,7 @@ public closed class BaseIdentifierTests<TIdentifier>(
     }
 
     [Fact]
-    public void ThreadIdFromUuid_ShouldCorrectlyReconstructObject()
+    public void FromUuid_ShouldCorrectlyReconstructObject()
     {
         var id1 = _newIdentifier();
         var id2 = _fromUuid(id1.Uuid);
@@ -58,7 +58,17 @@ public closed class BaseIdentifierTests<TIdentifier>(
     }
 
     [Fact]
-    public void FromId_ShouldCorrectlyReconstructThreadId()
+    public void Equals_WithString_ShouldReturnTrueOnSameId()
+    {
+        var id = _newIdentifier();
+        var idString = new string(id.IdString);
+
+        ReferenceEquals(id, idString).ShouldBeFalse();
+        id.Equals(idString).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void FromId_ShouldCorrectlyReconstructId()
     {
         var id1 = _newIdentifier();
         var id2 = _fromIdString(id1.IdString);
@@ -104,7 +114,7 @@ public closed class BaseIdentifierTests<TIdentifier>(
     }
 
     [Fact]
-    public void ThreadIdFromUuid_ShouldThrowOnEmptyUuid()
+    public void FromUuid_ShouldThrowOnEmptyUuid()
     {
         Should.Throw<ArgumentException>(() =>
         {
