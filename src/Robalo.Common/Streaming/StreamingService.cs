@@ -120,8 +120,23 @@ public sealed class StreamingService<TStreamId, TEvent, TCheckpoint> : IStreamin
         await InitializeCheckpoints(cancellationToken);
 
         var channel = Channel.CreateUnbounded<StreamingEvent<TStreamId, TEvent, TCheckpoint>>();
-        var subscription = new Subscription<TStreamId, TEvent, TCheckpoint>(channel.Writer, filter);
         var id = Guid.NewGuid();
+
+
+        var lambda = (StreamingEvent<TStreamId, TEvent, TCheckpoint> e) =>
+        {
+            try
+            {
+                return filter(e);
+            }
+            catch (Exception exc)
+            {
+                _logger.Error(exc, "Error during execution of filter lambda for subscription {SubscriptionId}", id);
+                channel.Writer.TryComplete(exc);
+                return false;
+            }
+        };
+        var subscription = new Subscription<TStreamId, TEvent, TCheckpoint>(channel.Writer, lambda);
 
         if (checkpointOrNone is Some<(TStreamId, TCheckpoint)> checkpointSome)
         {
