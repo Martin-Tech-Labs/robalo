@@ -24,9 +24,9 @@ public class StreamingServiceTests : IDisposable
     }
 
     [Fact]
-    void Pull_ShouldThrow_IfCancellationTokenIsNotCancellable()
+    async Task Pull_ShouldThrow_IfCancellationTokenIsNotCancellable()
     {
-        Should.ThrowAsync<ArgumentException>(async () => await _sut.PullAll(CancellationToken.None).ToListAsync());
+        await Should.ThrowAsync<ArgumentException>(async () => await _sut.PullAll(CancellationToken.None).ToListAsync());
     }
 
     [Fact]
@@ -421,7 +421,6 @@ public class StreamingServiceTests : IDisposable
             .Pull(streamId2, None.Default, timeout.Token)
             .GetAsyncEnumerator(timeout.Token);
 
-
         var result12 = new List<StreamingEvent<string, TestEvent, int>>();
         var result21 = new List<StreamingEvent<string, TestEvent, int>>();
         var result22 = new List<StreamingEvent<string, TestEvent, int>>();
@@ -465,6 +464,96 @@ public class StreamingServiceTests : IDisposable
 
         result21.ShouldBeEquivalentTo(streamingEvents2);
         result22.ShouldBeEquivalentTo(streamingEvents2);
+    }
+
+    [Fact]
+    async Task Push_On_Exception_ShouldRemoveSubscription()
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(2));
+
+        _streamingProvider
+            .Setup(s => s.GetEvents(It.IsAny<string>(), It.IsAny<Option<int>>(), It.IsAny<CancellationToken>()))
+            .Returns(new List<StreamingEvent<string, TestEvent, int>> { _fixture.Create<StreamingEvent<string, TestEvent, int>>() }.ToAsyncEnumerable());
+
+        await using var enumerator1 = _sut
+            .PullAll(timeout.Token)
+            .GetAsyncEnumerator(timeout.Token);
+
+        var numOfCalls = 0;
+        await using var enumerator2 = _sut
+            .Pull(_ => throw new InvalidOperationException($"{++numOfCalls}"), timeout.Token)
+            .GetAsyncEnumerator(timeout.Token);
+
+        var nextEvent1 = enumerator1.MoveNextAsync();
+        var nextEvent2 = enumerator2.MoveNextAsync();
+
+        await Task.WhenAll([
+            _sut.PushForStream(_fixture.Create<string>(), TestContext.Current.CancellationToken),
+            _sut.PushForStream(_fixture.Create<string>(), TestContext.Current.CancellationToken),
+            _sut.PushForStream(_fixture.Create<string>(), TestContext.Current.CancellationToken),
+            _sut.PushForStream(_fixture.Create<string>(), TestContext.Current.CancellationToken)]);
+
+        await Should.ThrowAsync<InvalidOperationException>(async () => await nextEvent2);
+
+        List<StreamingEvent<string, TestEvent, int>> result = new();
+
+        await nextEvent1;
+        result.Add(enumerator1.Current);
+
+        for (var j = 1; j <= 3; j++)
+        {
+            await enumerator1.MoveNextAsync();
+            result.Add(enumerator1.Current);
+        }
+
+        result.Count.ShouldBe(4);
+        numOfCalls.ShouldBe(1);
+    }
+
+    [Fact]
+    async Task On_Subscription_Dispose_ShouldRemoveSubscription()
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(2));
+
+        _streamingProvider
+            .Setup(s => s.GetEvents(It.IsAny<string>(), It.IsAny<Option<int>>(), It.IsAny<CancellationToken>()))
+            .Returns(new List<StreamingEvent<string, TestEvent, int>> { _fixture.Create<StreamingEvent<string, TestEvent, int>>() }.ToAsyncEnumerable());
+
+        await using var enumerator1 = _sut
+            .PullAll(timeout.Token)
+            .GetAsyncEnumerator(timeout.Token);
+
+        var numOfCalls = 0;
+        await using var enumerator2 = _sut
+            .Pull(_ => { ++numOfCalls; return true; }, timeout.Token)
+            .GetAsyncEnumerator(timeout.Token);
+
+        var nextEvent1 = enumerator1.MoveNextAsync();
+        var nextEvent2 = enumerator2.MoveNextAsync();
+
+        await _sut.PushForStream(_fixture.Create<string>(), TestContext.Current.CancellationToken);
+        await nextEvent2;
+        await enumerator2.DisposeAsync();
+        await Task.WhenAll([
+            _sut.PushForStream(_fixture.Create<string>(), TestContext.Current.CancellationToken),
+            _sut.PushForStream(_fixture.Create<string>(), TestContext.Current.CancellationToken),
+            _sut.PushForStream(_fixture.Create<string>(), TestContext.Current.CancellationToken)]);
+
+        List<StreamingEvent<string, TestEvent, int>> result = new();
+
+        await nextEvent1;
+        result.Add(enumerator1.Current);
+
+        for (var j = 1; j <= 3; j++)
+        {
+            await enumerator1.MoveNextAsync();
+            result.Add(enumerator1.Current);
+        }
+
+        result.Count.ShouldBe(4);
+        numOfCalls.ShouldBe(1);
     }
 
     [Fact]

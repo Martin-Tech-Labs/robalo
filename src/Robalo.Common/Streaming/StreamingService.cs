@@ -135,6 +135,7 @@ public sealed class StreamingService<TStreamId, TEvent, TCheckpoint> : IStreamin
             {
                 _logger.Error(exc, "Error during execution of filter lambda for subscription {SubscriptionId}", id);
                 channel.Writer.TryComplete(exc);
+                _channels.TryRemove(id, out _);
                 return false;
             }
         };
