@@ -54,9 +54,6 @@ public class StreamingServiceTests : IDisposable
             .Setup(s => s.GetEvents(streamId, checkpoint, It.IsAny<CancellationToken>()))
             .Returns(streamingEvents.ToAsyncEnumerable());
 
-        _streamingProvider
-            .Setup(s => s.GetEvents(streamId, It.Is<Option<int>>(e => e != checkpoint), It.IsAny<CancellationToken>()))
-            .Returns(AsyncEnumerable.Empty<StreamingEvent<string, TestEvent, int>>());
 
         var result = await _sut.Pull(streamId, checkpoint, timeout.Token)
             .Take(events.Count())
@@ -70,31 +67,151 @@ public class StreamingServiceTests : IDisposable
     async Task Pull_WithCheckpoint_Should_IgnoreAlreadyReplayedEvents()
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
-        timeout.CancelAfter(TimeSpan.FromSeconds(2));
+        timeout.CancelAfter(TimeSpan.FromSeconds(200));
 
         var streamId = _fixture.Create<string>();
-        var checkpoint = _fixture.Create<int>();
+        var checkpoint = 1;
+        var checkpointAsIndex = checkpoint - 1;
 
-        var events = _fixture.CreateMany<TestEvent>(_fixture.Create<int>());
+        var events = _fixture.CreateMany<TestEvent>(6);
         var i = 0;
         var streamingEvents = events.Select(e => new StreamingEvent<string, TestEvent, int>(streamId, e, ++i)).ToList();
+        _streamingProvider
+            .Setup(s => s.GetEvents(streamId, 1, It.IsAny<CancellationToken>()))
+            .Returns(streamingEvents[(checkpointAsIndex + 1)..^1].ToAsyncEnumerable()); // from checkpoint till penunlimate item
 
         _streamingProvider
-            .Setup(s => s.GetEvents(streamId, checkpoint, It.IsAny<CancellationToken>()))
-            .Returns(streamingEvents.ToAsyncEnumerable());
-
-        _streamingProvider
-            .Setup(s => s.GetEvents(streamId, It.Is<Option<int>>(e => e != checkpoint), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetEvents(streamId, 5, It.IsAny<CancellationToken>()))
             .Returns(AsyncEnumerable.Empty<StreamingEvent<string, TestEvent, int>>());
 
-        var result = await _sut.Pull(streamId, checkpoint, timeout.Token)
-            .Take(events.Count())
-            .ToListAsync(timeout.Token);
+        _streamingProvider
+            .Setup(s => s.GetEvents(streamId, It.Is<Option<int>>(t => t.IsNone), It.IsAny<CancellationToken>()))
+            .Returns(streamingEvents.ToAsyncEnumerable()); // from beginning till last item
 
-        result.ShouldNotBeNull();
-        result.ShouldBeEquivalentTo(streamingEvents.ToList());
+        await using var enumerator = _sut
+            .Pull(streamId, checkpoint, timeout.Token)
+            .GetAsyncEnumerator(timeout.Token);
+
+        var result = new List<StreamingEvent<string, TestEvent, int>>();
+
+        for (var j = 0; j < 4; j++)
+        {
+            (await enumerator.MoveNextAsync()).ShouldBeTrue();
+            result.Add(enumerator.Current);
+        }
+
+        var nextEvent = enumerator.MoveNextAsync().AsTask();
+
+        await _sut.PushForStream(streamId, TestContext.Current.CancellationToken);
+
+        await nextEvent;
+        result.Add(enumerator.Current);
+
+        result.ShouldBeEquivalentTo(streamingEvents[(checkpointAsIndex + 1)..].ToList());
     }
 
+    [Fact]
+    async Task Pull_WithCheckpoint_Should_CatchUpOnLastEvents()
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(200));
+
+        var streamId = _fixture.Create<string>();
+        var checkpoint = 1;
+        var checkpointAsIndex = checkpoint - 1;
+
+        var events = _fixture.CreateMany<TestEvent>(7);
+        var i = 0;
+        var streamingEvents = events.Select(e => new StreamingEvent<string, TestEvent, int>(streamId, e, ++i)).ToList();
+        _streamingProvider
+            .Setup(s => s.GetEvents(streamId, 1, It.IsAny<CancellationToken>()))
+            .Returns(streamingEvents[(checkpointAsIndex + 1)..^2].ToAsyncEnumerable()); // from checkpoint till penunlimate item
+
+        _streamingProvider
+            .Setup(s => s.GetEvents(streamId, 5, It.IsAny<CancellationToken>()))
+            .Returns(streamingEvents[^2..^1].ToAsyncEnumerable());
+
+        _streamingProvider
+            .Setup(s => s.GetEvents(streamId, 6, It.IsAny<CancellationToken>()))
+            .Returns(AsyncEnumerable.Empty<StreamingEvent<string, TestEvent, int>>());
+
+
+        _streamingProvider
+            .Setup(s => s.GetEvents(streamId, It.Is<Option<int>>(t => t.IsNone), It.IsAny<CancellationToken>()))
+            .Returns(streamingEvents.ToAsyncEnumerable()); // from beginning till last item
+
+        await using var enumerator = _sut
+            .Pull(streamId, checkpoint, timeout.Token)
+            .GetAsyncEnumerator(timeout.Token);
+
+        var result = new List<StreamingEvent<string, TestEvent, int>>();
+
+        for (var j = 0; j < 5; j++)
+        {
+            (await enumerator.MoveNextAsync()).ShouldBeTrue();
+            result.Add(enumerator.Current);
+        }
+
+        var nextEvent = enumerator.MoveNextAsync().AsTask();
+
+        await _sut.PushForStream(streamId, TestContext.Current.CancellationToken);
+
+        await nextEvent;
+        result.Add(enumerator.Current);
+
+        result.ShouldBeEquivalentTo(streamingEvents[(checkpointAsIndex + 1)..].ToList());
+    }
+
+    [Fact]
+    async Task Pull_WithCheckpoint_Should_CatchUpOnLastEvents_WithLock()
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(200));
+
+        var streamId = _fixture.Create<string>();
+        var checkpoint = 1;
+        var checkpointAsIndex = checkpoint - 1;
+
+        var events = _fixture.CreateMany<TestEvent>(8);
+        var i = 0;
+        var streamingEvents = events.Select(e => new StreamingEvent<string, TestEvent, int>(streamId, e, ++i)).ToList();
+        _streamingProvider
+            .Setup(s => s.GetEvents(streamId, 1, It.IsAny<CancellationToken>()))
+            .Returns(streamingEvents[(checkpointAsIndex + 1)..^3].ToAsyncEnumerable()); // from checkpoint till penunlimate item
+
+        _streamingProvider
+            .Setup(s => s.GetEvents(streamId, 5, It.IsAny<CancellationToken>()))
+            .Returns(streamingEvents[^3..^2].ToAsyncEnumerable());
+
+        _streamingProvider
+            .Setup(s => s.GetEvents(streamId, 6, It.IsAny<CancellationToken>()))
+            .Returns(streamingEvents[^2..^1].ToAsyncEnumerable());
+
+        _streamingProvider
+            .Setup(s => s.GetEvents(streamId, It.Is<Option<int>>(t => t.IsNone), It.IsAny<CancellationToken>()))
+            .Returns(streamingEvents.ToAsyncEnumerable()); // from beginning till last item
+
+        await using var enumerator = _sut
+            .Pull(streamId, checkpoint, timeout.Token)
+            .GetAsyncEnumerator(timeout.Token);
+
+        var result = new List<StreamingEvent<string, TestEvent, int>>();
+
+        for (var j = 0; j < 6; j++)
+        {
+            (await enumerator.MoveNextAsync()).ShouldBeTrue();
+            result.Add(enumerator.Current);
+        }
+
+        var nextEvent = enumerator.MoveNextAsync().AsTask();
+
+        await _sut.PushForStream(streamId, TestContext.Current.CancellationToken);
+
+        await nextEvent;
+        result.Add(enumerator.Current);
+
+        result.ShouldBeEquivalentTo(streamingEvents[(checkpointAsIndex + 1)..].ToList());
+    }
 
     public void Dispose()
     {

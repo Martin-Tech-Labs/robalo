@@ -41,6 +41,8 @@ public sealed class StreamingService<TStreamId, TEvent, TCheckpoint> : IStreamin
         _streamingProvider = streamingProvider;
     }
 
+    bool IsInitialized() => Volatile.Read(ref _liveCheckpoints) is not null;
+
     async ValueTask InitializeCheckpoints(CancellationToken cancellationToken)
     {
         if (Volatile.Read(ref _liveCheckpoints) is not null)
@@ -216,11 +218,11 @@ public sealed class StreamingService<TStreamId, TEvent, TCheckpoint> : IStreamin
             TStreamId streamId,
             CancellationToken cancellationToken)
     {
-        if(_channels.IsEmpty)
+        if (!IsInitialized())
         {
             return;
         }
-        
+
         using var semaphore = await AcquireSemaphore(streamId, cancellationToken);
 
         await foreach (var streamingEvent in _streamingProvider.GetEvents(
