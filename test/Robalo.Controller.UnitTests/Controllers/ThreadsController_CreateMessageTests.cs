@@ -41,6 +41,7 @@ public class ThreadsController_CreateMessageTests : ThreadsControllerTests
 
         ValidateAllNotNullLinks(messageResource);
 
+        messageResource.Links.Events.Href.Query.ShouldBe($"?thread_id={threadId.IdString}&checkpoint={messageNumber}");
         messageResource.Content.ShouldBe(request.Content);
         messageResource.CreatedOn.ShouldBe(_utcNow);
         messageResource.Source.ShouldBe("user");
@@ -61,7 +62,7 @@ public class ThreadsController_CreateMessageTests : ThreadsControllerTests
 
         result.ShouldBeOfType<NotFoundResult>();
     }
-    
+
     [Fact]
     public async Task ShouldReturnNotFound_OnInvalidIdentifier()
     {
