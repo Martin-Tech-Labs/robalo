@@ -40,6 +40,8 @@ public class ThreadsController_CreateThreadTests : ThreadsControllerTests
 
         ValidateAllNotNullLinks(resource);
 
+        resource.Links.Events.Href.Query.ShouldBe($"?thread_id={resource.ThreadId}&checkpoint=1");
+
         createdResult.Location.ShouldBe(resource.Links.Self.Href.AbsoluteUri);
         resource.CreatedOn.ShouldBe(_utcNow);
         resource.ModifiedOn.ShouldBe(_utcNow);

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Moq;
+using Robalo.Common.Extensions;
 using Robalo.Common.Models;
 using Robalo.Common.Services;
 using Robalo.Controller.Api.Controllers;
@@ -40,6 +41,9 @@ public class ThreadsController_GetThreadTests : ThreadsControllerTests
         var resource = (ThreadResource)okResult.Value;
 
         ValidateAllNotNullLinks(resource);
+
+        resource.Links.Events.Href.Query.ShouldBe($"?thread_id={thread.Id}&checkpoint={thread.PersistedVersion.ValueOrFailure}");
+
 
         resource.CreatedOn.ShouldBe(_utcNow);
         resource.ModifiedOn.ShouldBe(modifiedOn);
