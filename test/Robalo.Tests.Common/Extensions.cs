@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using Moq;
 using Robalo.Common.Models;
 using Robalo.Domain.Models;
 using Shouldly;
@@ -72,5 +73,12 @@ public static class Extensions
     public static void ShouldBeNone<T>(this Option<T> value) where T : notnull
     {
         (value is None).ShouldBeTrue($"Expected {value} to be None");
+    }
+
+    extension(It)
+    {
+        public static Option<TValue> IsNone<TValue>() where TValue : notnull =>
+            It.Is<Option<TValue>>(o => o.IsNone);
+
     }
 }
