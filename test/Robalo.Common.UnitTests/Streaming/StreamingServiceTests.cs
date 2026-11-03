@@ -58,6 +58,38 @@ public class StreamingServiceTests : IDisposable
     }
 
     [Fact]
+    async Task Pull_WithExceptionOnReplayFilter_ShouldNotAddSubscription()
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(2));
+
+        var streamId = _fixture.Create<string>();
+        var checkpoint = _fixture.Create<int>();
+
+        var events = _fixture.CreateMany<TestEvent>(_fixture.Create<int>());
+        var i = 0;
+        var streamingEvents = events.Select(e => new StreamingEvent<string, TestEvent, int>(streamId, e, ++i)).ToList();
+
+        _streamingProvider
+            .Setup(s => s.GetEvents(streamId, It.IsAny<Option<int>>(), It.IsAny<CancellationToken>()))
+            .Returns(streamingEvents.ToAsyncEnumerable());
+
+        var numOfCalls = 0;
+
+        await Should.ThrowAsync<InvalidOperationException>(
+            async () => await _sut.Pull(streamId, checkpoint, _ => throw new InvalidOperationException($"{++numOfCalls}"), timeout.Token)
+                    .Take(events.Count())
+                    .ToListAsync(timeout.Token));
+
+        await _sut.PushForStream(streamId, TestContext.Current.CancellationToken);
+
+        numOfCalls.ShouldBe(1);
+
+
+
+    }
+
+    [Fact]
     async Task Pull_WithCheckpoint_Should_IgnoreAlreadyReplayedEvents()
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
