@@ -278,6 +278,195 @@ public class StreamingServiceTests : IDisposable
         result2.ShouldBeEquivalentTo(streamingEvents2);
     }
 
+
+    [Fact]
+    async Task PushForStream_ShouldCorrectlyDeliverToMultipleConsumers()
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(2));
+
+        var streamId1 = _fixture.Create<string>();
+        var streamId2 = _fixture.Create<string>();
+
+        var events1 = _fixture.CreateMany<TestEvent>(4);
+        var events2 = _fixture.CreateMany<TestEvent>(4);
+
+        var i = 0;
+        var streamingEvents1 = events1.Select(e => new StreamingEvent<string, TestEvent, int>(streamId1, e, ++i)).ToList();
+        i = 0;
+        var streamingEvents2 = events2.Select(e => new StreamingEvent<string, TestEvent, int>(streamId2, e, ++i)).ToList();
+
+        _streamingProvider
+            .Setup(s => s.GetEvents(streamId1, It.IsNone<int>(), It.IsAny<CancellationToken>()))
+            .Returns(streamingEvents1.ToAsyncEnumerable());
+
+        _streamingProvider
+            .Setup(s => s.GetEvents(streamId2, It.IsNone<int>(), It.IsAny<CancellationToken>()))
+            .Returns(streamingEvents2.ToAsyncEnumerable());
+
+
+        await using var enumerator11 = _sut
+            .Pull(streamId1, None.Default, timeout.Token)
+            .GetAsyncEnumerator(timeout.Token);
+
+        await using var enumerator12 = _sut
+            .Pull(streamId1, None.Default, timeout.Token)
+            .GetAsyncEnumerator(timeout.Token);
+
+        await using var enumerator21 = _sut
+            .Pull(streamId2, None.Default, timeout.Token)
+            .GetAsyncEnumerator(timeout.Token);
+
+        await using var enumerator22 = _sut
+            .Pull(streamId2, None.Default, timeout.Token)
+            .GetAsyncEnumerator(timeout.Token);
+
+
+        var result11 = new List<StreamingEvent<string, TestEvent, int>>();
+        var result12 = new List<StreamingEvent<string, TestEvent, int>>();
+        var result21 = new List<StreamingEvent<string, TestEvent, int>>();
+        var result22 = new List<StreamingEvent<string, TestEvent, int>>();
+
+        var nextEvent11 = enumerator11.MoveNextAsync();
+        var nextEvent12 = enumerator12.MoveNextAsync();
+        var nextEvent21 = enumerator21.MoveNextAsync();
+        var nextEvent22 = enumerator22.MoveNextAsync();
+
+        var task1 = _sut.PushForStream(streamId1, TestContext.Current.CancellationToken);
+        var task2 = _sut.PushForStream(streamId2, TestContext.Current.CancellationToken);
+
+        await Task.WhenAll(task1, task2);
+
+        await nextEvent11;
+        result11.Add(enumerator11.Current);
+
+        await nextEvent12;
+        result12.Add(enumerator12.Current);
+
+        await nextEvent21;
+        result21.Add(enumerator21.Current);
+
+        await nextEvent22;
+        result22.Add(enumerator22.Current);
+
+        for (var j = 1; j <= 3; j++)
+        {
+            await enumerator11.MoveNextAsync();
+            result11.Add(enumerator11.Current);
+
+            await enumerator12.MoveNextAsync();
+            result12.Add(enumerator12.Current);
+
+            await enumerator21.MoveNextAsync();
+            result21.Add(enumerator21.Current);
+
+            await enumerator22.MoveNextAsync();
+            result22.Add(enumerator22.Current);
+        }
+
+
+        result11.ShouldBeEquivalentTo(streamingEvents1);
+        result12.ShouldBeEquivalentTo(streamingEvents1);
+
+        result21.ShouldBeEquivalentTo(streamingEvents2);
+        result22.ShouldBeEquivalentTo(streamingEvents2);
+    }
+
+    [Fact]
+    async Task PushForStream_ShouldCorrectlyHandleExceptionInFilter()
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(2));
+
+        var streamId1 = _fixture.Create<string>();
+        var streamId2 = _fixture.Create<string>();
+
+        var events1 = _fixture.CreateMany<TestEvent>(4);
+        var events2 = _fixture.CreateMany<TestEvent>(4);
+
+        var i = 0;
+        var streamingEvents1 = events1.Select(e => new StreamingEvent<string, TestEvent, int>(streamId1, e, ++i)).ToList();
+        i = 0;
+        var streamingEvents2 = events2.Select(e => new StreamingEvent<string, TestEvent, int>(streamId2, e, ++i)).ToList();
+
+        _streamingProvider
+            .Setup(s => s.GetEvents(streamId1, It.IsNone<int>(), It.IsAny<CancellationToken>()))
+            .Returns(streamingEvents1[..^1].ToAsyncEnumerable());
+
+        _streamingProvider
+            .Setup(s => s.GetEvents(streamId2, It.IsNone<int>(), It.IsAny<CancellationToken>()))
+            .Returns(streamingEvents2[..^1].ToAsyncEnumerable());
+
+        _streamingProvider
+            .Setup(s => s.GetEvents(streamId1, 3, It.IsAny<CancellationToken>()))
+            .Returns(streamingEvents1[^1..].ToAsyncEnumerable());
+
+        _streamingProvider
+            .Setup(s => s.GetEvents(streamId2, 3, It.IsAny<CancellationToken>()))
+            .Returns(streamingEvents2[^1..].ToAsyncEnumerable());
+
+        await using var enumerator11 = _sut
+            .Pull(streamId1, None.Default, _ => throw new InvalidOperationException(), timeout.Token)
+            .GetAsyncEnumerator(timeout.Token);
+
+        await using var enumerator12 = _sut
+            .Pull(streamId1, None.Default, timeout.Token)
+            .GetAsyncEnumerator(timeout.Token);
+
+        await using var enumerator21 = _sut
+            .Pull(streamId2, None.Default, timeout.Token)
+            .GetAsyncEnumerator(timeout.Token);
+
+        await using var enumerator22 = _sut
+            .Pull(streamId2, None.Default, timeout.Token)
+            .GetAsyncEnumerator(timeout.Token);
+
+
+        var result12 = new List<StreamingEvent<string, TestEvent, int>>();
+        var result21 = new List<StreamingEvent<string, TestEvent, int>>();
+        var result22 = new List<StreamingEvent<string, TestEvent, int>>();
+
+        var nextEvent11 = enumerator11.MoveNextAsync();
+        var nextEvent12 = enumerator12.MoveNextAsync();
+        var nextEvent21 = enumerator21.MoveNextAsync();
+        var nextEvent22 = enumerator22.MoveNextAsync();
+
+        await Task.WhenAll([
+            _sut.PushForStream(streamId2, TestContext.Current.CancellationToken),
+            _sut.PushForStream(streamId1, TestContext.Current.CancellationToken),
+            _sut.PushForStream(streamId1, TestContext.Current.CancellationToken),
+            _sut.PushForStream(streamId2, TestContext.Current.CancellationToken)]);
+
+
+        await Should.ThrowAsync<InvalidOperationException>(async () => await nextEvent11);
+
+        await nextEvent12;
+        result12.Add(enumerator12.Current);
+
+        await nextEvent21;
+        result21.Add(enumerator21.Current);
+
+        await nextEvent22;
+        result22.Add(enumerator22.Current);
+
+        for (var j = 1; j <= 3; j++)
+        {
+            await enumerator12.MoveNextAsync();
+            result12.Add(enumerator12.Current);
+
+            await enumerator21.MoveNextAsync();
+            result21.Add(enumerator21.Current);
+
+            await enumerator22.MoveNextAsync();
+            result22.Add(enumerator22.Current);
+        }
+
+        result12.ShouldBeEquivalentTo(streamingEvents1);
+
+        result21.ShouldBeEquivalentTo(streamingEvents2);
+        result22.ShouldBeEquivalentTo(streamingEvents2);
+    }
+
     [Fact]
     async Task PushForStream_ShouldCorrectlyDeliverByStreamId_When_Using_Pull_WithGlobalFilter()
     {
