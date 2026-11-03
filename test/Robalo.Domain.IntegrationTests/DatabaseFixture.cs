@@ -4,7 +4,7 @@ namespace Robalo.Domain.IntegrationTests;
 
 public class DatabaseFixture : IDisposable
 {
-    readonly Lock _lock = new();
+    static readonly Lock _lock = new();
     public DatabaseFixture()
     {
         Database = $"{Guid.NewGuid():N}.db";
@@ -12,7 +12,7 @@ public class DatabaseFixture : IDisposable
         CreateRepository(Database, Password);
     }
 
-    private void CreateRepository(string database, string password)
+    static void CreateRepository(string database, string password)
     {
         lock (_lock)
         {
