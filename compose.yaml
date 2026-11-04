@@ -19,7 +19,7 @@ services:
       ROBALO_Llm__Key: test
 
   seq:
-    image: datalust/seq:2026.1.17182
+    image: datalust/seq:2026.1.17473
     ports:
       - "127.0.0.1:8081:80"
       - "127.0.0.1:5341:5341"
