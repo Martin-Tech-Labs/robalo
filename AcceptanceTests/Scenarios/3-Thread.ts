@@ -123,7 +123,7 @@ describe('3 - Threads @drei @threads', () => {
         });
 
         it("And I wait for the LLM response from Events endpoint", async () => {
-            for await (const { data } of eventSource) {
+            for await (const { data } of eventSource) { // NOSONAR
                 llmMessage = JSON.parse(data);
                 break;
             }
@@ -199,7 +199,7 @@ describe('3 - Threads @drei @threads', () => {
         let userMessage: Message;
 
         it("When I wait for this message from Events endpoint", async () => {
-            for await (const { data } of eventSource) {
+            for await (const { data } of eventSource) { // NOSONAR
                 userMessage = JSON.parse(data);
                 break;
             }
@@ -238,7 +238,7 @@ describe('3 - Threads @drei @threads', () => {
             let eventSource2 = await ControllerApi.subscribe(message._links.events);
 
             try {
-                for await (const { data } of eventSource2) {
+                for await (const { data } of eventSource2) { // NOSONAR
                     llmMessage = JSON.parse(data);
                     break;
                 }
