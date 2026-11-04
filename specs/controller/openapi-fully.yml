@@ -728,12 +728,17 @@ paths:
             text/event-stream:
               itemSchema:
                 type: object
+                required:
+                  - data
                 properties:
                   data:
-                    type: object
-                    required: *ref_12
-                    properties: *ref_13
-                    additionalProperties: false
+                    type: string
+                    contentMediaType: application/json
+                    contentSchema:
+                      type: object
+                      required: *ref_12
+                      properties: *ref_13
+                      additionalProperties: false
         '401':
           description: Missing or invalid Controller access token.
           content: *ref_2
