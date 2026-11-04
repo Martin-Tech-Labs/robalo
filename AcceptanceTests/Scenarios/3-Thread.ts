@@ -242,7 +242,7 @@ describe('3 - Threads @drei @threads', () => {
 
         it("When I wait for the LLM from last message's Event endpoint", async () => {
             eventSource2 = await ControllerApi.subscribe(message._links.events);
-            console.error(`Retrieve a new message from ${message._links.events.href}`)
+            console.log(`Retrieving a new message from ${message._links.events.href}`)
             try {
                 for await (const { data } of eventSource2) { // NOSONAR
                     llmMessage = JSON.parse(data);
