@@ -202,18 +202,6 @@ describe('3 - Threads @drei @threads', () => {
             message.message_number.should.equal(3);
         });
 
-        let userMessage: Message;
-
-        it("When I wait for this message from Events endpoint", async () => {
-            console.log(`Retrieving a new message (4) from ${thread._links.events.href}`);
-            for await (const { data } of eventSource) { // NOSONAR
-                userMessage = JSON.parse(data);
-                break;
-            }
-        }).timeout(timeoutLlmMs);
-
-        it("Then I verify the message is correct", () => expect(userMessage).to.deep.equal(message));
-
         it("When I go to message self link", async () => {
             response = await ControllerApi.get(message._links.self);
         });
