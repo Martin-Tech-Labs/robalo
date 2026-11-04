@@ -27,8 +27,11 @@ describe('3 - Threads @drei @threads', () => {
     let eventSource: EventSourceClient;
     let llmMessage: Message;
 
+    const timeout = 10_000;
+
     describe('Create Thread - Happy Path @threads @thread', () => {
         after(() => {
+            console.log("Closing event source");
             eventSource?.close();
         });
         before(() => {
@@ -123,11 +126,17 @@ describe('3 - Threads @drei @threads', () => {
         });
 
         it("And I wait for the LLM response from Events endpoint", async () => {
-            for await (const { data } of eventSource) { // NOSONAR
-                llmMessage = JSON.parse(data);
-                break;
+            try {
+                for await (const { data } of eventSource) { // NOSONAR
+                    llmMessage = JSON.parse(data);
+                    break;
+                }
             }
-        }).timeout(10000);
+            catch (error) {
+                console.error(`Failed to retrieve a new message (1) from ${thread._links.events.href}`)
+                throw error;
+            }
+        }).timeout(timeout);
 
         it("And I verfy the LLM message", () => {
             expect(llmMessage.content).to.not.be.empty;
@@ -139,7 +148,7 @@ describe('3 - Threads @drei @threads', () => {
             response = await ControllerApi.get(thread._links.messages);
             messageQueryResult = response.body as MessageQueryResult;
             expect(messageQueryResult._embedded.messages.length).to.equal(2);
-        }).timeout(10000);
+        }).timeout(timeout);
 
         it("And I verfy the LLM message", () => {
             expect(messageQueryResult._embedded.messages[1]).to.deep.equal(llmMessage);
@@ -199,11 +208,17 @@ describe('3 - Threads @drei @threads', () => {
         let userMessage: Message;
 
         it("When I wait for this message from Events endpoint", async () => {
-            for await (const { data } of eventSource) { // NOSONAR
-                userMessage = JSON.parse(data);
-                break;
+            try {
+                for await (const { data } of eventSource) { // NOSONAR
+                    userMessage = JSON.parse(data);
+                    break;
+                }
             }
-        }).timeout(10000);
+            catch (error) {
+                console.error(`Failed to retrieve a new message (4) from ${thread._links.events.href}`)
+                throw error;
+            }
+        }).timeout(timeout);
 
         it("Then I verify the message is correct", () => expect(userMessage).to.deep.equal(message));
 
@@ -243,10 +258,15 @@ describe('3 - Threads @drei @threads', () => {
                     break;
                 }
             }
+            catch (error) {
+                console.error(`Failed to retrieve a new message from ${message._links.events.href}`)
+                throw error;
+            }
             finally {
+                console.log("Closing event source 2");
                 eventSource2?.close();
             }
-        }).timeout(10000);
+        }).timeout(timeout);
 
         it("And I get the LLM response from GET Endpoint", async () => {
             response = await ControllerApi.get(thread._links.messages);
