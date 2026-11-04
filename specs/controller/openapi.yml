@@ -220,28 +220,18 @@ paths:
       tags:
       - Events
       operationId: getEvents
-      summary: Stream newly created messages as NDJSON
-      description: Without a thread filter, stream messages from all threads accessible to the caller.
-        With a thread filter, stream only that thread. Each batch includes the subscription self link
-        and each message includes its thread link. This is NDJSON, not SSE; no SSE framing is used. Replay
-        and reconnection semantics are not yet defined.
+      summary: Stream newly created messages as SSE
       responses:
         '200':
-          description: An open-ended stream of message batches. Each line is a complete JSON object conforming
-            to itemSchema.
+          description: An open-ended stream of with one message per event. 
           content:
-            application/x-ndjson:
-              examples:
-                messageBatch:
-                  summary: One batch serialized as a single NDJSON line.
-                  serializedValue: '{"_embedded":{"messages":[{"content":"Hello world","created_on":"2027-06-05T12:34:56Z","source":"user","thread_id":"thd_123","message_number":"123","_links":{"self":{"href":"/threads/thd_123/messages/123"},"thread":{"href":"/threads/thd_123"}}},{"content":"Hi
-                    there","created_on":"2027-06-05T12:35:56Z","source":"llm","thread_id":"thd_123","message_number":"124","_links":{"self":{"href":"/threads/thd_123/messages/124"},"thread":{"href":"/threads/thd_123"}}}]},"_links":{"self":{"href":"/events?thread=thd_123"}}}
-
-                    '
+            text/event-stream:
               itemSchema:
-                $ref: ./schemas/get-events-response.yaml
-        '400':
-          $ref: '#/components/responses/BadRequest'
+                type: object
+                properties:
+                  data:
+                    $ref: ./schemas/message.yaml
+
         '404':
           $ref: '#/components/responses/NotFound'
         '401':
@@ -254,6 +244,13 @@ paths:
         schema:
           type: string
         example: thd_123
+      - name: checkpoint
+        in: query
+        required: false
+        description: Allows proceeding subscription from a given checkpoint (exclusive). Only allowed when supplied together with the thread.
+        schema:
+          type: integer
+        example: 123
 components:
   securitySchemes:
     bearerAuth:

@@ -9,5 +9,11 @@ using SimpleBase;
 var utc = DateTimeOffset.UtcNow.ToString("o");
 
 
-List<int> list = new();
-Console.WriteLine(list[^1]?);
+int[] array = [1, 2, 3, 4, 5, 6];
+
+var checkpoint = 1;
+var checkpointAsIndex = checkpoint - 1;
+
+var z = array[(checkpointAsIndex + 1)..^1];
+
+Console.WriteLine(z.Length);

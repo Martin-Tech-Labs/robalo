@@ -14,7 +14,7 @@ using Xunit.Internal;
 
 namespace Robalo.Controller.UnitTests.Controllers;
 
-public class ServiceDiscoveryController_GetServiceDiscovery
+public class ServiceDiscoveryController_GetServiceDiscoveryTests
 {
     readonly ServiceDiscoveryController _sut;
     Mock<IHttpContextAccessor> _httpContextAccessor = new();
@@ -26,7 +26,7 @@ public class ServiceDiscoveryController_GetServiceDiscovery
 
     readonly Fixture _fixture = new();
 
-    public ServiceDiscoveryController_GetServiceDiscovery()
+    public ServiceDiscoveryController_GetServiceDiscoveryTests()
     {
         _sut = new(
           logger: Log.Logger,

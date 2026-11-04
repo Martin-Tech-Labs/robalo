@@ -12,7 +12,7 @@
             "href": "/threads/thd_123"
         },
         "events": {
-            "href": "/events?thread=thd_123"
+            "href": "/events?thread=thd_123&checkpoint=12"
         }
     }
 }

@@ -14,7 +14,7 @@ import type { ProblemDetails } from '../Api/Types/problem-details.d.ts'
 import type { Message } from '../Api/Types/message.d.ts'
 
 import { randomUUID } from 'node:crypto';
-import { retry } from '../Api/retry.ts';
+import type { EventSourceClient } from 'eventsource-client';
 
 describe('3 - Threads @drei @threads', () => {
     let serviceDiscovery: ServiceDiscovery;
@@ -24,8 +24,13 @@ describe('3 - Threads @drei @threads', () => {
     let message2Content: string;
     let message: Message;
     let messageQueryResult: MessageQueryResult;
+    let eventSource: EventSourceClient;
+    let llmMessage: Message;
 
     describe('Create Thread - Happy Path @threads @thread', () => {
+        after(() => {
+            eventSource?.close();
+        });
         before(() => {
             message1Content = `msg_${randomUUID().toLowerCase()}`;
             message2Content = `msg_${randomUUID().toLowerCase()}`;
@@ -56,6 +61,10 @@ describe('3 - Threads @drei @threads', () => {
 
         it("And I verify the location link matches the self link", () => {
             response.headers['location'].should.equal(thread._links.self.href);
+        });
+
+        it("And I subscribe to events", async () => {
+            eventSource = await ControllerApi.subscribe(thread._links.events)
         });
 
         it("And I verify the thread modified_on equals created_on", () => {
@@ -113,17 +122,27 @@ describe('3 - Threads @drei @threads', () => {
             expect(messageQueryResult._embedded.messages[0].created_on).to.equal(thread.created_on);
         });
 
-        it("And I wait for the LLM response", retry(async () => {
+        it("And I wait for the LLM response from Events endpoint", async () => {
+            for await (const { data } of eventSource) { // NOSONAR
+                llmMessage = JSON.parse(data);
+                break;
+            }
+        }).timeout(10000);
+
+        it("And I verfy the LLM message", () => {
+            expect(llmMessage.content).to.not.be.empty;
+            expect(llmMessage.source).to.equal("llm");
+            expect(llmMessage.message_number).to.equal(2);
+        });
+
+        it("And I wait for the LLM response from Get Endpoint", async () => {
             response = await ControllerApi.get(thread._links.messages);
             messageQueryResult = response.body as MessageQueryResult;
             expect(messageQueryResult._embedded.messages.length).to.equal(2);
-        }
-        )).timeout(10000);
+        }).timeout(10000);
 
-        it("And I verfy the LLM response", () => {
-            expect(messageQueryResult._embedded.messages[1].content).to.not.be.empty;
-            expect(messageQueryResult._embedded.messages[1].source).to.equal("llm");
-            expect(messageQueryResult._embedded.messages[1].message_number).to.equal(2);
+        it("And I verfy the LLM message", () => {
+            expect(messageQueryResult._embedded.messages[1]).to.deep.equal(llmMessage);
         });
 
         it("And I verfy next and prev links are null", () => {
@@ -177,6 +196,18 @@ describe('3 - Threads @drei @threads', () => {
             message.message_number.should.equal(3);
         });
 
+        let userMessage: Message;
+
+        it("When I wait for this message from Events endpoint", async () => {
+            for await (const { data } of eventSource) { // NOSONAR
+                userMessage = JSON.parse(data);
+                break;
+            }
+        }).timeout(10000);
+
+        it("Then I verify the message is correct", () => expect(userMessage).to.deep.equal(message));
+
+
         it("When I go to message self link", async () => {
             response = await ControllerApi.get(message._links.self);
         });
@@ -203,14 +234,28 @@ describe('3 - Threads @drei @threads', () => {
             resultSelf.modified_on.should.equal(message.created_on);
         });
 
-        it("And I wait for the LLM response", retry(async () => {
+        it("When I wait for the LLM from last message's Event endpoint", async () => {
+            let eventSource2 = await ControllerApi.subscribe(message._links.events);
+
+            try {
+                for await (const { data } of eventSource2) { // NOSONAR
+                    llmMessage = JSON.parse(data);
+                    break;
+                }
+            }
+            finally {
+                eventSource2?.close();
+            }
+        }).timeout(10000);
+
+        it("And I get the LLM response from GET Endpoint", async () => {
             response = await ControllerApi.get(thread._links.messages);
             messageQueryResult = response.body as MessageQueryResult;
             expect(messageQueryResult._embedded.messages.length).to.equal(4);
-        }
-        )).timeout(10000);
+        }).timeout(10000);
 
         it("And I verfy the LLM response", () => {
+            expect(llmMessage).to.deep.equal(messageQueryResult._embedded.messages[3]);
             expect(messageQueryResult._embedded.messages[3].content).to.not.be.empty;
             expect(messageQueryResult._embedded.messages[3].source).to.equal("llm");
             expect(messageQueryResult._embedded.messages[3].message_number).to.equal(4);

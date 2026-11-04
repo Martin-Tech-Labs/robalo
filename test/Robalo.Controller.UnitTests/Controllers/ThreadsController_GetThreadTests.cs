@@ -42,7 +42,7 @@ public class ThreadsController_GetThreadTests : ThreadsControllerTests
 
         ValidateAllNotNullLinks(resource);
 
-        resource.Links.Events.Href.Query.ShouldBe($"?thread_id={thread.Id}&checkpoint={thread.PersistedVersion.ValueOrFailure}");
+        resource.Links.Events.Href.Query.ShouldBe($"?thread={thread.Id}&checkpoint={thread.PersistedVersion.ValueOrFailure}");
 
 
         resource.CreatedOn.ShouldBe(_utcNow);

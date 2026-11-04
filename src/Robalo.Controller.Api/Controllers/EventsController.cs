@@ -34,7 +34,7 @@ public class EventsController : ControllerBase
 
     [HttpGet("")]
     public async Task<IResult> Get(
-        [FromQuery(Name = "thread_id")] string? threadId,
+        [FromQuery(Name = "thread")] string? threadId,
         [FromQuery] int? checkpoint,
         CancellationToken cancellationToken)
     {

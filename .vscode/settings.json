@@ -1,4 +1,5 @@
 {
     "dotnet.defaultSolution": "Robalo.slnx",
-    "dotnet.backgroundAnalysis.analyzerDiagnosticsScope": "fullSolution"
+    "dotnet.backgroundAnalysis.analyzerDiagnosticsScope": "fullSolution",
+    "codeQL.githubDatabase.update": "never"
 }

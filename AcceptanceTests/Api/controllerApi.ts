@@ -3,6 +3,8 @@ import Config from '../Config/config.ts';
 
 import type { MessageRequest } from './Types/message-request.d.ts'
 import type { Link } from './Types/link.d.ts';
+import { createEventSource } from "eventsource-client";
+
 
 const ControllerApi = {
     ping() {
@@ -22,6 +24,8 @@ const ControllerApi = {
     serviceDiscovery: () => request(Config.ControllerUrl).get(''),
 
     get: (link: Link) => request(link.href).get(''),
+
+    subscribe: async (link: Link) => createEventSource(link.href),
 
     delete: (link: Link) => request(link.href).delete(''),
 
