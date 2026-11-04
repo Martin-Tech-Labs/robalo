@@ -34,7 +34,7 @@ describe('3 - Threads @drei @threads', () => {
         after(() => {
             console.log("Closing event sources");
             eventSource?.close();
-            eventSource?.close();
+            eventSource2?.close();
         });
         before(() => {
             message1Content = `msg_${randomUUID().toLowerCase()}`;
@@ -128,7 +128,7 @@ describe('3 - Threads @drei @threads', () => {
         });
 
         it("And I wait for the LLM response from Events endpoint", async () => {
-            console.log(`Retrieve a new message (1) from ${thread._links.events.href}`);
+            console.log(`Retrieving a new message (1) from ${thread._links.events.href}`);
             for await (const { data } of eventSource) { // NOSONAR
                 llmMessage = JSON.parse(data);
                 break;
@@ -205,7 +205,7 @@ describe('3 - Threads @drei @threads', () => {
         let userMessage: Message;
 
         it("When I wait for this message from Events endpoint", async () => {
-            console.log(`Retrieve a new message (4) from ${thread._links.events.href}`);
+            console.log(`Retrieving a new message (4) from ${thread._links.events.href}`);
             for await (const { data } of eventSource) { // NOSONAR
                 userMessage = JSON.parse(data);
                 break;
