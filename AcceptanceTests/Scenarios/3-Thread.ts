@@ -28,7 +28,7 @@ describe('3 - Threads @drei @threads', () => {
     let eventSource2: EventSourceClient;
     let llmMessage: Message;
 
-    const timeout = 10_000;
+    const timeoutLlmMs = 60_000;
 
     describe('Create Thread - Happy Path @threads @thread', () => {
         after(() => {
@@ -133,7 +133,7 @@ describe('3 - Threads @drei @threads', () => {
                 llmMessage = JSON.parse(data);
                 break;
             }
-        }).timeout(timeout);
+        }).timeout(timeoutLlmMs);
 
         it("And I verfy the LLM message", () => {
             expect(llmMessage.content).to.not.be.empty;
@@ -210,7 +210,7 @@ describe('3 - Threads @drei @threads', () => {
                 userMessage = JSON.parse(data);
                 break;
             }
-        }).timeout(timeout);
+        }).timeout(timeoutLlmMs);
 
         it("Then I verify the message is correct", () => expect(userMessage).to.deep.equal(message));
 
@@ -252,7 +252,7 @@ describe('3 - Threads @drei @threads', () => {
             finally {
                 eventSource2?.close();
             }
-        }).timeout(timeout);
+        }).timeout(timeoutLlmMs);
 
         it("And I get the LLM response from GET Endpoint", async () => {
             response = await ControllerApi.get(thread._links.messages);
@@ -300,7 +300,7 @@ describe('3 - Threads @drei @threads', () => {
         it("Then I verify the valid response code 404", async () => {
             response.statusCode.should.equal(404);
         });
-    })
+    }).bail(true);
 
 
     describe("Create Thread - Missing Message", () => {
