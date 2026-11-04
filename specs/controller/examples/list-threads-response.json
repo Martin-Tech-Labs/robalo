@@ -14,7 +14,7 @@
                         "href": "/threads/thd_123/messages"
                     },
                     "events": {
-                        "href": "/events?thread=thd_123"
+                        "href": "/events?thread=thd_123&checkpoint=2"
                     }
                 }
             },
@@ -31,7 +31,7 @@
                         "href": "/threads/thd_234/messages"
                     },
                     "events": {
-                        "href": "/events?thread=thd_234"
+                        "href": "/events?thread=thd_234&checkpoint=3"
                     }
                 }
             }

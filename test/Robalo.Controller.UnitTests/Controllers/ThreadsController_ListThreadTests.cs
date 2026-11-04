@@ -48,7 +48,7 @@ public class ThreadsController_ListThreadTests : ThreadsControllerTests
 
             ValidateAllNotNullLinks(threadResource);
 
-            threadResource.Links.Events.Href.Query.ShouldBe($"?thread_id={threadInfo.Id.IdString}&checkpoint={threadInfo.Version}");
+            threadResource.Links.Events.Href.Query.ShouldBe($"?thread={threadInfo.Id.IdString}&checkpoint={threadInfo.Version}");
 
 
             threadResource.Title.ShouldBe(threadInfo.Title);

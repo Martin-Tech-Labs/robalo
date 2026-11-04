@@ -45,13 +45,13 @@ public static class Extensions
     public static Link LinkToEventsWithThreadId(
         this IHttpContextAccessor accessor,
         ThreadIdentifier threadId)
-            => accessor.HttpContext!.LinkToPath($"/events?thread_id={threadId}");
+            => accessor.HttpContext!.LinkToPath($"/events?thread={threadId}");
 
     public static Link LinkToEventsWithThreadIdAndCheckpoint(
         this IHttpContextAccessor accessor,
         ThreadIdentifier threadId,
         int checkpoint)
-            => accessor.HttpContext!.LinkToPath($"/events?thread_id={threadId}&checkpoint={checkpoint}");
+            => accessor.HttpContext!.LinkToPath($"/events?thread={threadId}&checkpoint={checkpoint}");
 
     public static Link LinkToEvents(this IHttpContextAccessor accessor)
             => accessor.HttpContext!.LinkToPath($"/events");

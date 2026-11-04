@@ -49,7 +49,7 @@ public class ThreadsController_GetMessageTests : ThreadsControllerTests
 
         ValidateAllNotNullLinks(messageResource);
 
-        messageResource.Links.Events.Href.Query.ShouldBe($"?thread_id={id}&checkpoint={message.Number}");
+        messageResource.Links.Events.Href.Query.ShouldBe($"?thread={id}&checkpoint={message.Number}");
 
 
         messageResource.Content.ShouldBe(message.Content);
