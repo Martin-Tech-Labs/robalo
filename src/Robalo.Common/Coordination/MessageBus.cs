@@ -79,6 +79,7 @@ public sealed class MessageBus : IMessageBus
 
     public void Send<TMessage>(TMessage message) where TMessage : notnull
     {
+        _logger.Debug("Received message {Message}", message.ToString());
         if (_subscribers.TryGetValue(typeof(TMessage), out var subscribers))
         {
             foreach (var subscriber in subscribers)

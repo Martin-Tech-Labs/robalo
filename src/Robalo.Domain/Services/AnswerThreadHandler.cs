@@ -16,6 +16,7 @@ public sealed class AnswerThreadHandler : IAnswerThreadHandler
 
     public void Handle(ThreadUpdated threadUpdated)
     {
+        _logger.Debug("Enqueing a job {Job} for thread {ThreadId}", nameof(AnswerThreadJob), threadUpdated.ThreadId.IdString);
         BackgroundJob.Enqueue<AnswerThreadJob>(
             s => s.Answer(threadUpdated.ThreadId.IdString, CancellationToken.None));
     }
