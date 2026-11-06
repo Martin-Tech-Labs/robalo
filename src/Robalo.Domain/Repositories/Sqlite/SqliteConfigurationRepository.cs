@@ -2,7 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Dapper;
 using Robalo.Common.Models;
-using Robalo.Domain.Models.Configuration;
+using Robalo.Domain.Configuration;
 using Robalo.Domain.Repositories.Sqlite.Dto;
 
 namespace Robalo.Domain.Repositories.Sqlite;
@@ -11,7 +11,7 @@ public sealed class SqliteConfigurationRepository : IConfigurationRepository
 {
     static readonly JsonSerializerOptions _options = new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = true,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };

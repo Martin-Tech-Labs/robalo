@@ -2,7 +2,7 @@ using Moq;
 using Robalo.Common.Coordination;
 using Robalo.Common.Extensions;
 using Robalo.Domain.Models;
-using Robalo.Domain.Models.Configuration;
+using Robalo.Domain.Configuration;
 using Robalo.Domain.Repositories.Sqlite;
 using Robalo.Domain.Streaming;
 using Robalo.Tests.Common;

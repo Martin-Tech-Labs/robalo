@@ -1,5 +1,5 @@
 using Robalo.Common.Models;
-using Robalo.Domain.Models.Configuration;
+using Robalo.Domain.Configuration;
 
 namespace Robalo.Domain.Repositories;
 

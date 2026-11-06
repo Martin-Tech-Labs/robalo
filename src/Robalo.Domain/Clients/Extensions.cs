@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using OpenAI;
 using OpenAI.Chat;
 using Robalo.Common.Models;
-using Robalo.Domain.Models.Configuration;
+using Robalo.Domain.Configuration;
 
 namespace Robalo.Domain.Clients.Extensions;
 
@@ -27,11 +27,8 @@ public static class Extensions
         var llmSettings = llmOptions.AsSettings();
         services.AddSingleton(llmSettings);
 
-        var options = new OpenAIClientOptions();
-        if (llmSettings.Endpoint is Some<Uri> uri)
-        {
-            options.Endpoint = uri;
-        }
+        var options = new OpenAIClientOptions { Endpoint = llmOptions.Endpoint };
+
         var client = new ChatClient(
             model: llmSettings.Model,
             credential: new ApiKeyCredential(llmSettings.Key),

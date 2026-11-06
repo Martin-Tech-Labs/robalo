@@ -16,4 +16,4 @@ var checkpointAsIndex = checkpoint - 1;
 
 var z = array[(checkpointAsIndex + 1)..^1];
 
-Console.WriteLine(z.Length);
+Console.WriteLine(DateTime.UtcNow.ToString("o"));

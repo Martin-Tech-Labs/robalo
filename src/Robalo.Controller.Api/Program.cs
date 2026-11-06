@@ -23,6 +23,7 @@ using Robalo.Controller.Api.Requests;
 using Robalo.Controller.Api.Validation;
 using Robalo.Controller.Api.Validation.Requests;
 using Robalo.Domain.Clients.Extensions;
+using Robalo.Domain.Configuration;
 using Robalo.Domain.Models;
 using Robalo.Domain.Models.MessageBus;
 using Robalo.Domain.Repositories;
@@ -34,12 +35,15 @@ using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 var startTimeUtc = Process.GetCurrentProcess().StartTime.ToUniversalTime();
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Configuration.AddEnvironmentVariables("ROBALO_");
 
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
     .Enrich.WithProperty("Version", Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.ToString() ?? string.Empty)
     .CreateLogger();
+
+builder.Configuration.AddRobaloConfiguration();
+builder.Configuration.AddEnvironmentVariables("ROBALO_");
+
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi

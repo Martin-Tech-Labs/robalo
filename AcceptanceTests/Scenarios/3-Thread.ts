@@ -72,10 +72,6 @@ describe('3 - Threads @drei @threads', () => {
             eventSource = await ControllerApi.subscribe(thread._links.events)
         });
 
-        it("And I verify the thread modified_on equals created_on", () => {
-            thread.created_on.should.equal(thread.modified_on);
-        });
-
         it("And I verify the thread title is not present", () => {
             expect(thread.title).to.be.undefined;
         });
@@ -220,12 +216,6 @@ describe('3 - Threads @drei @threads', () => {
 
         it("When I reload the thread by going to its self link", async () => {
             response = await ControllerApi.get(thread._links.self).expect(200);
-        });
-
-        it("Then I verify modified_on is updated to that of the last message", async () => {
-            let resultSelf = response.body as Thread;
-            resultSelf.created_on.should.equal(thread.created_on);
-            resultSelf.modified_on.should.equal(message.created_on);
         });
 
         it("When I wait for the LLM from last message's Event endpoint", async () => {

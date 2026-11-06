@@ -436,7 +436,7 @@ public sealed class SqliteThreadRepository : IThreadRepository
     public async Task<Option<int>> AppendEvent<T>(ThreadIdentifier identifier, T messageAdded, CancellationToken cancellationToken)
         where T : MessageAdded
     {
-        return await _sqlConnectionFactory.ExecuteAsTransaction<Option<int>>(async connection =>
+        var result = await _sqlConnectionFactory.ExecuteAsTransaction<Option<int>>(async connection =>
         {
             var versionOrNone = await connection.QueryAsync<int>(
              """
@@ -449,7 +449,6 @@ public sealed class SqliteThreadRepository : IThreadRepository
             if (versionOrNone is Some<int> version)
             {
                 await InsertEvent(identifier, connection, version, messageAdded);
-                _messageBus.Send(new ThreadUpdated(identifier));
                 return version;
             }
             else
@@ -457,5 +456,12 @@ public sealed class SqliteThreadRepository : IThreadRepository
                 return None.Default;
             }
         }, cancellationToken);
+
+        if (result.HasValue)
+        {
+            _messageBus.Send(new ThreadUpdated(identifier));
+        }
+
+        return result;
     }
 }

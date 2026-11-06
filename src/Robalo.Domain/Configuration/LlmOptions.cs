@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Robalo.Common.Extensions;
 
-namespace Robalo.Domain.Models.Configuration;
+namespace Robalo.Domain.Configuration;
 
 public sealed class LlmOptions
 {
@@ -12,16 +12,17 @@ public sealed class LlmOptions
     public LlmSettings AsSettings()
     {
         Verify();
-        return new LlmSettings(Endpoint.AsOption(), Model, Key);
+        return new LlmSettings(Endpoint!, Model, Key);
     }
 
     [MemberNotNull(nameof(Model))]
     [MemberNotNull(nameof(Key))]
+    [MemberNotNull(nameof(Endpoint))]
     public void Verify()
     {
-        if (Endpoint is not null && !Endpoint.IsAbsoluteUri)
+        if (Endpoint is null || !Endpoint.IsAbsoluteUri)
         {
-            throw new InvalidOperationException($"If provided, {nameof(Endpoint)} must be an absolute URI");
+            throw new InvalidOperationException($"{nameof(Endpoint)} must be provided and be an absolute URI");
         }
 
         if (string.IsNullOrWhiteSpace(Model))
