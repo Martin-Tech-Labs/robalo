@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using OpenAI;
 using OpenAI.Chat;
 using Robalo.Common.Models;
-using Robalo.Domain.Clients.Configuration;
+using Robalo.Domain.Models.Configuration;
 
 namespace Robalo.Domain.Clients.Extensions;
 
@@ -14,7 +14,7 @@ public static class Extensions
     public static IServiceCollection AddLlmClient(
         this IServiceCollection services,
         ConfigurationManager configuration,
-        string configurationKey = "Llm")
+        string configurationKey = "Robalo:Llm")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(configurationKey);
 

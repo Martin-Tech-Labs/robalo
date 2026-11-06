@@ -1,0 +1,2 @@
+FROM smollm2:135m-instruct-q4_K_M
+PARAMETER num_predict 30
