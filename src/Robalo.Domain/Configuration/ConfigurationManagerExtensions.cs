@@ -16,6 +16,12 @@ public static class ConfigurationManagerExtensions
         var sqlConnectionFactory = new SqliteConnectionFactory(Log.Logger, databaseOptions.AsSettings());
         var repository = new SqliteConfigurationRepository(Log.Logger, sqlConnectionFactory);
 
+        var configOrNone = repository.LoadConfiguration(CancellationToken.None).GetAwaiter().GetResult();
+        if (configOrNone.IsNone)
+        {
+            repository.SaveConfiguration(new RobaloOptions(new LlmOptions { Model = "test-model", Key = "test", Endpoint = new Uri("http://localhost:11500/v1/") }), DateTimeOffset.UtcNow, CancellationToken.None).GetAwaiter().GetResult();
+        }
+
         IConfigurationBuilder configBuilder = manager;
         configBuilder.Add(new ConfigurationRepositorySource(repository));
 
