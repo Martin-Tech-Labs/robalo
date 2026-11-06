@@ -1,13 +1,15 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 using Robalo.Common.Models;
 
 namespace Robalo.Domain.Configuration;
+
 public sealed record RobaloConfiguration(
     int ConfigurationId,
     DateTimeOffset CreatedOn,
     RobaloOptions Value);
 
-public sealed record RobaloOptions(LlmOptions? LlmOptions)
+public sealed record RobaloOptions([property: JsonPropertyName("Llm")] LlmOptions? LlmOptions)
 {
     [MemberNotNull(nameof(LlmOptions))]
     public void Verify()
