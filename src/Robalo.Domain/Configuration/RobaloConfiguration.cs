@@ -1,8 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Robalo.Common.Models;
 
-namespace Robalo.Domain.Models.Configuration;
-
+namespace Robalo.Domain.Configuration;
 public sealed record RobaloConfiguration(
     int ConfigurationId,
     DateTimeOffset CreatedOn,

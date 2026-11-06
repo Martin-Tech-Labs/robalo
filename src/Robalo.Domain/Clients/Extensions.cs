@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using OpenAI;
 using OpenAI.Chat;
 using Robalo.Common.Models;
-using Robalo.Domain.Models.Configuration;
+using Robalo.Domain.Configuration;
 
 namespace Robalo.Domain.Clients.Extensions;
 
