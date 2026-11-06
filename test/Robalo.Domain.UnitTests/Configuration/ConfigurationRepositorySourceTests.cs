@@ -33,14 +33,12 @@ public class ConfigurationRepositorySourceTests
 
 
     [Fact]
-    public void ShouldThrowExceptionOnMissingConfiguration()
+    public void ShouldThrowExceptionOnInvalidConfiguration()
     {
         var config = _fixture.Create<RobaloConfiguration>();
         config.Value.LlmOptions!.Endpoint = null;
-        config.Value.Verify();
 
         _repository.Setup(s => s.LoadConfiguration(It.IsAny<CancellationToken>())).ReturnsAsync(config);
-        _repository.Setup(s => s.LoadConfiguration(It.IsAny<CancellationToken>())).ReturnsAsync(None.Default);
 
         Should.Throw<Exception>(() => new ConfigurationBuilder()
             .Add(new ConfigurationRepositorySource(_repository.Object))
@@ -48,9 +46,8 @@ public class ConfigurationRepositorySourceTests
     }
 
     [Fact]
-    public void ShouldThrowExceptionOnInvalidConfiguration()
+    public void ShouldThrowExceptionOnMissingConfiguration()
     {
-
         _repository.Setup(s => s.LoadConfiguration(It.IsAny<CancellationToken>())).ReturnsAsync(None.Default);
 
         Should.Throw<Exception>(() => new ConfigurationBuilder()

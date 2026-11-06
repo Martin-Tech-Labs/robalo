@@ -27,11 +27,8 @@ public static class Extensions
         var llmSettings = llmOptions.AsSettings();
         services.AddSingleton(llmSettings);
 
-        var options = new OpenAIClientOptions();
-        if (llmSettings.Endpoint is Some<Uri> uri)
-        {
-            options.Endpoint = uri;
-        }
+        var options = new OpenAIClientOptions { Endpoint = llmOptions.Endpoint };
+
         var client = new ChatClient(
             model: llmSettings.Model,
             credential: new ApiKeyCredential(llmSettings.Key),
