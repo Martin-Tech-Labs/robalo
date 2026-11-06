@@ -8,7 +8,7 @@ for attempt in 1 2 3 4 5 6 7 8 9 10; do
     if ollama list >/dev/null 2>&1; then
         echo "Ollama setup: $attempt 1 out of 10"
         ollama pull $model
-        ollama cp $model test-model
+        ollama create test-model -f Modelfile
         echo "Ollama setup complete"
         exit 0
     fi

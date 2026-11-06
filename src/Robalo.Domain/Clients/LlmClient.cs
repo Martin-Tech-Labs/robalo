@@ -4,7 +4,6 @@ using OpenAI;
 using OpenAI.Chat;
 using Robalo.Common.Extensions;
 using Robalo.Common.Models;
-using Robalo.Domain.Clients.Configuration;
 using Robalo.Domain.Clients.Models;
 using Serilog;
 

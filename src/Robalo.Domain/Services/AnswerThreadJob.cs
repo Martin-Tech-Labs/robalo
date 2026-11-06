@@ -1,5 +1,7 @@
 using Robalo.Common.Models;
 using Robalo.Domain.Models;
+using Serilog;
+using Serilog.Context;
 
 namespace Robalo.Domain.Services;
 
@@ -16,8 +18,9 @@ public sealed class AnswerThreadJob
 
     public async Task Answer(string threadId, CancellationToken cancellationToken)
     {
+        using var p = LogContext.PushProperty("ThreadId", threadId);
         var result = await _service.Answer(ThreadIdentifier.FromIdString(threadId), cancellationToken);
-        if(result is not Success)
+        if (result is not Success)
         {
 #pragma warning disable CA2201 // Do not raise reserved exception types
             throw new Exception($"{_service.GetType().Name} should have returned {nameof(Success)} but returned {result.Value.GetType().Name}");
