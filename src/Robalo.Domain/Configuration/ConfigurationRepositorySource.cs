@@ -4,8 +4,8 @@ using Serilog;
 
 namespace Robalo.Domain.Configuration;
 
-public sealed class ConfigurationRepositorySource(IConfigurationRepository repository) : IConfigurationSource
+public sealed class ConfigurationRepositorySource(IConfigurationRepository repository, TimeSpan pollingInterval) : IConfigurationSource
 {
     public IConfigurationProvider Build(IConfigurationBuilder builder) =>
-        new ConfigurationRepositoryProvider(Log.Logger, repository);
+        new ConfigurationRepositoryProvider(Log.Logger, repository, pollingInterval);
 }

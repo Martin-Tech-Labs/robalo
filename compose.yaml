@@ -17,7 +17,7 @@ services:
       ROBALO_Robalo__Llm__Endpoint: http://ollama:11434/v1/
 
   seq:
-    image: datalust/seq:2026.1.17473
+    image: datalust/seq:2026.1.17526
     ports:
       - "127.0.0.1:8081:80"
       - "127.0.0.1:5341:5341"
