@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.Extensions.Configuration;
 using Robalo.Domain.Repositories.Sqlite;
 using Robalo.Domain.Repositories.Sqlite.Configuration;
@@ -7,8 +8,9 @@ namespace Robalo.Domain.Configuration;
 
 public static class ConfigurationManagerExtensions
 {
-    public static ConfigurationManager AddRobaloConfiguration(this ConfigurationManager manager)
+    public static ConfigurationManager AddRobaloConfiguration(this ConfigurationManager manager, int pollingIntervalSeconds = 5)
     {
+        ArgumentOutOfRangeException.ThrowIfLessThan(pollingIntervalSeconds, 1);
         Extensions.AddDapperTypeHandlers();
         DatabaseOptions databaseOptions = new();
         manager.GetSection("Database").Bind(databaseOptions);
@@ -23,7 +25,7 @@ public static class ConfigurationManagerExtensions
         }
 
         IConfigurationBuilder configBuilder = manager;
-        configBuilder.Add(new ConfigurationRepositorySource(repository));
+        configBuilder.Add(new ConfigurationRepositorySource(repository, TimeSpan.FromSeconds(pollingIntervalSeconds)));
 
         return manager;
     }

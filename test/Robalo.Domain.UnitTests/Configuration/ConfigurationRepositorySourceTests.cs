@@ -20,8 +20,9 @@ public class ConfigurationRepositorySourceTests
 
         _repository.Setup(s => s.LoadConfiguration(It.IsAny<CancellationToken>())).ReturnsAsync(expected);
 
+
         var configuration = new ConfigurationBuilder()
-            .Add(new ConfigurationRepositorySource(_repository.Object))
+            .Add(new ConfigurationRepositorySource(_repository.Object, Timeout.InfiniteTimeSpan))
             .Build();
 
         var options = configuration.GetSection("Robalo:Llm").Get<LlmOptions>();
@@ -41,7 +42,7 @@ public class ConfigurationRepositorySourceTests
         _repository.Setup(s => s.LoadConfiguration(It.IsAny<CancellationToken>())).ReturnsAsync(config);
 
         Should.Throw<Exception>(() => new ConfigurationBuilder()
-            .Add(new ConfigurationRepositorySource(_repository.Object))
+            .Add(new ConfigurationRepositorySource(_repository.Object, Timeout.InfiniteTimeSpan))
             .Build());
     }
 
@@ -51,7 +52,7 @@ public class ConfigurationRepositorySourceTests
         _repository.Setup(s => s.LoadConfiguration(It.IsAny<CancellationToken>())).ReturnsAsync(None.Default);
 
         Should.Throw<Exception>(() => new ConfigurationBuilder()
-            .Add(new ConfigurationRepositorySource(_repository.Object))
+            .Add(new ConfigurationRepositorySource(_repository.Object, Timeout.InfiniteTimeSpan))
             .Build());
     }
 }
