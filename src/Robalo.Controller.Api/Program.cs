@@ -35,6 +35,7 @@ using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 var startTimeUtc = Process.GetCurrentProcess().StartTime.ToUniversalTime();
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration.AddEnvironmentVariables("ROBALO_");
 
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
@@ -43,7 +44,6 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Configuration.AddRobaloConfiguration();
 builder.Configuration.AddEnvironmentVariables("ROBALO_");
-
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
