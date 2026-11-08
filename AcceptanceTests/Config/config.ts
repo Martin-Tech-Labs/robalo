@@ -7,6 +7,7 @@ import qa from './qa.ts'
 
 export interface Config {
     ControllerUrl: string;
+    SeqUrl: string;
 }
 
 export default getConfig();

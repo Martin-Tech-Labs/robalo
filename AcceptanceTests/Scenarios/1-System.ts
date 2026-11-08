@@ -3,6 +3,9 @@ import { describe, it } from 'mocha';
 
 import ControllerApi from '../Api/controllerApi.ts'
 import type { Response } from 'supertest';
+import SeqApi from '../Api/seqApi.ts';
+import { expect } from 'chai';
+import { retry } from '../Api/retry.ts';
 
 describe('1 - Scenario: System Endpoints @system', () => {
     describe('Ping endpoint', () => {
@@ -74,5 +77,66 @@ describe('1 - Scenario: System Endpoints @system', () => {
             response.body.running_in_container.should.not.be.undefined;
             response.body.uptime_seconds.should.be.above(0);
         });
+    });
+
+    describe('Env endpoint', () => {
+        let response: Response;
+        it("When I get /_system/env", async () => { response = await ControllerApi.env() });
+
+        it("Then I verify the response code is 200", () => { response.statusCode.should.equal(200) });
+
+        it("And I verfy the content type is application/json", () => {
+            response.headers['content-type'].should.include('application/json');
+        });
+
+        it("And I verify the response body contains valid details", () => {
+            response.body.application_name.should.equal("Robalo.Controller.Api");
+            response.body.version.should.not.be.empty;
+            response.body.os.should.not.be.empty;
+            response.body.os.should.not.be.empty;
+            response.body.machine.should.not.be.empty;
+            response.body.environment.should.not.be.empty;
+            response.body.runtime.should.include(".NET 11");
+            response.body.running_in_container.should.not.be.undefined;
+            response.body.uptime_seconds.should.be.above(0);
+        });
+    });
+
+    describe('Seq logging for Configuration loading', () => {
+        let response: Response;
+
+        it("When I get /_system/env", async () => { response = await ControllerApi.env() });
+
+        it("And I look for events for Configuration", async () => { response = await SeqApi.events("@MessageTemplate = 'Configuration {ConfigurationId} has been loaded'") });
+
+        it("Then I verify the response code is 200", () => { response.statusCode.should.equal(200) });
+
+        it("And I verfy the content type is application/json", () => {
+            response.headers['content-type'].should.include('application/json');
+        });
+
+        it("And I verfy it returned an array", () => {
+            expect(response.body).to.be.an("array").that.is.not.empty;
+        });
+    });
+
+    describe('Seq logging for GET Environment', () => {
+        let response: Response;
+        let startedOn: Date;
+
+        before(() => startedOn = new Date());
+
+        it("When I get /_system/env", async () => await ControllerApi.env());
+
+        it("And I look for its Seq event", retry(async () => {
+            response = await SeqApi.events(
+                "@MessageTemplate = 'HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms' " +
+                "and RequestPath = '/controller/_system/env' and StatusCode = 200");
+
+            response.statusCode.should.equal(200);
+            response.headers['content-type'].should.include('application/json');
+            expect(response.body).to.be.an("array").that.is.not.empty;
+            expect(new Date(response.body[0].Timestamp)).to.be.greaterThan(startedOn);
+        })).timeout(10000);
     });
 });
