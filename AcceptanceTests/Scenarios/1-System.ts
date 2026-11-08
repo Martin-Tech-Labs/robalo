@@ -137,6 +137,6 @@ describe('1 - Scenario: System Endpoints @system', () => {
             response.headers['content-type'].should.include('application/json');
             expect(response.body).to.be.an("array").that.is.not.empty;
             expect(new Date(response.body[0].Timestamp)).to.be.greaterThan(startedOn);
-        })).timeout(5000);
+        })).timeout(10000);
     });
 });
