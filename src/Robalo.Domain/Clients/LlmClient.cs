@@ -2,6 +2,7 @@ using System.ClientModel;
 using System.Diagnostics;
 using OpenAI;
 using OpenAI.Chat;
+using Robalo.Common.Configuration;
 using Robalo.Common.Extensions;
 using Robalo.Common.Models;
 using Robalo.Domain.Clients.Models;
@@ -12,9 +13,9 @@ namespace Robalo.Domain.Clients;
 public sealed class LlmClient : ILlmClient
 {
     readonly ILogger _logger;
-    readonly ChatClient _chatClient;
+    readonly ISmart<ChatClient> _chatClient;
 
-    public LlmClient(ILogger logger, ChatClient chatClient)
+    public LlmClient(ILogger logger, ISmart<ChatClient> chatClient)
     {
         _logger = logger.ForContext(GetType());
         _chatClient = chatClient;
@@ -27,7 +28,7 @@ public sealed class LlmClient : ILlmClient
         {
             var stopwatch = Stopwatch.StartNew();
 
-            var response = await _chatClient.CompleteChatAsync(
+            var response = await _chatClient.Value.CompleteChatAsync(
                 messages: request.Messages.Select(ThreadMessage.ToChatMessage),
                 options: null,
                 cancellationToken: cancellationToken);

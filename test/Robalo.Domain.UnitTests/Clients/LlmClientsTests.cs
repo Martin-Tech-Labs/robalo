@@ -3,6 +3,7 @@ using System.ClientModel.Primitives;
 using System.Diagnostics;
 using Moq;
 using OpenAI.Chat;
+using Robalo.Common.Configuration;
 using Robalo.Common.Models;
 using Robalo.Domain.Clients;
 using Robalo.Domain.Clients.Models;
@@ -16,11 +17,13 @@ public class LlmClientsTests
 {
     readonly LlmClient _sut;
     readonly Mock<ChatClient> _chatClient = new();
+    readonly Mock<ISmart<ChatClient>> _smartChatClient = new();
     readonly Fixture _fixture = new();
 
     public LlmClientsTests()
     {
-        _sut = new LlmClient(Log.Logger, _chatClient.Object);
+        _smartChatClient.SetupGet(s => s.Value).Returns(_chatClient.Object);
+        _sut = new LlmClient(Log.Logger, _smartChatClient.Object);
     }
 
     [Fact]

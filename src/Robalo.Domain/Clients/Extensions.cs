@@ -2,8 +2,10 @@ using System.ClientModel;
 using System.Net;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using OpenAI;
 using OpenAI.Chat;
+using Robalo.Common.Configuration;
 using Robalo.Common.Models;
 using Robalo.Domain.Configuration;
 
@@ -11,30 +13,28 @@ namespace Robalo.Domain.Clients.Extensions;
 
 public static class Extensions
 {
-    public static IServiceCollection AddLlmClient(
+    public static IServiceCollection AddSmartChatClient(
         this IServiceCollection services,
         ConfigurationManager configuration,
         string configurationKey = "Robalo:Llm")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(configurationKey);
 
-        services.AddTransient<ILlmClient, LlmClient>();
+        services.Configure<LlmOptions>(configuration.GetSection(key: configurationKey));
 
-        LlmOptions llmOptions = new();
+        services.AddSingleton<ISmart<ChatClient>>(sp =>
+            new Smart<ChatClient, LlmOptions>(
+                sp.GetRequiredService<IOptionsMonitor<LlmOptions>>(),
+                options =>
+                {
+                    var settings = options.AsSettings();
 
-        configuration.GetSection(configurationKey).Bind(llmOptions);
+                    return new ChatClient(
+                        model: settings.Model,
+                        credential: new ApiKeyCredential(settings.Key),
+                        options: new OpenAIClientOptions { Endpoint = settings.Endpoint });
+                }));
 
-        var llmSettings = llmOptions.AsSettings();
-        services.AddSingleton(llmSettings);
-
-        var options = new OpenAIClientOptions { Endpoint = llmOptions.Endpoint };
-
-        var client = new ChatClient(
-            model: llmSettings.Model,
-            credential: new ApiKeyCredential(llmSettings.Key),
-            options: options);
-
-        services.AddSingleton(client);
         return services;
     }
 }

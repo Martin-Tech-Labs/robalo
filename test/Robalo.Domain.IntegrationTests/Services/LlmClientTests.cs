@@ -1,5 +1,7 @@
 using System.ClientModel;
+using Moq;
 using OpenAI.Chat;
+using Robalo.Common.Configuration;
 using Robalo.Common.Models;
 using Robalo.Domain.Clients;
 using Robalo.Domain.Clients.Models;
@@ -21,7 +23,10 @@ public class LlmClientTests
               Endpoint = new Uri("http://localhost:11500/v1/"),
           });
 
-        var sut = new LlmClient(Log.Logger, client);
+        var smart = new Mock<ISmart<ChatClient>>();
+        smart.SetupGet(s => s.Value).Returns(client);
+
+        var sut = new LlmClient(Log.Logger, smart.Object);
 
         var result = await sut.GetResponse(new LlmRequest(
             new ThreadMessage("Hi there", MessageSource.User),
@@ -44,7 +49,10 @@ public class LlmClientTests
               Endpoint = new Uri("http://localhost:11500/vd1/"),
           });
 
-        var sut = new LlmClient(Log.Logger, client);
+        var smart = new Mock<ISmart<ChatClient>>();
+        smart.SetupGet(s => s.Value).Returns(client);
+
+        var sut = new LlmClient(Log.Logger, smart.Object);
 
         var result = await sut.GetResponse(new LlmRequest(new ThreadMessage("Hi there", MessageSource.User)), TestContext.Current.CancellationToken);
         result.Value.ShouldBeOfType<ClientError>();
@@ -64,7 +72,10 @@ public class LlmClientTests
               Endpoint = new Uri("http://localhost:11500/v1/"),
           });
 
-        var sut = new LlmClient(Log.Logger, client);
+        var smart = new Mock<ISmart<ChatClient>>();
+        smart.SetupGet(s => s.Value).Returns(client);
+
+        var sut = new LlmClient(Log.Logger, smart.Object);
 
         using var cts = new CancellationTokenSource();
         cts.Cancel();
