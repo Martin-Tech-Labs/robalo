@@ -139,8 +139,20 @@ paths:
                   - configuration_id
                   - created_on
                   - data
+                  - _links
                 additionalProperties: false
                 properties: &ref_28
+                  _links:
+                    type: object
+                    required:
+                      - self
+                    properties:
+                      self:
+                        type: object
+                        required: *ref_0
+                        properties: *ref_1
+                        additionalProperties: false
+                    additionalProperties: false
                   configuration_id:
                     type: integer
                     format: int32

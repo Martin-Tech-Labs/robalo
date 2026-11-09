@@ -6,6 +6,9 @@
  */
 
 export interface Configuration {
+  _links: {
+    self: Link;
+  };
   configuration_id: number;
   created_on: string;
   data: {
@@ -18,4 +21,7 @@ export interface Configuration {
       key: string;
     };
   };
+}
+export interface Link {
+  href: string;
 }

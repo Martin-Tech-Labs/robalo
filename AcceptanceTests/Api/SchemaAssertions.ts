@@ -132,4 +132,21 @@ use((chai, utils) => {
             );
         },
     );
+
+    use((chai, utils) => {
+        utils.addChainableMethod(
+            chai.Assertion.prototype,
+            "validConfigurationSchema" satisfies keyof Chai.Assertion,
+            function (this: Chai.AssertionPrototype, message?: string) {
+                const obj = utils.flag(this, "object");
+
+                const isValid = validateConfigurationSchema(obj);
+                this.assert(
+                    isValid,
+                    `expected #{this} to match Configuration schema: ${ajv.errorsText(validateConfigurationSchema.errors)}\n${JSON.stringify(validateConfigurationSchema.errors, null, 2)}${message ? `: ${message}` : ""}`,
+                    "expected #{this} to not match valid Configuration schema" + (message ? ": " + message : "")
+                );
+            },
+        );
+    });
 });

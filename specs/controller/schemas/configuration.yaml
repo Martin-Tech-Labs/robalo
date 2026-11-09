@@ -3,8 +3,17 @@ required:
   - configuration_id
   - created_on
   - data
+  - _links
 additionalProperties: false
 properties:
+  _links:
+    type: object
+    required:
+      - self
+    properties:
+      self:
+        $ref: './link.yaml'
+    additionalProperties: false
   configuration_id:
     type: integer
     format: int32
