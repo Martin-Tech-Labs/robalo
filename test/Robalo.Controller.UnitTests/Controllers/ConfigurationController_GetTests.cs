@@ -48,6 +48,14 @@ public class ConfigurationController_GetTests
     }
 
     [Fact]
+    public async Task OnMissingConfiguraiton_ShouldReturnNotFound()
+    {
+        _repository.Setup(r => r.LoadConfiguration(TestContext.Current.CancellationToken)).ReturnsAsync(None.Default);
+        var result = await _sut.Get(TestContext.Current.CancellationToken);
+        result.ShouldBeOfType<NotFoundResult>();
+    }
+
+    [Fact]
     public async Task OnExistingConfiguration_ShouldReturnOk_WithLinks()
     {
         var robaloConfig = _fixture.Create<RobaloConfiguration>();

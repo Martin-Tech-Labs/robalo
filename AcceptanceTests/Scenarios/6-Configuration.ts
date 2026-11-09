@@ -28,5 +28,7 @@ describe('6 - Configuration @configuration @root', () => {
         it("And I verfy the schema", () => {
             expect(response.body).to.have.validConfigurationSchema();
         });
+
+        it("And I verify the llm key is hidden", () => expect(response.body.data.Llm.key).to.equal("<hidden>"));
     })
 });
