@@ -15,7 +15,7 @@ describe('1 - Scenario: System Endpoints & Logging @system', () => {
 
         it("Then I verify the response code is 200", () => { response.statusCode.should.equal(200) });
 
-        it("And I verfy the content type istext/plain", () => {
+        it("And I verfy the content type is text/plain", () => {
             response.headers['content-type'].should.include('text/plain');
         });
 

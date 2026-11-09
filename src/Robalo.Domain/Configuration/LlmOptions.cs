@@ -15,6 +15,11 @@ public sealed class LlmOptions
         return new LlmSettings(Endpoint!, Model, Key);
     }
 
+    public LlmOptions ToSafeOptions()
+    {
+        return new() { Endpoint = Endpoint, Model = Model, Key = "<hidden>" };
+    }
+
     [MemberNotNull(nameof(Model))]
     [MemberNotNull(nameof(Key))]
     [MemberNotNull(nameof(Endpoint))]

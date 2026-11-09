@@ -37,6 +37,7 @@ paths:
                       - self
                       - threads
                       - events
+                      - configuration
                     properties:
                       self:
                         type: object
@@ -57,6 +58,11 @@ paths:
                         required: *ref_0
                         properties: *ref_1
                         additionalProperties: false
+                      configuration:
+                        type: object
+                        required: *ref_0
+                        properties: *ref_1
+                        additionalProperties: false
                     additionalProperties: false
                 additionalProperties: false
               examples:
@@ -69,6 +75,8 @@ paths:
                         href: http://localhost:5050/controller/threads
                       events:
                         href: http://localhost:5050/controller/events
+                      configuration:
+                        href: http://localhost:5050/controller/configuration
         '401':
           description: Missing or invalid Controller access token.
           content: &ref_2
@@ -114,6 +122,68 @@ paths:
               schema:
                 type: string
               example: Bearer
+  /configuration:
+    get:
+      tags:
+        - Configuration
+      operationId: getConfiguration
+      summary: Get configuration
+      responses:
+        '200':
+          description: Active configuration with sensitive data masked
+          content:
+            application/hal+json:
+              schema:
+                type: object
+                required: &ref_27
+                  - configuration_id
+                  - created_on
+                  - data
+                additionalProperties: false
+                properties: &ref_28
+                  configuration_id:
+                    type: integer
+                    format: int32
+                  created_on:
+                    type: string
+                    format: date-time
+                  data:
+                    type: object
+                    required:
+                      - Llm
+                    additionalProperties: false
+                    properties:
+                      Llm:
+                        type: object
+                        required:
+                          - endpoint
+                          - model
+                          - key
+                        additionalProperties: false
+                        properties:
+                          endpoint:
+                            type: string
+                            format: uri
+                          model:
+                            type: string
+                          key:
+                            type: string
+                            readOnly: true
+                            description: Credential value is hidden in this response.
+              examples:
+                default:
+                  value:
+                    configuration_id: 1
+                    created_on: '2027-06-05T12:34:56Z'
+                    data:
+                      Llm:
+                        endpoint: http://localhost:11500/v1/
+                        model: test-model
+                        key: <hidden>
+        '401':
+          description: Missing or invalid Controller access token.
+          content: *ref_2
+          headers: *ref_3
   /threads:
     get:
       tags:
@@ -127,10 +197,10 @@ paths:
             application/hal+json:
               schema:
                 type: object
-                required: &ref_27
+                required: &ref_29
                   - _embedded
                   - _links
-                properties: &ref_28
+                properties: &ref_30
                   _embedded:
                     type: object
                     required:
@@ -311,9 +381,9 @@ paths:
           application/json:
             schema:
               type: object
-              required: &ref_29
+              required: &ref_31
                 - content
-              properties: &ref_30
+              properties: &ref_32
                 content:
                   type: string
                   minLength: 1
@@ -402,10 +472,10 @@ paths:
             application/hal+json:
               schema:
                 type: object
-                required: &ref_31
+                required: &ref_33
                   - _embedded
                   - _links
-                properties: &ref_32
+                properties: &ref_34
                   _embedded:
                     type: object
                     required:
@@ -844,6 +914,11 @@ components:
       required: *ref_7
       properties: *ref_8
       additionalProperties: false
+    configuration:
+      type: object
+      required: *ref_27
+      additionalProperties: false
+      properties: *ref_28
     thread:
       type: object
       required: *ref_4
@@ -851,13 +926,13 @@ components:
       additionalProperties: false
     thread-list:
       type: object
-      required: *ref_27
-      properties: *ref_28
+      required: *ref_29
+      properties: *ref_30
       additionalProperties: false
     message-request:
       type: object
-      required: *ref_29
-      properties: *ref_30
+      required: *ref_31
+      properties: *ref_32
       additionalProperties: false
     message:
       type: object
@@ -866,6 +941,6 @@ components:
       additionalProperties: false
     message-query-result:
       type: object
-      required: *ref_31
-      properties: *ref_32
+      required: *ref_33
+      properties: *ref_34
       additionalProperties: false

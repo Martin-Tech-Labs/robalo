@@ -8,12 +8,15 @@ properties:
       - self
       - threads
       - events
+      - configuration
     properties:
       self:
         $ref: './link.yaml'
       threads:
         $ref: './link.yaml'
       events:
+        $ref: './link.yaml'
+      configuration:
         $ref: './link.yaml'
     additionalProperties: false
 additionalProperties: false

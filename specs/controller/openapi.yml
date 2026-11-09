@@ -33,6 +33,24 @@ paths:
                   externalValue: ./examples/service-discovery.json
         '401':
           $ref: '#/components/responses/Unauthorized'
+  /configuration:
+    get:
+      tags:
+      - Configuration
+      operationId: getConfiguration
+      summary: Get configuration
+      responses:
+        '200':
+          description: Active configuration with sensitive data masked
+          content:
+            application/hal+json:
+              schema:
+                $ref: ./schemas/configuration.yaml
+              examples:
+                default:
+                  externalValue: ./examples/configuration-response.json
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /threads:
     get:
       tags:

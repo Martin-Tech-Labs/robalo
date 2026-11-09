@@ -10,6 +10,7 @@ export interface ServiceDiscovery {
     self: Link;
     threads: Link;
     events: Link;
+    configuration: Link;
   };
 }
 export interface Link {

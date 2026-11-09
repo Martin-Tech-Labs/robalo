@@ -1,0 +1,36 @@
+type: object
+required:
+  - configuration_id
+  - created_on
+  - data
+additionalProperties: false
+properties:
+  configuration_id:
+    type: integer
+    format: int32
+  created_on:
+    type: string
+    format: date-time
+  data:
+    type: object
+    required:
+      - Llm
+    additionalProperties: false
+    properties:
+      Llm:
+        type: object
+        required:
+          - endpoint
+          - model
+          - key
+        additionalProperties: false
+        properties:
+          endpoint:
+            type: string
+            format: uri
+          model:
+            type: string
+          key:
+            type: string
+            readOnly: true
+            description: Credential value is hidden in this response.

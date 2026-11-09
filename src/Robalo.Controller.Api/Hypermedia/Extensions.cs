@@ -21,6 +21,9 @@ public static class Extensions
     public static Link LinkToThreads(this IHttpContextAccessor accessor)
          => accessor.HttpContext!.LinkToPath($"/threads");
 
+    public static Link LinkToConfiguration(this IHttpContextAccessor accessor)
+         => accessor.HttpContext!.LinkToPath($"/configuration");
+
     public static Link LinkToThreadId(this IHttpContextAccessor accessor, string threadId)
         => accessor.HttpContext!.LinkToPath($"/threads/{threadId}");
 

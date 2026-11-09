@@ -2,6 +2,7 @@ declare global {
     namespace Chai {
         interface Assertion {
             validServiceDiscoverySchema(message?: string): Assertion;
+            validConfigurationSchema(message?: string): Assertion;
             validThreadSchema(message?: string): Assertion;
             validThreadListSchema(message?: string): Assertion;
             validMessageQueryResultSchema(message?: string): Assertion;
@@ -29,6 +30,7 @@ let validateMessageQueryResultSchema: ValidateFunction;
 let validateProblemDetailsSchema: ValidateFunction;
 let validateThreadListSchema: ValidateFunction;
 let validateMessageSchema: ValidateFunction;
+let validateConfigurationSchema: ValidateFunction;
 
 before(async () => {
     validateServiceDiscoverySchema = ajv.compile((await $RefParser.dereference("specs/controller/schemas/service-discovery.yaml")));
@@ -37,7 +39,7 @@ before(async () => {
     validateMessageQueryResultSchema = ajv.compile((await $RefParser.dereference("specs/controller/schemas/message-query-result.yaml")));
     validateProblemDetailsSchema = ajv.compile((await $RefParser.dereference("specs/controller/schemas/problem-details.yaml")));
     validateMessageSchema = ajv.compile((await $RefParser.dereference("specs/controller/schemas/message.yaml")));
-
+    validateConfigurationSchema = ajv.compile((await $RefParser.dereference("specs/controller/schemas/configuration.yaml")));
 });
 
 use((chai, utils) => {
