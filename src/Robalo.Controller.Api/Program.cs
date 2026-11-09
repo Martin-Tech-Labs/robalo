@@ -22,6 +22,7 @@ using Robalo.Controller.Api.Filters;
 using Robalo.Controller.Api.Requests;
 using Robalo.Controller.Api.Validation;
 using Robalo.Controller.Api.Validation.Requests;
+using Robalo.Domain.Clients;
 using Robalo.Domain.Clients.Extensions;
 using Robalo.Domain.Configuration;
 using Robalo.Domain.Models;
@@ -71,7 +72,8 @@ builder.Services.AddOpenTelemetry()
 builder.Services.AddOptions();
 builder.Services.AddTransient<IDateTimeOffsetProvider, DateTimeOffsetProvider>();
 builder.Services.AddSqliteRepository(builder.Configuration);
-builder.Services.AddLlmClient(builder.Configuration);
+builder.Services.AddTransient<ILlmClient, LlmClient>();
+builder.Services.AddSmartChatClient(builder.Configuration);
 builder.Services.AddSingleton<IAnswerThreadService, AnswerThreadService>();
 builder.Services.AddSingleton<IAnswerThreadHandler, AnswerThreadHandler>();
 builder.Services.AddTransient<AnswerThreadJob>();

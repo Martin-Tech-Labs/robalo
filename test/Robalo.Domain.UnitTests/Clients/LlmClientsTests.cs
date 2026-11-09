@@ -1,12 +1,18 @@
 using System.ClientModel;
 using System.ClientModel.Primitives;
 using System.Diagnostics;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using OpenAI.Chat;
+using Robalo.Common.Configuration;
 using Robalo.Common.Models;
 using Robalo.Domain.Clients;
+using Robalo.Domain.Clients.Extensions;
 using Robalo.Domain.Clients.Models;
+using Robalo.Domain.Configuration;
 using Robalo.Domain.Models;
+using Robalo.Domain.Repositories;
 using Serilog;
 using static Robalo.Common.Models.ClientError;
 
@@ -16,11 +22,13 @@ public class LlmClientsTests
 {
     readonly LlmClient _sut;
     readonly Mock<ChatClient> _chatClient = new();
+    readonly Mock<ISmart<ChatClient>> _smartChatClient = new();
     readonly Fixture _fixture = new();
 
     public LlmClientsTests()
     {
-        _sut = new LlmClient(Log.Logger, _chatClient.Object);
+        _smartChatClient.SetupGet(s => s.Value).Returns(_chatClient.Object);
+        _sut = new LlmClient(Log.Logger, _smartChatClient.Object);
     }
 
     [Fact]
@@ -129,6 +137,41 @@ public class LlmClientsTests
     public async Task ShouldThrow_If_NoMessages()
     {
         await Should.ThrowAsync<ArgumentOutOfRangeException>(() => _sut.GetResponse(new LlmRequest(), TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task ShouldRecreateSmartClient_OnConfigurationReload()
+    {
+        TimeSpan pollingInterval = TimeSpan.FromMilliseconds(50);
+        var oldConfig = _fixture.Create<RobaloConfiguration>() with { ConfigurationId = 1 };
+        oldConfig.Value.Verify();
+        Mock<IConfigurationRepository> _repository = new();
+        _repository.Setup(r => r.LoadConfiguration(It.IsAny<CancellationToken>())).ReturnsAsync(oldConfig);
+
+        var configuration = new ConfigurationBuilder()
+            .Add(new ConfigurationRepositorySource(
+                _repository.Object,
+                pollingInterval))
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddSmartChatClient(configuration);
+        var serviceProvider = services.BuildServiceProvider();
+
+        var smart1 = serviceProvider.GetRequiredService<ISmart<ChatClient>>();
+        var smart2 = serviceProvider.GetRequiredService<ISmart<ChatClient>>();
+        smart1.ShouldBe(smart2);
+        smart1.Value.ShouldBe(smart2.Value);
+
+        var oldValue = smart1.Value;
+
+        var newConfig = _fixture.Create<RobaloConfiguration>() with { ConfigurationId = 2 };
+        newConfig.Value.Verify();
+        _repository.Setup(r => r.LoadConfiguration(It.IsAny<CancellationToken>())).ReturnsAsync(newConfig);
+
+        await Task.Delay(100, TestContext.Current.CancellationToken);
+        smart1.Value.ShouldBe(smart2.Value);
+        smart1.Value.ShouldNotBe(oldValue);
     }
 
     private void ConfigureResponse(string expectedResponse)
