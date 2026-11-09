@@ -28,11 +28,12 @@ public class ServiceDiscoveryController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetServiceDiscovery(CancellationToken cancellationToken) => 
+    public async Task<IActionResult> GetServiceDiscovery(CancellationToken cancellationToken) =>
         new ServiceDiscoveryResource(
             Links: new(
                 Self: _httpContextAccessor.LinkToServiceDiscovery(),
                 Threads: _httpContextAccessor.LinkToThreads(),
-                Events: _httpContextAccessor.LinkToEvents())
+                Events: _httpContextAccessor.LinkToEvents(),
+                Configuration: _httpContextAccessor.LinkToConfiguration())
         ).AsOk();
 }

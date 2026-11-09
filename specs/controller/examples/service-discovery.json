@@ -8,6 +8,9 @@
         },
         "events": {
             "href": "http://localhost:5050/controller/events"
+        },
+        "configuration": {
+            "href": "http://localhost:5050/controller/configuration"
         }
     }
 }

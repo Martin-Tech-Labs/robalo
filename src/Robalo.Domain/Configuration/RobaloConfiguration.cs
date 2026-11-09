@@ -20,4 +20,6 @@ public sealed record RobaloOptions([property: JsonPropertyName("Llm")] LlmOption
         }
         LlmOptions.Verify();
     }
+
+    public RobaloOptions ToSafeOptions() => new RobaloOptions(LlmOptions?.ToSafeOptions());
 }
