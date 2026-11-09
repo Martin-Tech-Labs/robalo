@@ -15,7 +15,7 @@ public static class Extensions
 {
     public static IServiceCollection AddSmartChatClient(
         this IServiceCollection services,
-        ConfigurationManager configuration,
+        IConfiguration configuration,
         string configurationKey = "Robalo:Llm")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(configurationKey);
