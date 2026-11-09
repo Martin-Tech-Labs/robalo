@@ -73,6 +73,7 @@ builder.Services.AddOptions();
 builder.Services.AddTransient<IDateTimeOffsetProvider, DateTimeOffsetProvider>();
 builder.Services.AddSqliteRepository(builder.Configuration);
 builder.Services.AddTransient<ILlmClient, LlmClient>();
+builder.Services.AddSmartChatClient(builder.Configuration);
 builder.Services.AddSingleton<IAnswerThreadService, AnswerThreadService>();
 builder.Services.AddSingleton<IAnswerThreadHandler, AnswerThreadHandler>();
 builder.Services.AddTransient<AnswerThreadJob>();
