@@ -21,6 +21,14 @@
     <PackageReference Include="SQLite3MC.PCLRaw.bundle" Version="2.6.1" />
     <PackageReference Include="Hangfire.AspNetCore" Version="1.8.25" />
     <PackageReference Include="Hangfire.InMemory" Version="1.0.0" />
+    <PackageReference Include="Spectre.Console" Version="0.57.3-alpha.0.29" />
+    <PackageReference Include="Spectre.Console.Cli" Version="0.57.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\Robalo.Database\migrations\*.sql">
+      <LogicalName>Robalo.Database.Migrations.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>
