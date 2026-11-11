@@ -48,7 +48,7 @@ public class InitCommand : AsyncCommand<InitCommand.Settings>
             return 1;
         }
 
-        var databaseFullPath = Path.GetFullPath(settings.File);
+        var databaseFullPath = Path.ChangeExtension(Path.GetFullPath(settings.File), ".db");
 
         if (databaseFullPath != settings.File
             && !await AnsiConsole.ConfirmAsync($"The initialization will create database file at '{databaseFullPath}'?", true, cancellationToken))
@@ -156,10 +156,9 @@ public class InitCommand : AsyncCommand<InitCommand.Settings>
             Password = password,
         }.ToString());
 
-        await connection.OpenAsync(cancellationToken);
-
         try
         {
+            await connection.OpenAsync(cancellationToken);
             await CreateAndConfigureDatabase();
         }
         catch (Exception exc) when (exc is not OperationCanceledException || !cancellationToken.IsCancellationRequested)

@@ -10,15 +10,12 @@ public sealed class DatabaseOptions
     public DatabaseSettings AsSettings()
     {
         Verify();
-        var db = Path.HasExtension(Database) ? Database : Path.ChangeExtension(Database, ".db");
-        if(!Path.Exists(db))
+        if(!Path.Exists(Database))
         {
-            throw new ArgumentException($"Database {db} does not exist, full path {Path.GetFullPath(db)}");
+            throw new ArgumentException($"Database {Path.GetFullPath(Database)} does not exist");
         }
-
-
         return new(
-            Database: db,
+            Database: Database,
             Password: Password);
 
     }
