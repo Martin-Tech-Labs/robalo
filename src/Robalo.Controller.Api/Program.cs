@@ -42,7 +42,12 @@ if (args.Length != 0)
 
 var startTimeUtc = Process.GetCurrentProcess().StartTime.ToUniversalTime();
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    ContentRootPath = AppContext.BaseDirectory
+}); 
+
 builder.Configuration.AddEnvironmentVariables("ROBALO_");
 
 Log.Logger = new LoggerConfiguration()

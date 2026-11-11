@@ -3,6 +3,8 @@ using System.ClientModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Hangfire.States;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Options;
@@ -27,6 +29,16 @@ public class InitCommand : AsyncCommand<InitCommand.Settings>
         [Description("Database file name")]
         [DefaultValue("data/robalo.db")]
         public required string File { get; init; }
+
+        [CommandOption("-n|--non-interactive [VALUE]")]
+        [Description("Non-interactive mode")]
+        [DefaultValue(true)]
+        public required FlagValue<bool> NonInteractive { get; init; }
+
+        [CommandOption("-y|--yes [VALUE]")]
+        [Description("Automatic confirmation")]
+        [DefaultValue(true)]
+        public required FlagValue<bool> AutoConfirm { get; init; }
     }
 
     readonly ILogger _logger;
@@ -48,10 +60,27 @@ public class InitCommand : AsyncCommand<InitCommand.Settings>
             return 1;
         }
 
-        var databaseFullPath = Path.ChangeExtension(Path.GetFullPath(settings.File), ".db");
+        var databaseFullPath = Path.ChangeExtension(Path.GetFullPath(settings.File, AppContext.BaseDirectory), ".db");
 
-        if (databaseFullPath != settings.File
-            && !await AnsiConsole.ConfirmAsync($"The initialization will create database file at '{databaseFullPath}'?", true, cancellationToken))
+        if (!settings.AutoConfirm.Value && databaseFullPath != settings.File)
+        {
+            if (!settings.NonInteractive.Value)
+            {
+                if (!await AnsiConsole.ConfirmAsync($"The initialization will create database file at '{databaseFullPath}'? (Database file must always have extension '.db')", true, cancellationToken))
+                {
+                    return 1;
+                }
+            }
+            else
+            {
+                AnsiConsole.MarkupLineInterpolated(CultureInfo.InvariantCulture, $"[bold red]Error! Provide absolute database file path with .db extension or specify --yes flag[/].");
+                return 1;
+            }
+
+        }
+
+        if (!settings.AutoConfirm.Value && databaseFullPath != settings.File
+            && !await AnsiConsole.ConfirmAsync($"The initialization will create database file at '{databaseFullPath}'? (Database file must always have extension '.db')", true, cancellationToken))
         {
             return 1;
         }
@@ -160,10 +189,18 @@ public class InitCommand : AsyncCommand<InitCommand.Settings>
         {
             await connection.OpenAsync(cancellationToken);
             await CreateAndConfigureDatabase();
+            await UpdateAppSettings();
         }
-        catch (Exception exc) when (exc is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            await connection.DisposeAsync();
+            File.Delete(databaseFullPath);
+            return 1;
+        }
+        catch (Exception exc) when (!cancellationToken.IsCancellationRequested || exc is not OperationCanceledException)
         {
             _logger.Error(exc, "Command failed during database creation and configuration");
+            await connection.DisposeAsync();
             File.Delete(databaseFullPath);
             AnsiConsole.MarkupLineInterpolated(CultureInfo.InvariantCulture, $"[bold red]Something went wrong during the setup[/].");
             return 1;
@@ -174,9 +211,9 @@ public class InitCommand : AsyncCommand<InitCommand.Settings>
         static async Task<string> GetPassword(CancellationToken cancellationToken)
         {
             var password = await new TextPrompt<string>("Specify a master password (min 8 characters):")
-                .Validate(v => v.Length >= 8, "Should contain at least 8 characters")
-                .Secret()
-                .ShowAsync(AnsiConsole.Console, cancellationToken);
+                         .Validate(v => v.Length >= 8, "Should contain at least 8 characters")
+                         .Secret()
+                         .ShowAsync(AnsiConsole.Console, cancellationToken);
 
             await new TextPrompt<string>("Confirm the master password:")
                .Validate(v => v == password, "Passwords must match")
@@ -214,6 +251,21 @@ public class InitCommand : AsyncCommand<InitCommand.Settings>
 
             AnsiConsole.MarkupLineInterpolated(CultureInfo.InvariantCulture, $"[bold green]Success! 🔑 Encrypted database {databaseFullPath} was created and configured to use with Robalo[/]. Sqlite [yellow]{version1}[/] ({version2})");
             return;
+        }
+
+        async Task UpdateAppSettings()
+        {
+            var appSettingsPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
+            var root = JsonNode.Parse(await File.ReadAllTextAsync(appSettingsPath, cancellationToken))!.AsObject();
+
+            var database = root["Database"] as JsonObject ?? new JsonObject();
+            root["Database"] = database;
+            database["Database"] = databaseFullPath;
+
+            await File.WriteAllTextAsync(
+                appSettingsPath,
+                root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }),
+                cancellationToken);
         }
     }
 }

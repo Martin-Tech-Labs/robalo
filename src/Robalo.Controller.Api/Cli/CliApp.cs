@@ -16,7 +16,12 @@ public static class CliApp
     public static async Task<int> Run(string[] args)
 #pragma warning restore CC001 // Public async method should have CancellationToken parameter
     {
-        var builder = Host.CreateApplicationBuilder(args);
+        var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
+        {
+            Args = args,
+            ContentRootPath = AppContext.BaseDirectory
+        });
+        
         builder.Configuration.AddEnvironmentVariables("ROBALO_");
 
         Log.Logger = new LoggerConfiguration()
@@ -27,7 +32,7 @@ public static class CliApp
         builder.Services.AddSerilog(Log.Logger);
         builder.Services.AddSingleton<IDateTimeOffsetProvider, DateTimeOffsetProvider>();
         builder.Services.AddOptions();
-        
+
         builder.Services
             .AddOptions<DatabaseOptions>()
             .Bind(builder.Configuration.GetSection("Database"));
