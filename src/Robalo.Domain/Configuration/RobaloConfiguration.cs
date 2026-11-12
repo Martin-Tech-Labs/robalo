@@ -12,13 +12,14 @@ public sealed record RobaloConfiguration(
 public sealed record RobaloOptions([property: JsonPropertyName("Llm")] LlmOptions? LlmOptions)
 {
     [MemberNotNull(nameof(LlmOptions))]
-    public void Verify()
+    public RobaloOptions Verify()
     {
         if (LlmOptions is null)
         {
             throw new InvalidOperationException($"{nameof(LlmOptions)} must be provided");
         }
         LlmOptions.Verify();
+        return this;
     }
 
     public RobaloOptions ToSafeOptions() => new RobaloOptions(LlmOptions?.ToSafeOptions());

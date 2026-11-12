@@ -15,6 +15,7 @@ services:
       ROBALO_Database__Database: /data/robalo.db
       ROBALO_Database__Password: "12345678"
       ROBALO_Robalo__Llm__Endpoint: http://ollama:11434/v1/
+      ROBALO_Password: "12345678"
 
   seq:
     image: datalust/seq:2026.1.17526

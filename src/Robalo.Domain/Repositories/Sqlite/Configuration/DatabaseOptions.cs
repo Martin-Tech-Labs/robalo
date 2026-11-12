@@ -4,34 +4,30 @@ namespace Robalo.Domain.Repositories.Sqlite.Configuration;
 
 public sealed class DatabaseOptions
 {
-    public string? Database { get; set; }
-    public string? Password { get; set; }
+    public string? FilePath { get; set; }
 
     public DatabaseSettings AsSettings()
     {
         Verify();
-        if(!Path.Exists(Database))
+        var password = Environment.GetEnvironmentVariable("ROBALO_PASSWORD");
+        if (string.IsNullOrWhiteSpace(password) || password.Trim().Length != password.Length || password.Length < 8)
         {
-            throw new ArgumentException($"Database {Path.GetFullPath(Database)} does not exist");
+            throw new InvalidOperationException("Missing or invalid password");
         }
-        return new(
-            Database: Database,
-            Password: Password);
-
+        return new(FilePath, password);
     }
 
-    [MemberNotNull(nameof(Database))]
-    [MemberNotNull(nameof(Password))]
+    [MemberNotNull(nameof(FilePath))]
     public void Verify()
     {
-        if (string.IsNullOrWhiteSpace(Database))
+        if (string.IsNullOrWhiteSpace(FilePath))
         {
-            throw new InvalidOperationException("Database must be provided");
+            throw new InvalidOperationException("Database file must be provided");
         }
 
-        if (string.IsNullOrWhiteSpace(Password))
+        if (!File.Exists(FilePath))
         {
-            throw new InvalidOperationException("Password must be provided");
+            throw new InvalidOperationException($"Database {Path.GetFullPath(FilePath)} does not exist");
         }
     }
 }

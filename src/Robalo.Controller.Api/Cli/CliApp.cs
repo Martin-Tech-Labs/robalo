@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Robalo.Common.Services;
@@ -21,8 +22,9 @@ public static class CliApp
             Args = args,
             ContentRootPath = AppContext.BaseDirectory
         });
-        
-        builder.Configuration.AddEnvironmentVariables("ROBALO_");
+
+        builder.Configuration.AddJsonFile(
+            "appsettings.cli.json", optional: false, reloadOnChange: false);
 
         Log.Logger = new LoggerConfiguration()
             .ReadFrom.Configuration(builder.Configuration)
@@ -52,12 +54,14 @@ public static class CliApp
         {
             e.Cancel = true; // Prevent immediate process termination
             cancellationTokenSource.Cancel();
-            Console.WriteLine("\nCancellation requested...");
+            AnsiConsole.MarkupLineInterpolated(CultureInfo.InvariantCulture, $"[italic yellow]Cancelling...[/]");
         };
 
         var app = new CommandApp(new TypeRegistrar(builder.Services));
         app.Configure(config =>
         {
+            config.CancellationExitCode(Exitcodes.Canceled);
+            config.PropagateExceptions();
             // Configure parsing behavior
             config.Settings.CaseSensitivity = CaseSensitivity.None;
 
@@ -77,6 +81,31 @@ public static class CliApp
         try
         {
             return await app.RunAsync(args, cancellationTokenSource.Token);
+        }
+        catch (CliException exc)
+        {
+            AnsiConsole.MarkupLineInterpolated(
+                CultureInfo.InvariantCulture,
+                $"[bold red]Error![/] {exc.Message}");
+
+            return exc.ExitCode;
+        }
+        catch (OperationCanceledException) when (cancellationTokenSource.IsCancellationRequested)
+        {
+            AnsiConsole.MarkupLineInterpolated(
+                CultureInfo.InvariantCulture,
+                $"[bold yellow]Command canceled.[/]");
+
+            return Exitcodes.Canceled;
+        }
+        catch (Exception exc)
+        {
+            Log.Logger.Error(exc, "Unexpected error occurred");
+            AnsiConsole.MarkupLineInterpolated(
+                CultureInfo.InvariantCulture,
+                $"[bold white on red]Oops, something went horribly wrong![/] [italic red]{exc.Message}[/]");
+            
+            return Exitcodes.UnexpectedError;
         }
         finally
         {

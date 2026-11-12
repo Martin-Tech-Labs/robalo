@@ -1,6 +1,8 @@
+using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Dapper;
+using Robalo.Common.Extensions;
 using Robalo.Common.Models;
 using Robalo.Domain.Configuration;
 using Robalo.Domain.Repositories.Sqlite.Dto;
@@ -9,13 +11,6 @@ namespace Robalo.Domain.Repositories.Sqlite;
 
 public sealed class SqliteConfigurationRepository : IConfigurationRepository
 {
-    static readonly JsonSerializerOptions _options = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-    };
-
     readonly ILogger _logger;
     readonly ISqliteConnectionFactory _connectionFactory;
 
@@ -54,7 +49,7 @@ public sealed class SqliteConfigurationRepository : IConfigurationRepository
 
             try
             {
-                var robaloOptions = JsonSerializer.Deserialize<RobaloOptions>(result[0].Value, _options);
+                var robaloOptions = result[0].Value.DeserializeAsCamelCase<RobaloOptions>();
 
                 if (robaloOptions is null)
                 {
@@ -76,7 +71,6 @@ public sealed class SqliteConfigurationRepository : IConfigurationRepository
     {
         return await _connectionFactory.Execute(async connection =>
         {
-
             var result = (await connection.QueryAsync<int>(
              """
             INSERT INTO Configurations(CreatedOn, Value)
@@ -85,7 +79,7 @@ public sealed class SqliteConfigurationRepository : IConfigurationRepository
             """, new
              {
                  CreatedOn = createdOn,
-                 Value = JsonSerializer.Serialize(value, _options)
+                 Value = value.SerializeAsCamelCase()
              })).ToList();
 
             if (result.Count != 1)
