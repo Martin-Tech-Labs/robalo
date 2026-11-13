@@ -10,7 +10,7 @@ namespace Robalo.Controller.Api.Cli.Commands;
 
 public static class Helper
 {
-    public static async Task<Option<LlmOptions>> GetLlmOptionsInteractive(CancellationToken cancellationToken, LlmOptions? llmOptions)
+    public static async Task<Option<LlmOptions>> GetLlmOptionsInteractive(CancellationToken cancellationToken, LlmOptions? llmOptions = null)
     {
         var endpointChoices = new Dictionary<string, Uri>
         {
