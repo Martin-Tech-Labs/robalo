@@ -10,7 +10,7 @@ namespace Robalo.Controller.Api.Cli.Commands;
 
 public static class Helper
 {
-    public static async Task<Option<LlmOptions>> GetLlmOptionsInteractive(CancellationToken cancellationToken, Uri? currentEndpoint = null)
+    public static async Task<Option<LlmOptions>> GetLlmOptionsInteractive(CancellationToken cancellationToken, LlmOptions? llmOptions)
     {
         var endpointChoices = new Dictionary<string, Uri>
         {
@@ -22,9 +22,9 @@ public static class Helper
             new("https://api.anthropic.com/v1")
         };
 
-        if (currentEndpoint != null)
+        if (llmOptions != null)
         {
-            endpointChoices.Add($"Currently configured endpoint ({currentEndpoint.AbsoluteUri})", currentEndpoint);
+            endpointChoices.Add($"Currently configured endpoint ({llmOptions.Endpoint})", llmOptions.Endpoint!);
         }
 
         const string custom = "Custom";
@@ -43,7 +43,22 @@ public static class Helper
                         "[red]Enter an absolute HTTP(S) URI.[/]"),
                 cancellationToken)
             : endpointChoices[choice];
-        var key = await AnsiConsole.PromptAsync(new TextPrompt<string>("Enter an API Key").Secret(), cancellationToken);
+
+        string key;
+
+        if (llmOptions is null || endpoint != llmOptions.Endpoint)
+        {
+            key = await AnsiConsole.PromptAsync(new TextPrompt<string>("Enter an API Key").Secret(), cancellationToken);
+        }
+        else
+        {
+            key = await AnsiConsole.PromptAsync(new TextPrompt<string>("Enter an API Key or press <Enter> to re-use the one currently configured").AllowEmpty().Secret(), cancellationToken);
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                key = llmOptions.Key!;
+            }
+        }
+
         var client = new OpenAIClient(new ApiKeyCredential(key), new OpenAIClientOptions { Endpoint = endpoint });
 
         ClientResult<OpenAIModelCollection> models;

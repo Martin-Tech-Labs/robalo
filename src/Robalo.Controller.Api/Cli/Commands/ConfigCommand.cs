@@ -54,7 +54,7 @@ public class ConfigCommand : AsyncCommand<ConfigCommand.Settings>
         var currentConfig = await GetCurrentConfiguration();
         currentConfig.Value.Verify();
         
-        var llmOptionsOrNone = await Helper.GetLlmOptionsInteractive(cancellationToken, currentConfig.Value.LlmOptions.Endpoint);
+        var llmOptionsOrNone = await Helper.GetLlmOptionsInteractive(cancellationToken, currentConfig.Value.LlmOptions);
 
         if (llmOptionsOrNone is not Some<LlmOptions> llmOptions)
         {

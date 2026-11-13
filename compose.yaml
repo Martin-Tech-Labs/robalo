@@ -22,7 +22,6 @@ services:
       ASPNETCORE_PATHBASE: /controller
       ROBALO_Serilog__WriteTo__1__args__serverURL: http://seq:5341
       ROBALO_Database__FilePath: /data/robalo.db
-      ROBALO_Robalo__Llm__Endpoint: http://ollama:11434/v1/
       ROBALO_PASSWORD: "12345678"
 
   seq:
