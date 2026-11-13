@@ -29,7 +29,7 @@ jobs:
           global-json-file: global.json
 
       - name: Set up Docker Compose
-        uses: docker/setup-compose-action@v2
+        uses: docker/setup-compose-action@54042514f505b273907334ae2b9cdbb9a0213c1a
         with:
           version: v5.3.0
 
