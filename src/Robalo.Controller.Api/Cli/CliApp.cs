@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Robalo.Common.Services;
+using Robalo.Controller.Api.Cli.Commands;
 using Robalo.Domain.Configuration;
 using Robalo.Domain.Repositories;
 using Robalo.Domain.Repositories.Sqlite;
@@ -77,7 +78,8 @@ public static class CliApp
 
             config.AddCommand<ConfigCommand>("config")
                 .WithDescription("Modify configuration of Robalo application")
-                .WithAlias("c");
+                .WithAlias("c")
+                .WithExample("config");
         });
 
         try
