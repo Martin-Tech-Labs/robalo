@@ -28,6 +28,11 @@ jobs:
         with:
           global-json-file: global.json
 
+      - name: Set up Docker Compose
+        uses: docker/setup-compose-action@v2
+        with:
+          version: v5.3.0
+
       - name: Start compose
         run: docker compose up -d --wait --wait-timeout 30
 
