@@ -14,9 +14,16 @@ public class StatusSpinner(int steps)
         var label = $"[bold]{++_number}/{_steps}[/] {text}";
         try
         {
-            await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots)
-                .StartAsync(label, _ => action());
+            if (AnsiConsole.Console.Profile.Capabilities.Interactive)
+            {
+                await AnsiConsole.Status()
+                    .Spinner(Spinner.Known.Dots)
+                    .StartAsync(label, _ => action());
+            }
+            else
+            {
+                await action();
+            }
 
             AnsiConsole.MarkupLine($"{label} .. [bold green]OK[/]");
         }

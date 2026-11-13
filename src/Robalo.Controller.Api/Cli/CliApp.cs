@@ -26,6 +26,8 @@ public static class CliApp
         builder.Configuration.AddJsonFile(
             "appsettings.cli.json", optional: false, reloadOnChange: false);
 
+        builder.Configuration.AddEnvironmentVariables("ROBALO_");
+
         Log.Logger = new LoggerConfiguration()
             .ReadFrom.Configuration(builder.Configuration)
             .Enrich.WithProperty("Version", Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.ToString() ?? string.Empty)
@@ -104,7 +106,7 @@ public static class CliApp
             AnsiConsole.MarkupLineInterpolated(
                 CultureInfo.InvariantCulture,
                 $"[bold white on red]Oops, something went horribly wrong![/] [italic red]{exc.Message}[/]");
-            
+
             return Exitcodes.UnexpectedError;
         }
         finally
