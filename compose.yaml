@@ -1,20 +1,29 @@
 services:
   controller:
+    depends_on:
+      ollama:
+        condition: service_healthy
     build:
       context: .
       dockerfile: src/Robalo.Controller.Api/Dockerfile
     ports:
       - "5010:5010"
     volumes:
-      - ./data:/data
+      - data:/data
+    pre_start:
+      - command: chown -R 1654:1654 /data
+        image: busybox
+      - command: init -nsr -f /data/robalo.db
+        environment:
+          - ROBALO_CONFIG={"Llm":{"endpoint":"http://ollama:11434/v1/","model":"test-model:latest","key":"test"}}
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_HTTP_PORTS: 5010
       ASPNETCORE_PATHBASE: /controller
       ROBALO_Serilog__WriteTo__1__args__serverURL: http://seq:5341
-      ROBALO_Database__Database: /data/robalo.db
-      ROBALO_Database__Password: "12345678"
+      ROBALO_Database__FilePath: /data/robalo.db
       ROBALO_Robalo__Llm__Endpoint: http://ollama:11434/v1/
+      ROBALO_PASSWORD: "12345678"
 
   seq:
     image: datalust/seq:2026.1.17526
@@ -53,3 +62,4 @@ services:
 
 volumes:
   seq-data:
+  data:

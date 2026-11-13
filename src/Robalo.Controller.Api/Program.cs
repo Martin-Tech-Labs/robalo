@@ -18,6 +18,7 @@ using Robalo.Common.Models;
 using Robalo.Common.Services;
 using Robalo.Common.Streaming;
 using Robalo.Controller.Api;
+using Robalo.Controller.Api.Cli;
 using Robalo.Controller.Api.Filters;
 using Robalo.Controller.Api.Requests;
 using Robalo.Controller.Api.Validation;
@@ -32,15 +33,26 @@ using Robalo.Domain.Repositories.Sqlite;
 using Robalo.Domain.Services;
 using Robalo.Domain.Streaming;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
+using Spectre.Console;
+
+if (args.Length != 0)
+{
+    return await CliApp.Run(args);
+}
 
 var startTimeUtc = Process.GetCurrentProcess().StartTime.ToUniversalTime();
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    ContentRootPath = AppContext.BaseDirectory
+}); 
+
 builder.Configuration.AddEnvironmentVariables("ROBALO_");
 
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
-    .Enrich.WithProperty("Version", Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.ToString() ?? string.Empty)
+    .Enrich.WithProperty("Version", Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.ToString() ?? string.Empty)
     .CreateLogger();
 
 builder.Configuration.AddRobaloConfiguration();
@@ -194,6 +206,7 @@ try
 {
     Log.Information("Starting Robalo.Controller.Api");
     app.Run();
+    return 0;
 }
 catch (Exception ex)
 {
