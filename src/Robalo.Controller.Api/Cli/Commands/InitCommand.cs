@@ -45,11 +45,24 @@ public class InitCommand : AsyncCommand<InitCommand.Settings>
         [Description("Automatic confirmation")]
         [DefaultValue(true)]
         public required FlagValue<bool> AutoConfirm { get; init; }
+
+        [CommandOption("-s|--skip-update-appsettings [VALUE]")]
+        [Description("Skip update of appsettings.json")]
+        [DefaultValue(true)]
+        public required FlagValue<bool> SkipUpdateAppsettings { get; init; }
+
+        [CommandOption("-r|--return-success-if-already-configured [VALUE]")]
+        [Description("Returns success if database already configured (only in combination with flags s and n and if no confirmation is required for database path)")]
+        [DefaultValue(true)]
+        public required FlagValue<bool> ReturnSuccessIfAlreadyConfigured { get; init; }
     }
 
     readonly ILogger _logger;
     readonly IDateTimeOffsetProvider _dateTimeOffsetProvider;
     readonly DatabaseOptions _options;
+
+    const string _databaseFilePrefix = "Robalo.Database.Migrations.";
+
 
     public InitCommand(ILogger logger, IDateTimeOffsetProvider dateTimeOffsetProvider, IOptions<DatabaseOptions> options)
     {
@@ -62,6 +75,15 @@ public class InitCommand : AsyncCommand<InitCommand.Settings>
     {
         if (!string.IsNullOrWhiteSpace(_options.FilePath) && File.Exists(_options.FilePath))
         {
+            if (!AnsiConsole.Console.Profile.Capabilities.Interactive &&
+             settings.NonInteractive.Value &&
+             settings.SkipUpdateAppsettings.Value &&
+             settings.ReturnSuccessIfAlreadyConfigured.Value &&
+             _options.FilePath == settings.File)
+            {
+                Console.WriteLine($"Robalo is already configured with database file '{Path.GetFullPath(_options.FilePath)}'");
+                return Exitcodes.Success;
+            }
             throw new CliException(
                 Exitcodes.CommandNotSupported,
                 $"Robalo is already configured with database file '{Path.GetFullPath(_options.FilePath)}'");
@@ -96,8 +118,9 @@ public class InitCommand : AsyncCommand<InitCommand.Settings>
         var password = await GetPassword();
         var options = await GetConfiguration();
 
+
         var migrations = Assembly.GetEntryAssembly()!.GetManifestResourceNames()
-            .Where(name => name.StartsWith("Robalo.Database.Migrations.", StringComparison.Ordinal))
+            .Where(name => name.StartsWith(_databaseFilePrefix, StringComparison.Ordinal))
             .Order(StringComparer.Ordinal)
             .ToList();
 
@@ -189,7 +212,7 @@ public class InitCommand : AsyncCommand<InitCommand.Settings>
                 await using var stream = Assembly.GetEntryAssembly()!.GetManifestResourceStream(migration);
                 using var reader = new StreamReader(stream!);
 
-                await statusSpinner.WithLabel($"Executing script {migration}", async () =>
+                await statusSpinner.WithLabel($"Executing script {migration[_databaseFilePrefix.Length..]}", async () =>
                 {
                     await using var command = connection.CreateCommand();
                     command.CommandText = await reader.ReadToEndAsync(cancellationToken);
@@ -245,8 +268,13 @@ public class InitCommand : AsyncCommand<InitCommand.Settings>
             AnsiConsole.MarkupLineInterpolated(CultureInfo.InvariantCulture, $"[bold green]Success! 🔑 Encrypted database {databaseFullPath} was created and configured to use with Robalo[/]. Sqlite [yellow]{version1}[/] ({version2})");
         }
 
-        async Task UpdateAppSettings()
+        async Task<StatusSpinner.Status> UpdateAppSettings()
         {
+            if (settings.SkipUpdateAppsettings.Value)
+            {
+                return StatusSpinner.Status.SKIPPED;
+            }
+
             var appSettingsPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
             var root = JsonNode.Parse(await File.ReadAllTextAsync(appSettingsPath, cancellationToken))!.AsObject();
 
@@ -258,6 +286,8 @@ public class InitCommand : AsyncCommand<InitCommand.Settings>
                 appSettingsPath,
                 root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }),
                 cancellationToken);
+
+            return StatusSpinner.Status.OK;
         }
 
         async Task<RobaloOptions> GetRobaloOptions_NonInteractive()
