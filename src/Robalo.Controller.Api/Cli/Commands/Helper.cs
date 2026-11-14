@@ -1,6 +1,5 @@
 using System.ClientModel;
 using System.Globalization;
-using Microsoft.AspNetCore.Components.Endpoints.Infrastructure;
 using OpenAI;
 using OpenAI.Models;
 using Robalo.Common.Models;
