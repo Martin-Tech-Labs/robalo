@@ -21,7 +21,7 @@ public static class ConfigurationManagerExtensions
         var configOrNone = repository.LoadConfiguration(CancellationToken.None).GetAwaiter().GetResult();
         if (configOrNone.IsNone)
         {
-            repository.SaveConfiguration(new RobaloOptions(new LlmOptions { Model = "test-model", Key = "test", Endpoint = new Uri("http://localhost:11500/v1/") }), DateTimeOffset.UtcNow, CancellationToken.None).GetAwaiter().GetResult();
+            throw new InvalidOperationException("No configuration found. Use init command to initialize Robalo application");
         }
 
         IConfigurationBuilder configBuilder = manager;

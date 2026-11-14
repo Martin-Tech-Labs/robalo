@@ -1,5 +1,6 @@
 using System.ClientModel;
 using System.Globalization;
+using Microsoft.AspNetCore.Components.Endpoints.Infrastructure;
 using OpenAI;
 using OpenAI.Models;
 using Robalo.Common.Models;
@@ -12,20 +13,15 @@ public static class Helper
 {
     public static async Task<Option<LlmOptions>> GetLlmOptionsInteractive(CancellationToken cancellationToken, LlmOptions? llmOptions = null)
     {
-        var endpointChoices = new Dictionary<string, Uri>
-        {
-            ["Ollama locally (http://localhost:11500/v1/)"] =
-            new("http://localhost:11500/v1/"),
-            ["OpenAI (https://api.openai.com/v1/)"] =
-            new("https://api.openai.com/v1/"),
-            ["Anthropic (https://api.anthropic.com/v1)"] =
-            new("https://api.anthropic.com/v1")
-        };
-
+        var endpointChoices = new Dictionary<string, Uri>();
         if (llmOptions != null)
         {
             endpointChoices.Add($"Currently configured endpoint ({llmOptions.Endpoint})", llmOptions.Endpoint!);
         }
+        endpointChoices["Ollama locally (http://localhost:11500/v1/)"] = new("http://localhost:11500/v1/");
+        endpointChoices["OpenAI (https://api.openai.com/v1/)"] = new("https://api.openai.com/v1/");
+        endpointChoices["Anthropic (https://api.anthropic.com/v1)"] = new("https://api.anthropic.com/v1");
+
 
         const string custom = "Custom";
 
