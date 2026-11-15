@@ -21,8 +21,9 @@ services:
       ASPNETCORE_HTTP_PORTS: 5010
       ASPNETCORE_PATHBASE: /controller
       ROBALO_Serilog__WriteTo__1__args__serverURL: http://seq:5341
-      ROBALO_Database__FilePath: /data/robalo.db
       ROBALO_PASSWORD: "12345678"
+    command:
+      -f /data/robalo.db
 
   seq:
     image: datalust/seq:2026.1.17526

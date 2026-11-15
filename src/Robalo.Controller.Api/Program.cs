@@ -53,6 +53,7 @@ builder.Configuration.Sources.Clear();
 var logConfiguration = new ConfigurationBuilder()
       .SetBasePath(AppContext.BaseDirectory)
       .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
+      .AddEnvironmentVariables("ROBALO_")
       .Build();
 
 Log.Logger = new LoggerConfiguration()

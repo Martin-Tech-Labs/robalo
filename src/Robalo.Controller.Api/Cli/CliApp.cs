@@ -21,6 +21,7 @@ public static class CliApp
         var logConfiguration = new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
             .AddJsonFile("appsettings.cli.json", optional: false, reloadOnChange: false)
+            .AddEnvironmentVariables("ROBALO_")
             .Build();
 
         Log.Logger = new LoggerConfiguration()
