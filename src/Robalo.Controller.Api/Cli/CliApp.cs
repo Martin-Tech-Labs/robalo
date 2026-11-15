@@ -18,13 +18,13 @@ public static class CliApp
     public static async Task<int> Run(string[] args)
 #pragma warning restore CC001 // Public async method should have CancellationToken parameter
     {
-        var configuration = new ConfigurationBuilder()
+        var logConfiguration = new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
             .AddJsonFile("appsettings.cli.json", optional: false, reloadOnChange: false)
             .Build();
 
         Log.Logger = new LoggerConfiguration()
-            .ReadFrom.Configuration(configuration)
+            .ReadFrom.Configuration(logConfiguration)
             .Enrich.WithProperty("Version", Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.ToString() ?? string.Empty)
             .CreateLogger();
 
