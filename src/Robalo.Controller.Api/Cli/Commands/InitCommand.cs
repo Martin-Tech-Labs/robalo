@@ -47,6 +47,11 @@ public class InitCommand : AsyncCommand<InitCommand.Settings>
         [Description("Automatic confirmation")]
         [DefaultValue(true)]
         public required FlagValue<bool> AutoConfirm { get; init; }
+
+        [CommandOption("-i|--ignore [VALUE]")]
+        [Description("Ignore if file exists")]
+        [DefaultValue(true)]
+        public required FlagValue<bool> Ignore { get; init; }
     }
 
     readonly ILogger _logger;
@@ -67,6 +72,12 @@ public class InitCommand : AsyncCommand<InitCommand.Settings>
 
         if (File.Exists(databaseFullPath))
         {
+            if (settings.Ignore.Value)
+            {
+                Console.WriteLine($"Database file '{databaseFullPath}' already exists.  ");
+                return Exitcodes.Success;
+            }
+
             throw new CliException(
                 Exitcodes.InputError,
                 $"Database file '{databaseFullPath}' already exists. Cannot modify existing database.");
