@@ -40,6 +40,12 @@ if (args.Length > 0 && args[0] is not "-f" and not "--file")
     return await CliApp.Run(args);
 }
 
+if (args.Length > 2)
+{
+    Console.WriteLine("To start the controller use command controller [-f|--file <filePath>]");
+    return -1;
+}
+
 var startTimeUtc = Process.GetCurrentProcess().StartTime.ToUniversalTime();
 
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
@@ -64,7 +70,7 @@ Log.Logger = new LoggerConfiguration()
 
 
 builder.Configuration.AddRobaloConfiguration(
-    services: builder.Services, 
+    services: builder.Services,
     filePathOrNone: args.Length > 1 ? args[1] : None.Default);
 
 // Add services to the container.

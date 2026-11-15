@@ -19,7 +19,6 @@ public record DatabaseSettings(string Database, string Password)
             throw new InvalidOperationException("Missing or invalid password");
         }
 
-        return new(filePath, password);
-
+        return new(databaseFullPath, password);
     }
 }
