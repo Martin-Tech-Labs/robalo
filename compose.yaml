@@ -13,7 +13,7 @@ services:
     pre_start:
       - command: chown -R 1654:1654 /data
         image: busybox
-      - command: init -nsr -f /data/robalo.db
+      - command: init -n -f /data/robalo.db
         environment:
           - ROBALO_CONFIG={"Llm":{"endpoint":"http://ollama:11434/v1/","model":"test-model:latest","key":"test"}}
     environment:

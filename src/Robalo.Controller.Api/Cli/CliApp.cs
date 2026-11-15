@@ -18,29 +18,21 @@ public static class CliApp
     public static async Task<int> Run(string[] args)
 #pragma warning restore CC001 // Public async method should have CancellationToken parameter
     {
-        var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
-        {
-            Args = args,
-            ContentRootPath = AppContext.BaseDirectory
-        });
-
-        builder.Configuration.AddJsonFile(
-            "appsettings.cli.json", optional: false, reloadOnChange: false);
-
-        builder.Configuration.AddEnvironmentVariables("ROBALO_");
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(AppContext.BaseDirectory)
+            .AddJsonFile("appsettings.cli.json", optional: false, reloadOnChange: false)
+            .Build();
 
         Log.Logger = new LoggerConfiguration()
-            .ReadFrom.Configuration(builder.Configuration)
+            .ReadFrom.Configuration(configuration)
             .Enrich.WithProperty("Version", Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.ToString() ?? string.Empty)
             .CreateLogger();
 
-        builder.Services.AddSerilog(Log.Logger);
-        builder.Services.AddSingleton<IDateTimeOffsetProvider, DateTimeOffsetProvider>();
-        builder.Services.AddOptions();
+        var services = new ServiceCollection();
 
-        builder.Services
-            .AddOptions<DatabaseOptions>()
-            .Bind(builder.Configuration.GetSection("Database"));
+        services.AddSerilog(Log.Logger);
+        services.AddSingleton<IDateTimeOffsetProvider, DateTimeOffsetProvider>();
+        services.AddOptions();
 
         var title = new FigletText("ROBALO").Color(Color.Cyan1);
 
@@ -60,13 +52,14 @@ public static class CliApp
             AnsiConsole.MarkupLineInterpolated(CultureInfo.InvariantCulture, $"[italic yellow]Cancelling...[/]");
         };
 
-        var app = new CommandApp(new TypeRegistrar(builder.Services));
+        var app = new CommandApp(new TypeRegistrar(services));
         app.Configure(config =>
         {
             config.CancellationExitCode(Exitcodes.Canceled);
             config.PropagateExceptions();
             // Configure parsing behavior
             config.Settings.CaseSensitivity = CaseSensitivity.None;
+            config.Settings.StrictParsing = true;
 
             config.SetApplicationName("robalo");
             config.SetApplicationVersion(Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.ToString() ?? string.Empty);
@@ -79,7 +72,8 @@ public static class CliApp
             config.AddCommand<ConfigCommand>("config")
                 .WithDescription("Modify configuration of Robalo application")
                 .WithAlias("c")
-                .WithExample("config");
+                .WithExample("config")
+                .WithExample("init -f data/robalo.db");
         });
 
         try
@@ -98,7 +92,7 @@ public static class CliApp
         {
             AnsiConsole.MarkupLineInterpolated(
                 CultureInfo.InvariantCulture,
-                $"[bold yellow]Command canceled.[/]");
+                $"\n[bold yellow]Command canceled.[/]");
 
             return Exitcodes.Canceled;
         }
