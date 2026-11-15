@@ -50,7 +50,7 @@ public static class CliApp
         {
             e.Cancel = true; // Prevent immediate process termination
             cancellationTokenSource.Cancel();
-            AnsiConsole.MarkupLineInterpolated(CultureInfo.InvariantCulture, $"[italic yellow]Cancelling...[/]");
+            AnsiConsole.MarkupLineInterpolated(CultureInfo.InvariantCulture, $"\n[italic yellow]Cancelling...[/]");
         };
 
         var app = new CommandApp(new TypeRegistrar(services));

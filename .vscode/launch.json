@@ -35,16 +35,19 @@
             "env": {
                 "ASPNETCORE_ENVIRONMENT": "Development",
                 "ASPNETCORE_URLS": "http://*:5010/",
-                "ASPNETCORE_PATHBASE": "/controller"
+                "ASPNETCORE_PATHBASE": "/controller",
+                "ROBALO_PASSWORD": "12345678"
             }
         },
-         {
+        {
             "name": "🐟 Init",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "Build Controller",
             "program": "${workspaceFolder}/src/Robalo.Controller.Api/bin/Debug/net11.0/Robalo.Controller.Api.dll",
-            "args": ["init"],
+            "args": [
+                "init"
+            ],
             "cwd": "${workspaceFolder}/src/Robalo.Controller.Api/bin/Debug/net11.0",
             "stopAtEntry": false,
             "console": "integratedTerminal",
