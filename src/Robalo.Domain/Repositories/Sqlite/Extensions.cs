@@ -7,25 +7,10 @@ namespace Robalo.Domain.Repositories.Sqlite;
 
 public static class Extensions
 {
-    public static IServiceCollection AddSqliteRepositories(
-        this IServiceCollection services,
-        ConfigurationManager configuration,
-        string configurationKey = "Database")
+    public static IServiceCollection AddSqliteRepositories(this IServiceCollection services, ConfigurationManager configuration)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(configurationKey);
-
-        AddDapperTypeHandlers();
-
         services.AddTransient<IThreadRepository, SqliteThreadRepository>();
         services.AddTransient<IConfigurationRepository, SqliteConfigurationRepository>();
-        services.AddTransient<ISqliteConnectionFactory, SqliteConnectionFactory>();
-
-        DatabaseOptions databaseOptions = new();
-
-        configuration.GetSection(configurationKey).Bind(databaseOptions);
-
-        var databaseSettings = databaseOptions.AsSettings();
-        services.AddSingleton(databaseSettings);
 
         return services;
     }

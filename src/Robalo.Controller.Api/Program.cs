@@ -35,9 +35,15 @@ using Robalo.Domain.Streaming;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using Spectre.Console;
 
-if (args.Length != 0)
+if (args.Length > 0 && args[0] is not "-f" and not "--file")
 {
     return await CliApp.Run(args);
+}
+
+if (args.Length == 1 || args.Length > 2)
+{
+    Console.WriteLine("To start the controller use command controller [-f|--file <filePath>]");
+    return -1;
 }
 
 var startTimeUtc = Process.GetCurrentProcess().StartTime.ToUniversalTime();
@@ -46,17 +52,26 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
     Args = args,
     ContentRootPath = AppContext.BaseDirectory
-}); 
+});
 
-builder.Configuration.AddEnvironmentVariables("ROBALO_");
+builder.Configuration.Sources.Clear();
+
+var logConfiguration = new ConfigurationBuilder()
+      .SetBasePath(AppContext.BaseDirectory)
+      .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
+      .AddEnvironmentVariables("ROBALO_")
+      .Build();
 
 Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration)
+    .ReadFrom.Configuration(logConfiguration)
     .Enrich.WithProperty("Version", Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.ToString() ?? string.Empty)
     .CreateLogger();
 
-builder.Configuration.AddRobaloConfiguration();
-builder.Configuration.AddEnvironmentVariables("ROBALO_");
+
+
+builder.Configuration.AddRobaloConfiguration(
+    services: builder.Services,
+    filePathOrNone: args.Length > 1 ? args[1] : None.Default);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -83,7 +98,9 @@ builder.Services.AddOpenTelemetry()
 
 builder.Services.AddOptions();
 builder.Services.AddTransient<IDateTimeOffsetProvider, DateTimeOffsetProvider>();
-builder.Services.AddSqliteRepositories(builder.Configuration);
+builder.Services.AddTransient<IThreadRepository, SqliteThreadRepository>();
+builder.Services.AddTransient<IConfigurationRepository, SqliteConfigurationRepository>();
+
 builder.Services.AddTransient<ILlmClient, LlmClient>();
 builder.Services.AddSmartChatClient(builder.Configuration);
 builder.Services.AddSingleton<IAnswerThreadService, AnswerThreadService>();

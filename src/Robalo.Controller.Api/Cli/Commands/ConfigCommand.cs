@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Globalization;
 using System.Reflection;
 using Microsoft.Data.Sqlite;
@@ -18,24 +19,30 @@ public class ConfigCommand : AsyncCommand<ConfigCommand.Settings>
 {
     public class Settings : CommandSettings
     {
+        public const string DefaultFilePath = "data/robalo.db";
+
+        [CommandOption("-f|--file")]
+        [Description("Database file name")]
+        [DefaultValue(DefaultFilePath)]
+        public required string File { get; init; }
     }
 
     readonly ILogger _logger;
     readonly IDateTimeOffsetProvider _dateTimeOffsetProvider;
-    readonly DatabaseOptions _options;
 
-    public ConfigCommand(ILogger logger, IDateTimeOffsetProvider dateTimeOffsetProvider, IOptions<DatabaseOptions> options)
+    public ConfigCommand(ILogger logger, IDateTimeOffsetProvider dateTimeOffsetProvider)
     {
         _logger = logger.ForContext(GetType());
         _dateTimeOffsetProvider = dateTimeOffsetProvider;
-        _options = options.Value;
     }
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(_options.FilePath) || !File.Exists(_options.FilePath))
+        var databaseFullPath = Path.ChangeExtension(Path.GetFullPath(settings.File, AppContext.BaseDirectory), ".db");
+
+        if (!File.Exists(databaseFullPath))
         {
-            throw new CliException(Exitcodes.CommandNotSupported, "Application not initialized. Use init command instead");
+            throw new CliException(Exitcodes.CommandNotSupported, "Application not initialized. Use init command instead or provide correct database file");
         }
 
         var password = await new TextPrompt<string>("Specify a master password to proceed:")
@@ -47,13 +54,13 @@ public class ConfigCommand : AsyncCommand<ConfigCommand.Settings>
             throw new CliException(Exitcodes.InputError, "Invalid password");
         }
 
-        var databaseSettings = new DatabaseSettings(_options.FilePath, password);
+        var databaseSettings = new DatabaseSettings(databaseFullPath, password);
         Extensions.AddDapperTypeHandlers();
         var configurationRepository = new SqliteConfigurationRepository(Log.Logger, new SqliteConnectionFactory(Log.Logger, databaseSettings));
 
         var currentConfig = await GetCurrentConfiguration();
         currentConfig.Value.Verify();
-        
+
         var llmOptionsOrNone = await Helper.GetLlmOptionsInteractive(cancellationToken, currentConfig.Value.LlmOptions);
 
         if (llmOptionsOrNone is not Some<LlmOptions> llmOptions)

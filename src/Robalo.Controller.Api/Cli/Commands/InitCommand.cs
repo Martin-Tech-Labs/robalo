@@ -31,9 +31,11 @@ public class InitCommand : AsyncCommand<InitCommand.Settings>
 {
     public class Settings : CommandSettings
     {
+        public const string DefaultFilePath = "data/robalo.db";
+
         [CommandOption("-f|--file")]
         [Description("Database file name")]
-        [DefaultValue("data/robalo.db")]
+        [DefaultValue(DefaultFilePath)]
         public required string File { get; init; }
 
         [CommandOption("-n|--non-interactive [VALUE]")]
@@ -46,66 +48,52 @@ public class InitCommand : AsyncCommand<InitCommand.Settings>
         [DefaultValue(true)]
         public required FlagValue<bool> AutoConfirm { get; init; }
 
-        [CommandOption("-s|--skip-update-appsettings [VALUE]")]
-        [Description("Skip update of appsettings.json")]
+        [CommandOption("-i|--ignore [VALUE]")]
+        [Description("Ignore if file exists")]
         [DefaultValue(true)]
-        public required FlagValue<bool> SkipUpdateAppsettings { get; init; }
-
-        [CommandOption("-r|--return-success-if-already-configured [VALUE]")]
-        [Description("Returns success if database already configured (only in combination with flags s and n and if no confirmation is required for database path)")]
-        [DefaultValue(true)]
-        public required FlagValue<bool> ReturnSuccessIfAlreadyConfigured { get; init; }
+        public required FlagValue<bool> Ignore { get; init; }
     }
 
     readonly ILogger _logger;
     readonly IDateTimeOffsetProvider _dateTimeOffsetProvider;
-    readonly DatabaseOptions _options;
 
     const string _databaseFilePrefix = "Robalo.Database.Migrations.";
 
 
-    public InitCommand(ILogger logger, IDateTimeOffsetProvider dateTimeOffsetProvider, IOptions<DatabaseOptions> options)
+    public InitCommand(ILogger logger, IDateTimeOffsetProvider dateTimeOffsetProvider)
     {
         _logger = logger.ForContext(GetType());
-        _options = options.Value;
         _dateTimeOffsetProvider = dateTimeOffsetProvider;
     }
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
-        if (!string.IsNullOrWhiteSpace(_options.FilePath) && File.Exists(_options.FilePath))
-        {
-            if (!AnsiConsole.Console.Profile.Capabilities.Interactive &&
-             settings.NonInteractive.Value &&
-             settings.SkipUpdateAppsettings.Value &&
-             settings.ReturnSuccessIfAlreadyConfigured.Value &&
-             _options.FilePath == settings.File)
-            {
-                Console.WriteLine($"Robalo is already configured with database file '{Path.GetFullPath(_options.FilePath)}'");
-                return Exitcodes.Success;
-            }
-            throw new CliException(
-                Exitcodes.CommandNotSupported,
-                $"Robalo is already configured with database file '{Path.GetFullPath(_options.FilePath)}'");
-        }
-
         var databaseFullPath = Path.ChangeExtension(Path.GetFullPath(settings.File, AppContext.BaseDirectory), ".db");
 
         if (File.Exists(databaseFullPath))
         {
+            if (settings.Ignore.Value)
+            {
+                Console.WriteLine($"Database file '{databaseFullPath}' already exists.  ");
+                return Exitcodes.Success;
+            }
+
             throw new CliException(
                 Exitcodes.InputError,
                 $"Database file '{databaseFullPath}' already exists. Cannot modify existing database.");
         }
 
-        if (databaseFullPath != settings.File && !settings.AutoConfirm.Value && settings.NonInteractive.Value)
+        if (settings.File != Settings.DefaultFilePath &&
+             databaseFullPath != settings.File &&
+             !settings.AutoConfirm.Value &&
+             settings.NonInteractive.Value)
         {
             throw new CliException(
                 Exitcodes.InputError,
                 "Provide absolute database file path with .db extension or specify --yes flag.");
         }
 
-        if (!settings.AutoConfirm.Value && databaseFullPath != settings.File)
+        if (!settings.AutoConfirm.Value && databaseFullPath != settings.File && settings.File != Settings.DefaultFilePath)
         {
             if (!await AnsiConsole.ConfirmAsync($"The initialization will create database file at '{databaseFullPath}'. Proceed? (Note: database file must always have extension '.db')", true, cancellationToken))
             {
@@ -117,7 +105,6 @@ public class InitCommand : AsyncCommand<InitCommand.Settings>
 
         var password = await GetPassword();
         var options = await GetConfiguration();
-
 
         var migrations = Assembly.GetEntryAssembly()!.GetManifestResourceNames()
             .Where(name => name.StartsWith(_databaseFilePrefix, StringComparison.Ordinal))
@@ -202,7 +189,7 @@ public class InitCommand : AsyncCommand<InitCommand.Settings>
 
         async Task ConfigureRobalo()
         {
-            var statusSpinner = new StatusSpinner(migrations.Count + 4);
+            var statusSpinner = new StatusSpinner(migrations.Count + 3);
 
             string _getVersionsQuery = "SELECT sqlite_version(),sqlite3mc_version();";
 
@@ -263,32 +250,9 @@ public class InitCommand : AsyncCommand<InitCommand.Settings>
                 }
             });
 
-            await statusSpinner.WithLabel("Wrapping up setup", async () => await UpdateAppSettings());
-
             AnsiConsole.MarkupLineInterpolated(CultureInfo.InvariantCulture, $"[bold green]Success! 🔑 Encrypted database {databaseFullPath} was created and configured to use with Robalo[/]. Sqlite [yellow]{version1}[/] ({version2})");
         }
 
-        async Task<StatusSpinner.Status> UpdateAppSettings()
-        {
-            if (settings.SkipUpdateAppsettings.Value)
-            {
-                return StatusSpinner.Status.SKIPPED;
-            }
-
-            var appSettingsPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
-            var root = JsonNode.Parse(await File.ReadAllTextAsync(appSettingsPath, cancellationToken))!.AsObject();
-
-            var database = root["Database"] as JsonObject ?? new JsonObject();
-            root["Database"] = database;
-            database["FilePath"] = databaseFullPath;
-
-            await File.WriteAllTextAsync(
-                appSettingsPath,
-                root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }),
-                cancellationToken);
-
-            return StatusSpinner.Status.OK;
-        }
 
         async Task<RobaloOptions> GetRobaloOptions_NonInteractive()
         {
@@ -366,7 +330,5 @@ public class InitCommand : AsyncCommand<InitCommand.Settings>
             var robaloOptions = new RobaloOptions(llmOptionsOrNone.ValueOrFailure);
             return robaloOptions.Verify();
         }
-
-      
     }
 }

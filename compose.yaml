@@ -13,16 +13,17 @@ services:
     pre_start:
       - command: chown -R 1654:1654 /data
         image: busybox
-      - command: init -nsr -f /data/robalo.db
+      - command: init -ni -f /data/robalo.db
         environment:
           - ROBALO_CONFIG={"Llm":{"endpoint":"http://ollama:11434/v1/","model":"test-model:latest","key":"test"}}
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ASPNETCORE_HTTP_PORTS: 5010
+      ASPNETCORE_URLS: "http://*:5010/"
       ASPNETCORE_PATHBASE: /controller
-      ROBALO_Serilog__WriteTo__1__args__serverURL: http://seq:5341
-      ROBALO_Database__FilePath: /data/robalo.db
+      ROBALO_Serilog__WriteTo__0__args__serverURL: http://seq:5341
       ROBALO_PASSWORD: "12345678"
+    command:
+      -f /data/robalo.db
 
   seq:
     image: datalust/seq:2026.1.17526

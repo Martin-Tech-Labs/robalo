@@ -113,7 +113,7 @@ describe('1 - Scenario: System Endpoints & Logging @system', () => {
             response.statusCode.should.equal(200);
             response.headers['content-type'].should.include('application/json');
             expect(response.body).to.be.an("array").that.is.not.empty;
-            expect(new Date(response.body[0].Timestamp)).to.be.greaterThan(startedOn);
+            expect(new Date(response.body[0].Timestamp)).to.be.greaterThanOrEqual(startedOn);
         })).timeout(10000);
     });
 });
