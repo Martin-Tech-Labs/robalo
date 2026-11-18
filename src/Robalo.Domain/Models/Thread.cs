@@ -34,7 +34,7 @@ public sealed class Thread : AggregateRoot<Thread>
             _lastUserMessageId = message.MessageId;
         });
 
-        When<LlmMessageAdded>(@event =>
+        When<AssistantMessageAdded>(@event =>
         {
             var message = ContextMessage.FromModel(@event);
             ModifiedOn = @event.AddedOn;
@@ -69,7 +69,7 @@ public sealed class Thread : AggregateRoot<Thread>
         return new(ThreadIdentifier.NewIdentifier(), None.Default, createdOn);
     }
 
-    public LlmMessageAdded CreateLlmMessageAdded(string content, MessageIdentifier repliedToMessage, DateTimeOffset addedOn)
+    public AssistantMessageAdded CreateLlmMessageAdded(string content, MessageIdentifier repliedToMessage, DateTimeOffset addedOn)
     {
         if (_context.Count == 0)
         {
@@ -85,7 +85,7 @@ public sealed class Thread : AggregateRoot<Thread>
 
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        return new LlmMessageAdded(MessageIdentifier.NewIdentifier(), content, repliedToMessage, addedOn);
+        return new AssistantMessageAdded(MessageIdentifier.NewIdentifier(), content, repliedToMessage, addedOn);
     }
 
     public Thread AddLlmMessage(string content, MessageIdentifier repliedToMessage, DateTimeOffset addedOn) =>

@@ -118,7 +118,7 @@ describe('3 - Threads @drei @threads', () => {
             messageQueryResult = response.body as MessageQueryResult;
             expect(messageQueryResult._embedded.messages.length).to.be.greaterThan(0);
             expect(messageQueryResult._embedded.messages[0].content).to.equal(message1Content);
-            expect(messageQueryResult._embedded.messages[0].source).to.equal("user");
+            expect(messageQueryResult._embedded.messages[0].event_type).to.equal("UserMessageAdded");
             expect(messageQueryResult._embedded.messages[0].message_number).to.equal(1);
             expect(messageQueryResult._embedded.messages[0].created_on).to.equal(thread.created_on);
         });
@@ -133,7 +133,7 @@ describe('3 - Threads @drei @threads', () => {
 
         it("And I verfy the LLM message", () => {
             expect(llmMessage.content).to.not.be.empty;
-            expect(llmMessage.source).to.equal("llm");
+            expect(llmMessage.event_type).to.equal("AssistantMessageAdded");
             expect(llmMessage.message_number).to.equal(2);
         });
 
@@ -187,7 +187,7 @@ describe('3 - Threads @drei @threads', () => {
         });
 
         it("And I verify the message source is valid", () => {
-            message.source.should.equal("user");
+            message.event_type.should.equal("UserMessageAdded");
         });
 
         it("And I verify the created on is valid", () => {
@@ -241,7 +241,7 @@ describe('3 - Threads @drei @threads', () => {
         it("And I verfy the LLM response", () => {
             expect(llmMessage).to.deep.equal(messageQueryResult._embedded.messages[3]);
             expect(messageQueryResult._embedded.messages[3].content).to.not.be.empty;
-            expect(messageQueryResult._embedded.messages[3].source).to.equal("llm");
+            expect(messageQueryResult._embedded.messages[3].event_type).to.equal("AssistantMessageAdded");
             expect(messageQueryResult._embedded.messages[3].message_number).to.equal(4);
         });
 

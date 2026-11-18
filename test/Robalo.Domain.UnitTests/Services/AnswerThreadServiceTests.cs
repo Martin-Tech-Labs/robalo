@@ -35,7 +35,7 @@ public class AnswerThreadServiceTests : IDisposable
 
         _messageNumber = _fixture.Create<int>();
         _repository
-            .Setup(r => r.AppendEvent(It.IsAny<ThreadIdentifier>(), It.IsAny<LlmMessageAdded>(), It.IsAny<CancellationToken>()))
+            .Setup(r => r.AppendEvent(It.IsAny<ThreadIdentifier>(), It.IsAny<AssistantMessageAdded>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(_messageNumber);
     }
 
@@ -73,15 +73,15 @@ public class AnswerThreadServiceTests : IDisposable
             l => l.GetResponse(It.Is<LlmRequest>(
                 r => r.Messages.Length == 3 &&
                 r.Messages[0].Content == thread.Context[0].Content &&
-                r.Messages[0].Source == MessageSource.User &&
+                r.Messages[0].Source == MessageRole.User &&
                 r.Messages[1].Content == thread.Context[1].Content &&
-                r.Messages[1].Source == MessageSource.LLM &&
+                r.Messages[1].Source == MessageRole.LLM &&
                 r.Messages[2].Content == thread.Context[2].Content &&
-                r.Messages[2].Source == MessageSource.User),
+                r.Messages[2].Source == MessageRole.User),
             TestContext.Current.CancellationToken), Times.Once());
         _llmClient.VerifyNoOtherCalls();
 
-        _repository.Verify(r => r.AppendEvent(thread.Id, It.Is<LlmMessageAdded>(
+        _repository.Verify(r => r.AppendEvent(thread.Id, It.Is<AssistantMessageAdded>(
             l => l.AddedOn == _utcNow
             && l.Content == _llmResponse.Content
             && l.RepliedToMessageId == thread.Context[2].MessageId
@@ -104,7 +104,7 @@ public class AnswerThreadServiceTests : IDisposable
             .ReturnsAsync(thread);
 
         _repository
-            .Setup(r => r.AppendEvent(It.IsAny<ThreadIdentifier>(), It.IsAny<LlmMessageAdded>(), It.IsAny<CancellationToken>()))
+            .Setup(r => r.AppendEvent(It.IsAny<ThreadIdentifier>(), It.IsAny<AssistantMessageAdded>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(None.Default);
 
         var result = await _sut.Answer(thread.Id, TestContext.Current.CancellationToken);
@@ -116,7 +116,7 @@ public class AnswerThreadServiceTests : IDisposable
             TestContext.Current.CancellationToken), Times.Once());
         _llmClient.VerifyNoOtherCalls();
 
-        _repository.Verify(r => r.AppendEvent(thread.Id, It.Is<LlmMessageAdded>(
+        _repository.Verify(r => r.AppendEvent(thread.Id, It.Is<AssistantMessageAdded>(
             l => l.AddedOn == _utcNow
             && l.Content == _llmResponse.Content
             && l.RepliedToMessageId == thread.Context[1].MessageId
@@ -221,7 +221,7 @@ public class AnswerThreadServiceTests : IDisposable
             .ReturnsAsync(thread);
 
         _repository
-            .Setup(r => r.AppendEvent(It.IsAny<ThreadIdentifier>(), It.IsAny<LlmMessageAdded>(), It.IsAny<CancellationToken>()))
+            .Setup(r => r.AppendEvent(It.IsAny<ThreadIdentifier>(), It.IsAny<AssistantMessageAdded>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(None.Default);
 
 

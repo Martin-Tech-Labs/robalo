@@ -500,7 +500,7 @@ paths:
                           required: &ref_12
                             - content
                             - created_on
-                            - source
+                            - event_type
                             - thread_id
                             - message_number
                             - _links
@@ -510,12 +510,12 @@ paths:
                             created_on:
                               type: string
                               format: date-time
-                            source:
+                            event_type:
                               type: string
                               enum:
-                                - user
-                                - llm
-                                - controller
+                                - UserMessageAdded
+                                - AssistantMessageAdded
+                                - BreakMessageAdded
                             thread_id:
                               type: string
                             message_number:
@@ -598,7 +598,7 @@ paths:
                       messages:
                         - content: Hello world
                           created_on: '2027-06-05T12:34:56Z'
-                          source: user
+                          event_type: UserMessageAdded
                           thread_id: thd_123
                           message_number: '123'
                           _links:
@@ -610,7 +610,7 @@ paths:
                               href: /events?thread=thd_123&checkpoint=123
                         - content: Hi there
                           created_on: '2027-06-05T12:35:56Z'
-                          source: llm
+                          event_type: AssistantMessageAdded
                           thread_id: thd_123
                           message_number: '124'
                           _links:
@@ -669,7 +669,7 @@ paths:
                   value: &ref_18
                     content: Hello world
                     created_on: '2027-06-05T12:34:56Z'
-                    source: user
+                    event_type: UserMessageAdded
                     thread_id: thd_123
                     message_number: '12'
                     _links:

@@ -44,7 +44,7 @@ public class ThreadsController_CreateMessageTests : ThreadsControllerTests
         messageResource.Links.Events.Href.Query.ShouldBe($"?thread={threadId.IdString}&checkpoint={messageNumber}");
         messageResource.Content.ShouldBe(request.Content);
         messageResource.CreatedOn.ShouldBe(_utcNow);
-        messageResource.Source.ShouldBe("user");
+        messageResource.EventType.ShouldBe(nameof(UserMessageAdded));
         messageResource.MessageNumber.ShouldBe(messageNumber);
         messageResource.ThreadId.ShouldBe(threadId);
     }
