@@ -14,7 +14,8 @@ public sealed record NumberedEventDto : EventDto
         string eventType,
         string content,
         MessageIdentifier? repliedToMessageId,
-        DateTimeOffset createdOn) : base(threadId, messageId, eventType, content, repliedToMessageId, createdOn)
+        string? references,
+        DateTimeOffset createdOn) : base(threadId, messageId, eventType, content, repliedToMessageId, references, createdOn)
     {
         MessageNumber = messageNumber;
     }
@@ -28,6 +29,7 @@ public sealed record NumberedEventDto : EventDto
             eventType: dto.EventType ?? throw new ArgumentNullException(nameof(dto), nameof(dto.EventType)),
             content: dto.Content ?? throw new ArgumentNullException(nameof(dto), nameof(dto.Content)),
             repliedToMessageId: dto.RepliedToMessageId,
+            references: dto.ReferencedMessageIds,
             createdOn: dto.CreatedOn,
             messageNumber: messageNumber);
     }
