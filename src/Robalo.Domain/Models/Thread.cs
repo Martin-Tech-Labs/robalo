@@ -138,8 +138,8 @@ public sealed class Thread : AggregateRoot<Thread>
         {
             throw new InvalidOperationException("Cannot create a break with an empty context");
         }
-
-        if (PendingEvents.c)
+        
+        if (_extendedContext.Count != 0)
         {
             throw new InvalidOperationException("Cannot create a break with a pending break change. Persist the aggregate and try again.");
         }
