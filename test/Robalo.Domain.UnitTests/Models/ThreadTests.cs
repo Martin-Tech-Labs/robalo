@@ -317,7 +317,7 @@ public class ThreadTests
         thread.Context.Count.ShouldBe(3);
         thread.Context.Select(v => v.MessageId).Distinct().Count().ShouldBe(3);
         thread.Context[indexLLmMessage].Content.ShouldBe(content);
-        thread.Context[indexLLmMessage].Source.ShouldBe(MessageRole.LLM);
+        thread.Context[indexLLmMessage].Source.ShouldBe(MessageRole.Assistant);
         thread.Context[indexLLmMessage].RepliedToMessageId.ShouldBe(thread.Context[repliedToMessageIndex].MessageId);
         thread.Context[indexLLmMessage].MessageId.ShouldBe(thread.PendingEvents[2].MessageId);
 

@@ -16,7 +16,7 @@ public record ContextMessage(
         {
             UserMessageAdded e => FromUserMessageAdded(e),
             AssistantMessageAdded e => FromLlmMessageAdded(e),
-            
+
             _ => throw new ArgumentException($"Wrong type {messageAdded.GetType().Name}")
         };
 
@@ -33,7 +33,7 @@ public record ContextMessage(
         {
             return new(
                 MessageId: e.MessageId,
-                Source: MessageRole.LLM,
+                Source: MessageRole.Assistant,
                 Content: e.Content,
                 RepliedToMessageId: e.RepliedToMessageId.AsOption());
         }

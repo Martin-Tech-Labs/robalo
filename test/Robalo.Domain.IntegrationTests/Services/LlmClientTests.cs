@@ -30,7 +30,7 @@ public class LlmClientTests
 
         var result = await sut.GetResponse(new LlmRequest(
             new ThreadMessage("Hi there", MessageRole.User),
-            new ThreadMessage("Hi!", MessageRole.LLM),
+            new ThreadMessage("Hi!", MessageRole.Assistant),
             new ThreadMessage("How are you?", MessageRole.User)), TestContext.Current.CancellationToken);
         result.Value.ShouldBeOfType<LlmResponse>();
 

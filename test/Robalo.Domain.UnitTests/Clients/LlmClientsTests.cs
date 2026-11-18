@@ -37,7 +37,7 @@ public class LlmClientsTests
         var expectedResponse = _fixture.Create<string>();
         var llmRequest = new LlmRequest(
             new ThreadMessage(_fixture.Create<string>(), MessageRole.User),
-            new ThreadMessage(_fixture.Create<string>(), MessageRole.LLM),
+            new ThreadMessage(_fixture.Create<string>(), MessageRole.Assistant),
             new ThreadMessage(_fixture.Create<string>(), MessageRole.User));
 
         ConfigureResponse(expectedResponse);

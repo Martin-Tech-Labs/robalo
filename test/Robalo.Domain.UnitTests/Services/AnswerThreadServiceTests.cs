@@ -75,7 +75,7 @@ public class AnswerThreadServiceTests : IDisposable
                 r.Messages[0].Content == thread.Context[0].Content &&
                 r.Messages[0].Source == MessageRole.User &&
                 r.Messages[1].Content == thread.Context[1].Content &&
-                r.Messages[1].Source == MessageRole.LLM &&
+                r.Messages[1].Source == MessageRole.Assistant &&
                 r.Messages[2].Content == thread.Context[2].Content &&
                 r.Messages[2].Source == MessageRole.User),
             TestContext.Current.CancellationToken), Times.Once());

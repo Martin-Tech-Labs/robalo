@@ -10,7 +10,7 @@ public record ThreadMessage(string Content, MessageRole Source)
         return message.Source switch
         {
             MessageRole.User => ChatMessage.CreateUserMessage(message.Content),
-            MessageRole.LLM => ChatMessage.CreateAssistantMessage(message.Content),
+            MessageRole.Assistant => ChatMessage.CreateAssistantMessage(message.Content),
 
             _ => throw new ArgumentException(nameof(message.Source))
         };
