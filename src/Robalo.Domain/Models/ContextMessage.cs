@@ -6,7 +6,7 @@ namespace Robalo.Domain.Models;
 
 public record ContextMessage(
     MessageIdentifier MessageId,
-    MessageRole Source,
+    MessageRole Role,
     string Content,
     Option<MessageIdentifier> RepliedToMessageId)
 {
@@ -24,7 +24,7 @@ public record ContextMessage(
         {
             return new(
                 MessageId: e.MessageId,
-                Source: MessageRole.User,
+                Role: MessageRole.User,
                 Content: e.Content,
                 RepliedToMessageId: None.Default);
         }
@@ -33,7 +33,7 @@ public record ContextMessage(
         {
             return new(
                 MessageId: e.MessageId,
-                Source: MessageRole.Assistant,
+                Role: MessageRole.Assistant,
                 Content: e.Content,
                 RepliedToMessageId: e.RepliedToMessageId.AsOption());
         }

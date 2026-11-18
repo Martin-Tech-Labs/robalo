@@ -1,4 +1,5 @@
 using Robalo.Common.Extensions;
+using Robalo.Common.Models;
 using Robalo.Domain.Models;
 
 namespace Robalo.Domain.Models.Events;
@@ -12,4 +13,7 @@ namespace Robalo.Domain.Models.Events;
 public closed record MessageAdded(
     MessageIdentifier MessageId,
     string Content,
-    DateTimeOffset AddedOn);
+    DateTimeOffset AddedOn)
+{
+    public Option<MessageIdentifier> CopiedFrom { get; init; } = None.Default;
+}

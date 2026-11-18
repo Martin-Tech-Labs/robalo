@@ -82,7 +82,7 @@ public class ThreadTests
         @event.Content.ShouldBe(messageContent);
 
         thread.Context[0].Content.ShouldBe(messageContent);
-        thread.Context[0].Source.ShouldBe(MessageRole.User);
+        thread.Context[0].Role.ShouldBe(MessageRole.User);
         thread.Context[0].RepliedToMessageId.ShouldBeNone();
         thread.Context[0].MessageId.ShouldBe(thread.PendingEvents[0].MessageId);
 
@@ -317,12 +317,12 @@ public class ThreadTests
         thread.Context.Count.ShouldBe(3);
         thread.Context.Select(v => v.MessageId).Distinct().Count().ShouldBe(3);
         thread.Context[indexLLmMessage].Content.ShouldBe(content);
-        thread.Context[indexLLmMessage].Source.ShouldBe(MessageRole.Assistant);
+        thread.Context[indexLLmMessage].Role.ShouldBe(MessageRole.Assistant);
         thread.Context[indexLLmMessage].RepliedToMessageId.ShouldBe(thread.Context[repliedToMessageIndex].MessageId);
         thread.Context[indexLLmMessage].MessageId.ShouldBe(thread.PendingEvents[2].MessageId);
 
-        thread.Context.First(f => f.Source == MessageRole.User).Content.ShouldBe(content1);
-        thread.Context.Last(f => f.Source == MessageRole.User).Content.ShouldBe(content2);
+        thread.Context.First(f => f.Role == MessageRole.User).Content.ShouldBe(content1);
+        thread.Context.Last(f => f.Role == MessageRole.User).Content.ShouldBe(content2);
     }
 
     [Fact]

@@ -231,12 +231,12 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
 
             if (events[i] is UserMessageAdded userMessageAdded)
             {
-                thread.Context[i].Source.ShouldBe(Models.MessageRole.User);
+                thread.Context[i].Role.ShouldBe(Models.MessageRole.User);
                 thread.Context[i].RepliedToMessageId.ShouldBeNone();
             }
             else if (events[i] is AssistantMessageAdded llmMessageAdded)
             {
-                thread.Context[i].Source.ShouldBe(Models.MessageRole.Assistant);
+                thread.Context[i].Role.ShouldBe(Models.MessageRole.Assistant);
                 thread.Context[i].RepliedToMessageId.ShouldBe(llmMessageAdded.RepliedToMessageId, $"{i}");
             }
             else
@@ -769,16 +769,16 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
         newThreadOrNone.ValueOrFailure.Context.Count.ShouldBe(3);
         newThreadOrNone.ValueOrFailure.Context[0].Content.ShouldBe(message1);
         newThreadOrNone.ValueOrFailure.Context[0].MessageId.ShouldBe(messageId1);
-        newThreadOrNone.ValueOrFailure.Context[0].Source.ShouldBe(Models.MessageRole.User);
+        newThreadOrNone.ValueOrFailure.Context[0].Role.ShouldBe(Models.MessageRole.User);
 
         newThreadOrNone.ValueOrFailure.Context[1].Content.ShouldBe(message3);
         newThreadOrNone.ValueOrFailure.Context[1].MessageId.ShouldBe(messageId3);
-        newThreadOrNone.ValueOrFailure.Context[1].Source.ShouldBe(Models.MessageRole.Assistant);
+        newThreadOrNone.ValueOrFailure.Context[1].Role.ShouldBe(Models.MessageRole.Assistant);
 
 
         newThreadOrNone.ValueOrFailure.Context[2].Content.ShouldBe(message2);
         newThreadOrNone.ValueOrFailure.Context[2].MessageId.ShouldBe(messageId2);
-        newThreadOrNone.ValueOrFailure.Context[2].Source.ShouldBe(Models.MessageRole.User);
+        newThreadOrNone.ValueOrFailure.Context[2].Role.ShouldBe(Models.MessageRole.User);
 
         newThreadOrNone.ValueOrFailure.IsAnswered.ShouldBeFalse();
 
