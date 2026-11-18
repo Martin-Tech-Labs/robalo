@@ -57,7 +57,7 @@ public class AnswerThreadServiceTests : IDisposable
         var thread = Thread.NewThread(_utcNow.AddSeconds(-4));
         thread.AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-3))
             .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-2))
-            .AddLlmMessage(_fixture.Create<string>(), thread.Context[0].MessageId, _utcNow.AddSeconds(-1));
+            .AddAssistantMessage(_fixture.Create<string>(), thread.Context[0].MessageId, _utcNow.AddSeconds(-1));
 
         thread.MarkAggregateAsSynchronized();
 
@@ -158,7 +158,7 @@ public class AnswerThreadServiceTests : IDisposable
             .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-2));
         thread.MarkAggregateAsSynchronized();
 
-        thread.AddLlmMessage(_fixture.Create<string>(), thread.Context.Single().MessageId, _utcNow);
+        thread.AddAssistantMessage(_fixture.Create<string>(), thread.Context.Single().MessageId, _utcNow);
         thread.IsAnswered.ShouldBeTrue();
 
         _repository
@@ -192,7 +192,7 @@ public class AnswerThreadServiceTests : IDisposable
         _repository
             .Setup(r => r.RefreshThread(thread, TestContext.Current.CancellationToken))
             .ReturnsAsync(new Success())
-            .Callback(() => thread.AddLlmMessage(_fixture.Create<string>(), thread.Context.Single().MessageId, _utcNow));
+            .Callback(() => thread.AddAssistantMessage(_fixture.Create<string>(), thread.Context.Single().MessageId, _utcNow));
 
         var result = await _sut.Answer(thread.Id, TestContext.Current.CancellationToken);
 
