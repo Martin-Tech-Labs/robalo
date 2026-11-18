@@ -137,7 +137,7 @@ public sealed class SqliteThreadRepository : IThreadRepository
             var threadDto = result.Single();
 
             var events = (await connection.QueryAsync<NumberedEventDto>(
-            """
+            $"""
             SELECT *
             FROM ThreadEvents
             WHERE ThreadId = @ThreadId
@@ -145,7 +145,7 @@ public sealed class SqliteThreadRepository : IThreadRepository
                   (SELECT MAX(MessageNumber)
                    FROM ThreadEvents
                    WHERE ThreadId = @ThreadId
-                     AND EventType = 'BreakMessageAdded'),
+                     AND EventType = '{nameof(BreakMessageAdded)}'),
                   0)
             ORDER BY MessageNumber;
             """,
