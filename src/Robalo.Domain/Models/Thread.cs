@@ -7,59 +7,55 @@ namespace Robalo.Domain.Models;
 public sealed class Thread : AggregateRoot<Thread>
 {
     public DateTimeOffset CreatedOn { get; }
-    public DateTimeOffset ModifiedOn => _messages.LastOrDefault()?.CreatedOn ?? CreatedOn;
+    public DateTimeOffset ModifiedOn { get; private set; }
 
-    readonly List<Message> _messages = [];
+    readonly List<ContextMessage> _context = [];
 
-    public IReadOnlyList<Message> Messages { get; }
+    public IReadOnlyList<ContextMessage> Context { get; }
 
     public string? Title { get; private set; }
 
-    Option<int> _lastAnsweredMessageIndex = None.Default;
-
+    Option<MessageIdentifier> _lastUserMessageId = None.Default;
     public bool IsAnswered { private set; get; }
-
-    private int GetNextMessageNumber() => PersistedVersion.ValueOr(0) + PendingEvents.Count + 1;
 
     Thread(ThreadIdentifier id, Option<int> persistedVersion, DateTimeOffset createdOn) : base(id, persistedVersion)
     {
-        CreatedOn = createdOn;
-        Messages = _messages.AsReadOnly();
+        CreatedOn = ModifiedOn = createdOn;
+        Context = _context.AsReadOnly();
         IsAnswered = true;
 
         When<UserMessageAdded>(@event =>
         {
-            _messages.Add(Message.FromModel(@event, GetNextMessageNumber()));
-
+            var message = ContextMessage.FromModel(@event);
+            _context.Add(message);
             IsAnswered = false;
+            ModifiedOn = @event.AddedOn;
+
+            _lastUserMessageId = message.MessageId;
         });
 
         When<LlmMessageAdded>(@event =>
         {
-            _messages.Add(Message.FromModel(@event, GetNextMessageNumber()));
+            var message = ContextMessage.FromModel(@event);
+            ModifiedOn = @event.AddedOn;
 
-            // Arriving LLM Message cannot change status to Unanswered
-            if (IsAnswered)
-            {
-                return;
-            }
-
-            var repliedToMessageIndex = _messages.FindIndex(m => m.MessageId == @event.RepliedToMessageId);
+            var repliedToMessageIndex = _context.FindIndex(m => m.MessageId == @event.RepliedToMessageId);
 
             // Should not really happen, but if so, we still need to rehydrate the aggregate
             if (repliedToMessageIndex == -1)
             {
+                _context.Add(message);
                 return;
             }
 
-            // Last answered message is max between the current LLM message and what's on record,
-            // because it could be that it replies older messages, but newer have been replied already
-            _lastAnsweredMessageIndex = Math.Max(_lastAnsweredMessageIndex.ValueOr(-1), repliedToMessageIndex);
+            IsAnswered = IsAnswered ||  // LLM reply cannot mark thread Unanswered
+                message.RepliedToMessageId == _lastUserMessageId ||// LLM replied directly to the last user message 
+                repliedToMessageIndex > _context.FindIndex(m => m.MessageId == _lastUserMessageId); // LLM replied to the message past user message
 
-            if (_messages[(_lastAnsweredMessageIndex.ValueOrFailure + 1)..].All(m => m.Source == MessageSource.LLM))
-            {
-                IsAnswered = true;
-            }
+            _context.Insert(1 + Math.Max(
+                repliedToMessageIndex,
+                _context.FindLastIndex(m => m.RepliedToMessageId == @event.RepliedToMessageId)),
+                message);
         });
     }
 
@@ -73,15 +69,15 @@ public sealed class Thread : AggregateRoot<Thread>
         return new(ThreadIdentifier.NewIdentifier(), None.Default, createdOn);
     }
 
-    public LlmMessageAdded CreateLlmMessageAdded(string content, Message repliedToMessage, DateTimeOffset addedOn)
+    public LlmMessageAdded CreateLlmMessageAdded(string content, MessageIdentifier repliedToMessage, DateTimeOffset addedOn)
     {
-        if (_messages.Count == 0)
+        if (_context.Count == 0)
         {
             throw new InvalidOperationException("Cannot create an LlmMessage for a thread without any user messages");
         }
 
         ArgumentOutOfRangeException.ThrowIfLessThan(addedOn, ModifiedOn);
-        var messageIndex = _messages.FindIndex(m => ReferenceEquals(m, repliedToMessage));
+        var messageIndex = _context.FindIndex(m => m.MessageId == repliedToMessage);
         if (messageIndex == -1)
         {
             throw new ArgumentException("Invalid message", nameof(repliedToMessage));
@@ -89,10 +85,10 @@ public sealed class Thread : AggregateRoot<Thread>
 
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
 
-        return new LlmMessageAdded(MessageIdentifier.NewIdentifier(), content, repliedToMessage.MessageId, addedOn);
+        return new LlmMessageAdded(MessageIdentifier.NewIdentifier(), content, repliedToMessage, addedOn);
     }
 
-    public Thread AddLlmMessage(string content, Message repliedToMessage, DateTimeOffset addedOn) => 
+    public Thread AddLlmMessage(string content, MessageIdentifier repliedToMessage, DateTimeOffset addedOn) =>
         Apply(CreateLlmMessageAdded(content, repliedToMessage, addedOn));
 
     public static UserMessageAdded CreateUserMessageAdded(string content, DateTimeOffset addedOn)

@@ -63,12 +63,17 @@ public class ThreadStreamingProvider_GetEventsTests : IClassFixture<DatabaseFixt
     [InlineData(101, 0, 0, 0)]
     public async Task ShouldReturnCorrectEvents(int? checkpoint, int numEvents, int firstNumber, int lastNumber)
     {
+
+        List<Message> messages = new();
+
         var count = 100;
 
         var thread = Thread.NewThread(_utcNow);
+
         for (var i = 0; i < count; i++)
         {
             thread.AddUserMessage(_fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1));
+            messages.Add(Message.FromModel(thread.PendingEvents[^1], i + 1));
         }
 
         await _repository.SaveThread(thread, TestContext.Current.CancellationToken);
@@ -94,7 +99,7 @@ public class ThreadStreamingProvider_GetEventsTests : IClassFixture<DatabaseFixt
         res.Last().Checkpoint.ShouldBe(lastNumber);
         res.Last().Event.Number.ShouldBe(lastNumber);
 
-        res.Select(r => r.Event).ToList().ShouldBeEquivalentTo(thread.Messages.ToList()[(firstNumber - 1)..lastNumber]);
+        res.Select(r => r.Event).ToList().ShouldBeEquivalentTo(messages[(firstNumber - 1)..lastNumber]);
 
     }
 }

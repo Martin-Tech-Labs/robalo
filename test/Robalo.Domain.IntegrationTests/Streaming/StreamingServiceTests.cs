@@ -38,13 +38,27 @@ public class StreamingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var thread1 = Thread.NewThread(_utcNow)
             .AddUserMessage(_fixture.Create<string>(), _utcNow)
             .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(1));
-        thread1.AddLlmMessage(_fixture.Create<string>(), thread1.Messages[^1], thread1.ModifiedOn.AddSeconds(1));
+        thread1.AddLlmMessage(_fixture.Create<string>(), thread1.Context[^1].MessageId, thread1.ModifiedOn.AddSeconds(1));
+
+        List<Message> thread1Messages = new();
+        for (var i = 0; i < thread1.PendingEvents.Count; i++)
+        {
+            thread1Messages.Add(Message.FromModel(thread1.PendingEvents[i], i + 1));
+        }
+
         await _repository.SaveThread(thread1, TestContext.Current.CancellationToken);
 
         var thread2 = Thread.NewThread(_utcNow)
             .AddUserMessage(_fixture.Create<string>(), _utcNow)
             .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(1));
-        thread2.AddLlmMessage(_fixture.Create<string>(), thread2.Messages[^1], thread2.ModifiedOn.AddSeconds(1));
+        thread2.AddLlmMessage(_fixture.Create<string>(), thread2.Context[0].MessageId, thread2.ModifiedOn.AddSeconds(1));
+
+        List<Message> thread2Messages = new();
+        for (var i = 0; i < thread2.PendingEvents.Count; i++)
+        {
+            thread2Messages.Add(Message.FromModel(thread2.PendingEvents[i], i + 1));
+        }
+
         await _repository.SaveThread(thread2, TestContext.Current.CancellationToken);
 
         var list1 = await _sut.Pull(thread1.Id, 1, timeout.Token).Take(2).ToListAsync(timeout.Token);
@@ -53,8 +67,8 @@ public class StreamingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         list1.ShouldNotBeNull();
         list2.ShouldNotBeNull();
 
-        list1.Select(l => l.Event).ToList().ShouldBeEquivalentTo(thread1.Messages.ToList()[1..]);
-        list2.Select(l => l.Event).ToList().ShouldBeEquivalentTo(thread2.Messages.ToList()[2..]);
+        list1.Select(l => l.Event).ToList().ShouldBeEquivalentTo(thread1Messages[1..]);
+        list2.Select(l => l.Event).ToList().ShouldBeEquivalentTo(thread2Messages[2..]);
     }
 
     public void Dispose()

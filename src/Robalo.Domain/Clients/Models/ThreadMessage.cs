@@ -16,5 +16,5 @@ public record ThreadMessage(string Content, MessageSource Source)
         };
     }
 
-    public static ThreadMessage FromMessage(Message message) => new(message.Content, message.Source);
+    public static ThreadMessage FromContextMessage(ContextMessage message) => new(message.Content, message.Source);
 }

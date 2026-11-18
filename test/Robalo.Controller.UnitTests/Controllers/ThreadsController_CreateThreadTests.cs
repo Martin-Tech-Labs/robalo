@@ -51,10 +51,9 @@ public class ThreadsController_CreateThreadTests : ThreadsControllerTests
         _repository
             .Verify(r => r.SaveThread(It.Is<Thread>(
                 t => t.CreatedOn == _utcNow &&
-                t.Messages.Count == 1 &&
+                t.Context.Count == 1 &&
                 t.Title == null &&
-                t.Messages[0].Content == request.Content &&
-                t.Messages[0].CreatedOn == _utcNow &&
+                t.Context[0].Content == request.Content &&
                 t.Id == resource.ThreadId), TestContext.Current.CancellationToken),
             Times.Once());
     }
