@@ -56,8 +56,9 @@ public class AnswerThreadServiceTests : IDisposable
     {
         var thread = Thread.NewThread(_utcNow.AddSeconds(-4));
         thread.AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-3))
-            .AddLlmMessage(_fixture.Create<string>(), thread.Context[^1].MessageId, _utcNow.AddSeconds(-2))
-            .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-1));
+            .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-2))
+            .AddLlmMessage(_fixture.Create<string>(), thread.Context[0].MessageId, _utcNow.AddSeconds(-1));
+
         thread.MarkAggregateAsSynchronized();
 
         _repository
