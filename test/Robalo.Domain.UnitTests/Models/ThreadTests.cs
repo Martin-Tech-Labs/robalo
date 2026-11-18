@@ -251,6 +251,35 @@ public class ThreadTests
 
         thread.Context.Select(c => c.MessageId).ShouldBe(new[] { u1, l1_u1, l2_u1, l1_l2, l2_l2, l3_u1, u2, u3 }.AsEnumerable());
         thread.IsAnswered.ShouldBeFalse();
+
+        thread.AddLlmMessage(_fixture.Create<string>(), u3, thread.CreatedOn);
+        var l1_u3 = thread.PendingEvents[^1].MessageId;
+        thread.IsAnswered.ShouldBeTrue();
+        thread.Context.Select(c => c.MessageId).ShouldBe(new[] { u1, l1_u1, l2_u1, l1_l2, l2_l2, l3_u1, u2, u3, l1_u3 }.AsEnumerable());
+
+        thread.AddLlmMessage(_fixture.Create<string>(), u3, thread.CreatedOn);
+        var l2_u3 = thread.PendingEvents[^1].MessageId;
+
+        thread.AddLlmMessage(_fixture.Create<string>(), u2, thread.CreatedOn);
+        var l1_u2 = thread.PendingEvents[^1].MessageId;
+
+        thread.AddLlmMessage(_fixture.Create<string>(), l1_u3, thread.CreatedOn);
+        var l1_l1_u3 = thread.PendingEvents[^1].MessageId;
+
+        thread.IsAnswered.ShouldBeTrue();
+        thread.Context.Select(c => c.MessageId).ShouldBe(new[] { u1, l1_u1, l2_u1, l1_l2, l2_l2, l3_u1, u2, l1_u2, u3, l1_u3, l1_l1_u3, l2_u3 }.AsEnumerable());
+
+        thread.PendingEvents.Select(c => c.MessageId).ShouldBe(new[]
+        {
+            u1,u2,u3,l1_u1,l2_u1,l3_u1,l1_l2,l2_l2,l1_u3,l2_u3,l1_u2,l1_l1_u3
+        }.AsEnumerable());
+
+
+        var threadRehydrated = Thread.Rehydrate(thread.Id, thread.CreatedOn, thread.Title, thread.PendingVersion, thread.PendingEvents);
+        thread.MarkAggregateAsSynchronized();
+        threadRehydrated.Context.ShouldBeEquivalentTo(thread.Context);
+        threadRehydrated.PendingVersion.ShouldBe(thread.PendingVersion);
+        threadRehydrated.PersistedVersion.ShouldBe(thread.PersistedVersion);
     }
 
     [Theory]
