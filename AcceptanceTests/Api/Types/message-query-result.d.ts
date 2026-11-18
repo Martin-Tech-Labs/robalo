@@ -22,7 +22,7 @@ export interface MessageQueryResult {
 export interface Message {
   content: string;
   created_on: string;
-  source: "user" | "llm" | "controller";
+  event_type: "UserMessageAdded" | "AssistantMessageAdded" | "BreakMessageAdded";
   thread_id: string;
   message_number: number;
   _links: {

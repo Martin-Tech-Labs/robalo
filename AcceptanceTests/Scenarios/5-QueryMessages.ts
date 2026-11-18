@@ -68,7 +68,7 @@ describe('5 - Query Messages @queryThreads @threads', () => {
             for (let i = 0; i < orderedMessages.length; i++) {
                 orderedMessages[i].message_number.should.equal(numberOfMessages - limit + i + 1);
                 orderedMessages[i].content.should.equal(`msg_${numberOfMessages - limit + i}`);
-                orderedMessages[i].source.should.equal("user");
+                orderedMessages[i].event_type.should.equal("UserMessageAdded");
                 orderedMessages[i].thread_id.should.equal(thread.thread_id);
                 Date.parse(orderedMessages[i].created_on).should.be.greaterThanOrEqual(Date.parse(thread.created_on));
             }
@@ -150,7 +150,7 @@ describe('5 - Query Messages @queryThreads @threads', () => {
             for (let i = 0; i < orderedMessages.length; i++) {
                 orderedMessages[i].message_number.should.equal(numberOfMessages - 2 * limit + i + 1);
                 orderedMessages[i].content.should.equal(`msg_${numberOfMessages - 2 * limit + i}`);
-                orderedMessages[i].source.should.equal("user");
+                orderedMessages[i].event_type.should.equal("UserMessageAdded");
                 orderedMessages[i].thread_id.should.equal(thread.thread_id);
                 Date.parse(orderedMessages[i].created_on).should.be.greaterThanOrEqual(Date.parse(thread.created_on));
             }
@@ -181,7 +181,7 @@ describe('5 - Query Messages @queryThreads @threads', () => {
             for (let i = 0; i < orderedMessages.length; i++) {
                 orderedMessages[i].message_number.should.equal(i + 1);
                 orderedMessages[i].content.should.equal(`msg_${i}`);
-                orderedMessages[i].source.should.equal("user");
+                orderedMessages[i].event_type.should.equal("UserMessageAdded");
                 orderedMessages[i].thread_id.should.equal(thread.thread_id);
                 Date.parse(orderedMessages[i].created_on).should.be.greaterThanOrEqual(Date.parse(thread.created_on));
             }
@@ -212,7 +212,7 @@ describe('5 - Query Messages @queryThreads @threads', () => {
             for (let i = 0; i < orderedMessages.length; i++) {
                 orderedMessages[i].message_number.should.equal(numberOfMessages + 1 - limit + i + 1);
                 orderedMessages[i].content.should.equal(`msg_${numberOfMessages + 1 - limit + i}`);
-                orderedMessages[i].source.should.equal("user");
+                orderedMessages[i].event_type.should.equal("UserMessageAdded");
                 orderedMessages[i].thread_id.should.equal(thread.thread_id);
                 Date.parse(orderedMessages[i].created_on).should.be.greaterThanOrEqual(Date.parse(thread.created_on));
             }

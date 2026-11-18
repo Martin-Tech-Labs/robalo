@@ -3,14 +3,14 @@ using Robalo.Domain.Models;
 
 namespace Robalo.Domain.Clients.Models;
 
-public record ThreadMessage(string Content, MessageSource Source)
+public record ThreadMessage(string Content, MessageRole Source)
 {
     public static ChatMessage ToChatMessage(ThreadMessage message)
     {
         return message.Source switch
         {
-            MessageSource.User => ChatMessage.CreateUserMessage(message.Content),
-            MessageSource.LLM => ChatMessage.CreateAssistantMessage(message.Content),
+            MessageRole.User => ChatMessage.CreateUserMessage(message.Content),
+            MessageRole.Assistant => ChatMessage.CreateAssistantMessage(message.Content),
 
             _ => throw new ArgumentException(nameof(message.Source))
         };

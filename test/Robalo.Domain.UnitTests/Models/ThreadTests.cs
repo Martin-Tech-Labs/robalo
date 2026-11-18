@@ -82,7 +82,7 @@ public class ThreadTests
         @event.Content.ShouldBe(messageContent);
 
         thread.Context[0].Content.ShouldBe(messageContent);
-        thread.Context[0].Source.ShouldBe(MessageSource.User);
+        thread.Context[0].Source.ShouldBe(MessageRole.User);
         thread.Context[0].RepliedToMessageId.ShouldBeNone();
         thread.Context[0].MessageId.ShouldBe(thread.PendingEvents[0].MessageId);
 
@@ -307,9 +307,9 @@ public class ThreadTests
         thread.ModifiedOn.ShouldBe(thread.CreatedOn.AddSeconds(1));
 
         thread.PendingEvents.Count.ShouldBe(3);
-        thread.PendingEvents[2].ShouldBeOfType<LlmMessageAdded>();
+        thread.PendingEvents[2].ShouldBeOfType<AssistantMessageAdded>();
 
-        var event3 = (LlmMessageAdded)thread.PendingEvents[2];
+        var event3 = (AssistantMessageAdded)thread.PendingEvents[2];
         event3.AddedOn.ShouldBe(addedOn);
         event3.Content.ShouldBe(content);
         event3.RepliedToMessageId.ShouldBe(thread.Context[repliedToMessageIndex].MessageId);
@@ -317,12 +317,12 @@ public class ThreadTests
         thread.Context.Count.ShouldBe(3);
         thread.Context.Select(v => v.MessageId).Distinct().Count().ShouldBe(3);
         thread.Context[indexLLmMessage].Content.ShouldBe(content);
-        thread.Context[indexLLmMessage].Source.ShouldBe(MessageSource.LLM);
+        thread.Context[indexLLmMessage].Source.ShouldBe(MessageRole.Assistant);
         thread.Context[indexLLmMessage].RepliedToMessageId.ShouldBe(thread.Context[repliedToMessageIndex].MessageId);
         thread.Context[indexLLmMessage].MessageId.ShouldBe(thread.PendingEvents[2].MessageId);
 
-        thread.Context.First(f => f.Source == MessageSource.User).Content.ShouldBe(content1);
-        thread.Context.Last(f => f.Source == MessageSource.User).Content.ShouldBe(content2);
+        thread.Context.First(f => f.Source == MessageRole.User).Content.ShouldBe(content1);
+        thread.Context.Last(f => f.Source == MessageRole.User).Content.ShouldBe(content2);
     }
 
     [Fact]
@@ -448,8 +448,8 @@ public class ThreadTests
 
         events.Add(new UserMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), _utcNow.AddSeconds(1)));
         events.Add(new UserMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), _utcNow.AddSeconds(2)));
-        events.Add(new LlmMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), events[0].MessageId, _utcNow.AddSeconds(3)));
-        events.Add(new LlmMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), MessageIdentifier.NewIdentifier(), _utcNow.AddSeconds(4)));
+        events.Add(new AssistantMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), events[0].MessageId, _utcNow.AddSeconds(3)));
+        events.Add(new AssistantMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), MessageIdentifier.NewIdentifier(), _utcNow.AddSeconds(4)));
 
         var thread = Thread.Rehydrate(
             identifier: threadId,
@@ -509,7 +509,7 @@ public class ThreadTests
 
         events.Add(new UserMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), _utcNow.AddSeconds(1)));
         events.Add(new UserMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), _utcNow.AddSeconds(2)));
-        events.Add(new LlmMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), events[1].MessageId, _utcNow.AddSeconds(3)));
+        events.Add(new AssistantMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), events[1].MessageId, _utcNow.AddSeconds(3)));
         events.Add(new UserMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), _utcNow.AddSeconds(4)));
 
         var thread = Thread.Rehydrate(

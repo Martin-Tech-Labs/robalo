@@ -6,7 +6,7 @@ namespace Robalo.Domain.Models;
 
 public record ContextMessage(
     MessageIdentifier MessageId,
-    MessageSource Source,
+    MessageRole Source,
     string Content,
     Option<MessageIdentifier> RepliedToMessageId)
 {
@@ -15,23 +15,25 @@ public record ContextMessage(
         return messageAdded switch
         {
             UserMessageAdded e => FromUserMessageAdded(e),
-            LlmMessageAdded e => FromLlmMessageAdded(e)
+            AssistantMessageAdded e => FromLlmMessageAdded(e),
+
+            _ => throw new ArgumentException($"Wrong type {messageAdded.GetType().Name}")
         };
 
         ContextMessage FromUserMessageAdded(UserMessageAdded e)
         {
             return new(
                 MessageId: e.MessageId,
-                Source: MessageSource.User,
+                Source: MessageRole.User,
                 Content: e.Content,
                 RepliedToMessageId: None.Default);
         }
 
-        ContextMessage FromLlmMessageAdded(LlmMessageAdded e)
+        ContextMessage FromLlmMessageAdded(AssistantMessageAdded e)
         {
             return new(
                 MessageId: e.MessageId,
-                Source: MessageSource.LLM,
+                Source: MessageRole.Assistant,
                 Content: e.Content,
                 RepliedToMessageId: e.RepliedToMessageId.AsOption());
         }

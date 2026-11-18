@@ -29,9 +29,9 @@ public class LlmClientTests
         var sut = new LlmClient(Log.Logger, smart.Object);
 
         var result = await sut.GetResponse(new LlmRequest(
-            new ThreadMessage("Hi there", MessageSource.User),
-            new ThreadMessage("Hi!", MessageSource.LLM),
-            new ThreadMessage("How are you?", MessageSource.User)), TestContext.Current.CancellationToken);
+            new ThreadMessage("Hi there", MessageRole.User),
+            new ThreadMessage("Hi!", MessageRole.Assistant),
+            new ThreadMessage("How are you?", MessageRole.User)), TestContext.Current.CancellationToken);
         result.Value.ShouldBeOfType<LlmResponse>();
 
         var llmResponse = (LlmResponse)result.Value;
@@ -54,7 +54,7 @@ public class LlmClientTests
 
         var sut = new LlmClient(Log.Logger, smart.Object);
 
-        var result = await sut.GetResponse(new LlmRequest(new ThreadMessage("Hi there", MessageSource.User)), TestContext.Current.CancellationToken);
+        var result = await sut.GetResponse(new LlmRequest(new ThreadMessage("Hi there", MessageRole.User)), TestContext.Current.CancellationToken);
         result.Value.ShouldBeOfType<ClientError>();
 
         var clientError = (ClientError)result.Value;
@@ -80,6 +80,6 @@ public class LlmClientTests
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        await Should.ThrowAsync<OperationCanceledException>(() => sut.GetResponse(new LlmRequest(new ThreadMessage("Hi there", MessageSource.User)), cts.Token));
+        await Should.ThrowAsync<OperationCanceledException>(() => sut.GetResponse(new LlmRequest(new ThreadMessage("Hi there", MessageRole.User)), cts.Token));
     }
 }

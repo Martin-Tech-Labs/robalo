@@ -7,7 +7,7 @@ namespace Robalo.Domain.Models;
 public record Message(
     MessageIdentifier MessageId,
     int Number,
-    MessageSource Source,
+    string EventType,
     string Content,
     Option<MessageIdentifier> RepliedToMessageId,
     DateTimeOffset CreatedOn)
@@ -17,7 +17,8 @@ public record Message(
         return messageAdded switch
         {
             UserMessageAdded e => FromUserMessageAdded(e),
-            LlmMessageAdded e => FromLlmMessageAdded(e)
+            AssistantMessageAdded e => FromAssistantMessageAdded(e),
+            BreakMessageAdded e => FromBreakMessageAdded(e)
         };
 
         Message FromUserMessageAdded(UserMessageAdded e)
@@ -25,20 +26,31 @@ public record Message(
             return new(
                 MessageId: e.MessageId,
                 Number: messageNumber,
-                Source: MessageSource.User,
+                EventType: e.GetType().Name,
                 Content: e.Content,
                 RepliedToMessageId: None.Default,
                 CreatedOn: e.AddedOn);
         }
 
-        Message FromLlmMessageAdded(LlmMessageAdded e)
+        Message FromAssistantMessageAdded(AssistantMessageAdded e)
         {
             return new(
                 MessageId: e.MessageId,
                 Number: messageNumber,
-                Source: MessageSource.LLM,
+                EventType: e.GetType().Name,
                 Content: e.Content,
                 RepliedToMessageId: e.RepliedToMessageId.AsOption(),
+                CreatedOn: e.AddedOn);
+        }
+
+        Message FromBreakMessageAdded(BreakMessageAdded e)
+        {
+            return new(
+                MessageId: e.MessageId,
+                Number: messageNumber,
+                EventType: e.GetType().Name,
+                Content: e.Content,
+                RepliedToMessageId: None.Default,
                 CreatedOn: e.AddedOn);
         }
     }

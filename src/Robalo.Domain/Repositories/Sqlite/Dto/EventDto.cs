@@ -40,7 +40,7 @@ public record EventDto
         return dto.EventType switch
         {
             nameof(UserMessageAdded) => ToUserMessageAdded(dto),
-            nameof(LlmMessageAdded) => ToLlmMessageAdded(dto),
+            nameof(AssistantMessageAdded) => ToLlmMessageAdded(dto),
 
             _ => throw new ArgumentOutOfRangeException(nameof(dto))
         };
@@ -53,9 +53,9 @@ public record EventDto
                 AddedOn: dto.CreatedOn);
         }
 
-        LlmMessageAdded ToLlmMessageAdded(EventDto dto)
+        AssistantMessageAdded ToLlmMessageAdded(EventDto dto)
         {
-            return new LlmMessageAdded(
+            return new AssistantMessageAdded(
                 MessageId: dto.MessageId ?? throw new ArgumentNullException(nameof(dto), nameof(dto.MessageId)),
                 Content: dto.Content ?? throw new ArgumentNullException(nameof(dto), nameof(dto.Content)),
                 RepliedToMessageId: dto.RepliedToMessageId!,
@@ -70,15 +70,23 @@ public record EventDto
            messageId: userMessageAdded.MessageId,
            eventType: e.GetType().Name,
            content: userMessageAdded.Content,
-           repliedToMessageId: e is LlmMessageAdded llmMessageAdded1 ? llmMessageAdded1.RepliedToMessageId : null,
+           repliedToMessageId: null,
            createdOn: userMessageAdded.AddedOn),
 
-        LlmMessageAdded llmMessageAdded => new EventDto(
+        AssistantMessageAdded llmMessageAdded => new EventDto(
            threadId: threadIdentifier,
            messageId: llmMessageAdded.MessageId,
            eventType: e.GetType().Name,
            content: llmMessageAdded.Content,
            repliedToMessageId: llmMessageAdded.RepliedToMessageId,
-           createdOn: llmMessageAdded.AddedOn)
+           createdOn: llmMessageAdded.AddedOn),
+
+        BreakMessageAdded breakMessageAdded => new EventDto(
+           threadId: threadIdentifier,
+           messageId: breakMessageAdded.MessageId,
+           eventType: e.GetType().Name,
+           content: breakMessageAdded.Content,
+           repliedToMessageId: null,
+           createdOn: breakMessageAdded.AddedOn),
     };
 }

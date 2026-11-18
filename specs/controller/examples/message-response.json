@@ -1,7 +1,7 @@
 {
     "content": "Hello world",
     "created_on": "2027-06-05T12:34:56Z",
-    "source": "user",
+    "event_type": "UserMessageAdded",
     "thread_id": "thd_123",
     "message_number": "12",
     "_links": {

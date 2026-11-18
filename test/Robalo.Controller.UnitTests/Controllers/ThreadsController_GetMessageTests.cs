@@ -9,6 +9,7 @@ using Robalo.Controller.Api.Controllers;
 using Robalo.Controller.Api.Hypermedia.Resources;
 using Robalo.Controller.Api.Requests;
 using Robalo.Domain.Models;
+using Robalo.Domain.Models.Events;
 using Robalo.Domain.Repositories;
 using Serilog;
 
@@ -17,9 +18,9 @@ namespace Robalo.Controller.UnitTests.Controllers;
 public class ThreadsController_GetMessageTests : ThreadsControllerTests
 {
     [Theory]
-    [InlineData(MessageSource.User, false)]
-    [InlineData(MessageSource.LLM, true)]
-    public async Task ShouldReturnOk_OnExistingMessage(MessageSource source, bool repliedToMessage)
+    [InlineData(nameof(UserMessageAdded), false)]
+    [InlineData(nameof(AssistantMessageAdded), true)]
+    public async Task ShouldReturnOk_OnExistingMessage(string eventType, bool repliedToMessage)
     {
         var id = ThreadIdentifier.NewIdentifier();
         var number = _fixture.Create<int>();
@@ -27,7 +28,7 @@ public class ThreadsController_GetMessageTests : ThreadsControllerTests
         var message = _fixture.Create<Message>() with
         {
             Number = number,
-            Source = source,
+            EventType = eventType,
             RepliedToMessageId = repliedToMessage switch { true => MessageIdentifier.NewIdentifier().AsOption(), false => None.Default }
         };
 
@@ -54,7 +55,7 @@ public class ThreadsController_GetMessageTests : ThreadsControllerTests
 
         messageResource.Content.ShouldBe(message.Content);
         messageResource.CreatedOn.ShouldBe(message.CreatedOn);
-        messageResource.Source.ShouldBe(message.Source.ToString().ToLowerInvariant());
+        messageResource.EventType.ShouldBe(message.EventType);
         messageResource.MessageNumber.ShouldBe(message.Number);
         messageResource.ThreadId.ShouldBe(id);
     }

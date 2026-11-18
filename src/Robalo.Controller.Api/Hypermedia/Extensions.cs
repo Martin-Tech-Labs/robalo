@@ -68,7 +68,7 @@ public static class Extensions
         ThreadIdentifier threadId) => new(
             Content: message.Content,
             CreatedOn: message.CreatedOn,
-            Source: message.Source.ToString().ToLowerInvariant().ToLowerInvariant(),
+            EventType: message.EventType,
             ThreadId: threadId.IdString,
             MessageNumber: message.Number,
             Links: new MessageLinks(
