@@ -10,8 +10,17 @@ public sealed class Thread : AggregateRoot<Thread>
     public DateTimeOffset ModifiedOn { get; private set; }
 
     readonly List<ContextMessage> _context = [];
+    readonly List<ContextMessage> _extendedContext = [];
 
+    /// <summary>
+    /// Current context of a thread
+    /// </summary>
     public IReadOnlyList<ContextMessage> Context { get; }
+
+    /// <summary>
+    /// Extended context of a thread (limited to one previous segment as separated by breaks)
+    /// </summary>
+    public IReadOnlyList<ContextMessage> ExtendedContext { get; }
 
     public string? Title { get; private set; }
 
@@ -22,10 +31,15 @@ public sealed class Thread : AggregateRoot<Thread>
     {
         CreatedOn = ModifiedOn = createdOn;
         Context = _context.AsReadOnly();
+        ExtendedContext = _extendedContext.AsReadOnly();
         IsAnswered = true;
+
+        OnSaved += () => _extendedContext.Clear();
 
         When<BreakMessageAdded>(@event =>
         {
+            _extendedContext.Clear();
+            _extendedContext.AddRange(_context);
             _context.Clear();
             IsAnswered = true;
             ModifiedOn = @event.AddedOn;
@@ -49,7 +63,7 @@ public sealed class Thread : AggregateRoot<Thread>
 
             var repliedToMessageIndex = _context.FindIndex(m => m.MessageId == @event.RepliedToMessageId);
 
-            // Should not really happen, but if so, we still need to rehydrate the aggregate
+            // Should not really happen (repliedToMessage could be in the extended context), but if so, we still need to rehydrate the aggregate
             if (repliedToMessageIndex == -1)
             {
                 _context.Add(message);
@@ -79,13 +93,18 @@ public sealed class Thread : AggregateRoot<Thread>
 
     public AssistantMessageAdded CreateAssistantMessageAdded(string content, MessageIdentifier repliedToMessage, DateTimeOffset addedOn)
     {
-        if (_context.Count == 0)
+        if (_context.Count == 0 && _extendedContext.Count == 0)
         {
             throw new InvalidOperationException("Cannot create an assistant message with an empty context");
         }
 
         ArgumentOutOfRangeException.ThrowIfLessThan(addedOn, ModifiedOn);
         var messageIndex = _context.FindIndex(m => m.MessageId == repliedToMessage);
+        if (messageIndex == -1)
+        {
+            messageIndex = _extendedContext.FindIndex(m => m.MessageId == repliedToMessage);
+        }
+
         if (messageIndex == -1)
         {
             throw new ArgumentException("Invalid message", nameof(repliedToMessage));

@@ -12,6 +12,8 @@ public abstract class AggregateRoot<TSelf> where TSelf : AggregateRoot<TSelf>
     public int PendingVersion => _pendingEvents.Count + PersistedVersion.ValueOr(0);
     public IReadOnlyList<MessageAdded> PendingEvents { get; }
 
+    protected event Action? OnSaved;
+
     readonly Dictionary<Type, Action<MessageAdded>> _eventHandlers = [];
     readonly List<MessageAdded> _pendingEvents = [];
 
@@ -54,6 +56,8 @@ public abstract class AggregateRoot<TSelf> where TSelf : AggregateRoot<TSelf>
 
         PersistedVersion = PendingVersion;
         _pendingEvents.Clear();
+
+        OnSaved?.Invoke();
 
         return (TSelf)this;
     }
