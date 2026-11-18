@@ -168,7 +168,7 @@ public sealed class AnswerThreadService : IAnswerThreadService, IDisposable
 
         async Task<SuccessOrFailure> CheckLlmResponse(LlmResponse response)
         {
-            var llmMessageAdded = thread.CreateLlmMessageAdded(response.Content, thread.Context[^1].MessageId, _dateTimeOffSetProvider.UtcNow);
+            var llmMessageAdded = thread.CreateAssistantMessageAdded(response.Content, thread.Context[^1].MessageId, _dateTimeOffSetProvider.UtcNow);
             var result = await _repository.AppendEvent(threadId, llmMessageAdded, cancellationToken);
 
             if (result is Some<int> messageNumber)

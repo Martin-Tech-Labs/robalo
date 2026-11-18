@@ -24,6 +24,14 @@ public sealed class Thread : AggregateRoot<Thread>
         Context = _context.AsReadOnly();
         IsAnswered = true;
 
+        When<BreakMessageAdded>(@event =>
+        {
+            _context.Clear();
+            IsAnswered = true;
+            ModifiedOn = @event.AddedOn;
+            _lastUserMessageId = None.Default;
+        });
+
         When<UserMessageAdded>(@event =>
         {
             var message = ContextMessage.FromModel(@event);
@@ -69,11 +77,11 @@ public sealed class Thread : AggregateRoot<Thread>
         return new(ThreadIdentifier.NewIdentifier(), None.Default, createdOn);
     }
 
-    public AssistantMessageAdded CreateLlmMessageAdded(string content, MessageIdentifier repliedToMessage, DateTimeOffset addedOn)
+    public AssistantMessageAdded CreateAssistantMessageAdded(string content, MessageIdentifier repliedToMessage, DateTimeOffset addedOn)
     {
         if (_context.Count == 0)
         {
-            throw new InvalidOperationException("Cannot create an LlmMessage for a thread without any user messages");
+            throw new InvalidOperationException("Cannot create an assistant message with an empty context");
         }
 
         ArgumentOutOfRangeException.ThrowIfLessThan(addedOn, ModifiedOn);
@@ -88,8 +96,8 @@ public sealed class Thread : AggregateRoot<Thread>
         return new AssistantMessageAdded(MessageIdentifier.NewIdentifier(), content, repliedToMessage, addedOn);
     }
 
-    public Thread AddLlmMessage(string content, MessageIdentifier repliedToMessage, DateTimeOffset addedOn) =>
-        Apply(CreateLlmMessageAdded(content, repliedToMessage, addedOn));
+    public Thread AddAssistantMessage(string content, MessageIdentifier repliedToMessage, DateTimeOffset addedOn) =>
+        Apply(CreateAssistantMessageAdded(content, repliedToMessage, addedOn));
 
     public static UserMessageAdded CreateUserMessageAdded(string content, DateTimeOffset addedOn)
     {
@@ -102,6 +110,16 @@ public sealed class Thread : AggregateRoot<Thread>
         ArgumentOutOfRangeException.ThrowIfLessThan(addedOn, ModifiedOn);
 
         return Apply(CreateUserMessageAdded(content, addedOn));
+    }
+
+    public Thread AddBreakMessage(string content, DateTimeOffset addedOn)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(addedOn, ModifiedOn);
+        if (_context.Count == 0)
+        {
+            throw new InvalidOperationException("Cannot create a break with an empty context");
+        }
+        return Apply(new BreakMessageAdded(MessageIdentifier.NewIdentifier(), content, addedOn));
     }
 
     public static Thread Rehydrate(

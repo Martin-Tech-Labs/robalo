@@ -38,7 +38,7 @@ public class StreamingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var thread1 = Thread.NewThread(_utcNow)
             .AddUserMessage(_fixture.Create<string>(), _utcNow)
             .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(1));
-        thread1.AddLlmMessage(_fixture.Create<string>(), thread1.Context[^1].MessageId, thread1.ModifiedOn.AddSeconds(1));
+        thread1.AddAssistantMessage(_fixture.Create<string>(), thread1.Context[^1].MessageId, thread1.ModifiedOn.AddSeconds(1));
 
         List<Message> thread1Messages = new();
         for (var i = 0; i < thread1.PendingEvents.Count; i++)
@@ -51,7 +51,7 @@ public class StreamingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var thread2 = Thread.NewThread(_utcNow)
             .AddUserMessage(_fixture.Create<string>(), _utcNow)
             .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(1));
-        thread2.AddLlmMessage(_fixture.Create<string>(), thread2.Context[0].MessageId, thread2.ModifiedOn.AddSeconds(1));
+        thread2.AddAssistantMessage(_fixture.Create<string>(), thread2.Context[0].MessageId, thread2.ModifiedOn.AddSeconds(1));
 
         List<Message> thread2Messages = new();
         for (var i = 0; i < thread2.PendingEvents.Count; i++)
