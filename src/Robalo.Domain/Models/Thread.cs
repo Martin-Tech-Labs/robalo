@@ -172,6 +172,13 @@ public sealed class Thread : AggregateRoot<Thread>
                 AddedOn: addedOn) with
             { CopiedFrom = message.MessageId },
 
+            MessageRole.Summary => new SummaryMessageAdded(
+                MessageId: MessageIdentifier.NewIdentifier(),
+                Content: message.Content,
+                References: message.References.ValueOrFailure,
+                AddedOn: addedOn) with
+            { CopiedFrom = message.MessageId },
+
             _ => throw new InvalidOperationException($"Role {message.Role} not supported")
         };
 

@@ -12,7 +12,7 @@ public record EventDto
     public string? EventType { set; get; }
     public string? Content { set; get; }
     public MessageIdentifier? RepliedToMessageId { set; get; }
-    public string? References { set; get; }
+    public string? ReferencedMessageIds { set; get; }
     public string? CopiedFrom { set; get; }
     public DateTimeOffset CreatedOn { set; get; }
 
@@ -27,6 +27,8 @@ public record EventDto
         string eventType,
         string content,
         MessageIdentifier? repliedToMessageId,
+        string? references,
+
         DateTimeOffset createdOn)
     {
         ThreadId = threadId;
@@ -35,6 +37,7 @@ public record EventDto
         Content = content;
         RepliedToMessageId = repliedToMessageId;
         CreatedOn = createdOn;
+        ReferencedMessageIds = references;
     }
 
     public static MessageAdded ToModel(EventDto dto)
@@ -70,7 +73,7 @@ public record EventDto
             return new SummaryMessageAdded(
                 MessageId: dto.MessageId ?? throw new ArgumentNullException(nameof(dto), nameof(dto.MessageId)),
                 Content: dto.Content ?? throw new ArgumentNullException(nameof(dto), nameof(dto.Content)),
-                References: dto.References!.Split(',').Select(MessageIdentifier.FromIdString).ToList(),
+                References: dto.ReferencedMessageIds!.Split(',').Select(MessageIdentifier.FromIdString).ToList(),
                 AddedOn: dto.CreatedOn);
         }
     }
@@ -83,6 +86,7 @@ public record EventDto
            eventType: e.GetType().Name,
            content: userMessageAdded.Content,
            repliedToMessageId: null,
+           references: null,
            createdOn: userMessageAdded.AddedOn),
 
         AssistantMessageAdded llmMessageAdded => new EventDto(
@@ -91,6 +95,7 @@ public record EventDto
            eventType: e.GetType().Name,
            content: llmMessageAdded.Content,
            repliedToMessageId: llmMessageAdded.RepliedToMessageId,
+           references: null,
            createdOn: llmMessageAdded.AddedOn),
 
         BreakMessageAdded breakMessageAdded => new EventDto(
@@ -99,6 +104,7 @@ public record EventDto
            eventType: e.GetType().Name,
            content: breakMessageAdded.Content,
            repliedToMessageId: null,
+           references: null,
            createdOn: breakMessageAdded.AddedOn),
 
         SummaryMessageAdded summaryMessageAdded => new EventDto(
@@ -107,6 +113,7 @@ public record EventDto
             eventType: e.GetType().Name,
             content: summaryMessageAdded.Content,
             repliedToMessageId: null,
+            references: string.Join(",", summaryMessageAdded.References),
             createdOn: summaryMessageAdded.AddedOn),
     };
 }

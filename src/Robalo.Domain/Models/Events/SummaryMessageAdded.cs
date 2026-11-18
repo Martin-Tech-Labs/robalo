@@ -12,5 +12,5 @@ namespace Robalo.Domain.Models.Events;
 public record SummaryMessageAdded(
     MessageIdentifier MessageId,
     string Content,
-    List<MessageIdentifier> References,
+    IReadOnlyList<MessageIdentifier> References,
     DateTimeOffset AddedOn) : MessageAdded(MessageId, Content, AddedOn);
