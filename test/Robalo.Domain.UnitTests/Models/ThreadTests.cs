@@ -439,6 +439,67 @@ public class ThreadTests
     }
 
     [Fact]
+    public void Rehydrate_ShouldSucceed_WithWrongRepliedToMessageOnLlmMessage()
+    {
+        var threadId = ThreadIdentifier.NewIdentifier();
+        var title = _fixture.Create<string>();
+
+        List<MessageAdded> events = new();
+
+        events.Add(new UserMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), _utcNow.AddSeconds(1)));
+        events.Add(new UserMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), _utcNow.AddSeconds(2)));
+        events.Add(new LlmMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), events[0].MessageId, _utcNow.AddSeconds(3)));
+        events.Add(new LlmMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), MessageIdentifier.NewIdentifier(), _utcNow.AddSeconds(4)));
+
+        var thread = Thread.Rehydrate(
+            identifier: threadId,
+            createdOn: _utcNow,
+            title: title,
+            persistedVersion: 10,
+            events: events);
+
+        thread.Id.ShouldBe(threadId);
+        thread.Title.ShouldBe(title);
+        thread.CreatedOn.ShouldBe(_utcNow);
+        thread.ModifiedOn.ShouldBe(_utcNow.AddSeconds(4));
+
+        thread.PendingEvents.ShouldBeEmpty();
+        thread.Context.Count.ShouldBe(4);
+        thread.Context.Select(v => v.MessageId).Distinct().Count().ShouldBe(4);
+        thread.Context.ToList().ShouldBeEquivalentTo(new List<MessageAdded> { events[0], events[2], events[1], events[3] }.Select(ContextMessage.FromModel).ToList());
+
+        thread.PersistedVersion.ShouldBe(10);
+        thread.PendingVersion.ShouldBe(10);
+        thread.IsAnswered.ShouldBeFalse();
+
+
+        thread.AddLlmMessage(_fixture.Create<string>(), events[1].MessageId, _utcNow.AddSeconds(5));
+
+        thread.ModifiedOn.ShouldBe(_utcNow.AddSeconds(5));
+
+        thread.PendingEvents.Count.ShouldBe(1);
+        thread.Context.Count.ShouldBe(5);
+        thread.Context.Select(v => v.MessageId).Distinct().Count().ShouldBe(5);
+
+        thread.Context.ToList().ShouldBeEquivalentTo(new List<MessageAdded> { events[0], events[2], events[1], thread.PendingEvents[^1], events[3] }.Select(ContextMessage.FromModel).ToList());
+
+
+        thread.PersistedVersion.ShouldBe(10);
+        thread.PendingVersion.ShouldBe(11);
+
+        thread.IsAnswered.ShouldBeTrue();
+
+        thread.AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(6));
+        thread.IsAnswered.ShouldBeFalse();
+        thread.Context.ToList().ShouldBeEquivalentTo(new List<MessageAdded> { events[0], events[2], events[1], thread.PendingEvents[^2], events[3], thread.PendingEvents[^1] }.Select(ContextMessage.FromModel).ToList());
+
+        thread.AddLlmMessage(_fixture.Create<string>(), thread.Context[^1].MessageId, _utcNow.AddSeconds(7));
+        thread.IsAnswered.ShouldBeTrue();
+        thread.Context.ToList().ShouldBeEquivalentTo(new List<MessageAdded> { events[0], events[2], events[1], thread.PendingEvents[^3], events[3], thread.PendingEvents[^2], thread.PendingEvents[^1] }.Select(ContextMessage.FromModel).ToList());
+
+    }
+
+    [Fact]
     public void Rehydrate_ShouldSucceed_WithEvents()
     {
         var threadId = ThreadIdentifier.NewIdentifier();
