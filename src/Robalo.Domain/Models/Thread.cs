@@ -56,6 +56,13 @@ public sealed class Thread : AggregateRoot<Thread>
             _lastUserMessageId = message.MessageId;
         });
 
+        When<SummaryMessageAdded>(@event =>
+        {
+            var message = ContextMessage.FromModel(@event);
+            _context.Add(message);
+            ModifiedOn = @event.AddedOn;
+        });
+
         When<AssistantMessageAdded>(@event =>
         {
             var message = ContextMessage.FromModel(@event);
@@ -175,9 +182,30 @@ public sealed class Thread : AggregateRoot<Thread>
 
     }
 
+    public Thread AddSummaryMessage(string content, List<MessageIdentifier> messageIds, DateTimeOffset addedOn)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(content);
+        ArgumentOutOfRangeException.ThrowIfLessThan(addedOn, ModifiedOn);
+        ArgumentOutOfRangeException.ThrowIfLessThan(messageIds.Count, 1);
+
+        if (_extendedContext.Count == 0)
+        {
+            throw new InvalidOperationException("Copying of messaging to a new segment after a break is only possible before the thread has been persisted.");
+        }
+
+        if (messageIds.Any(m => !_extendedContext.Any(e => e.MessageId == m)))
+        {
+            throw new ArgumentException("Invalid message ids", nameof(messageIds));
+        }
+
+        return Apply(new SummaryMessageAdded(MessageIdentifier.NewIdentifier(), content, messageIds, addedOn));
+    }
+
     public Thread AddBreakMessage(string content, DateTimeOffset addedOn)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(addedOn, ModifiedOn);
+        ArgumentException.ThrowIfNullOrWhiteSpace(content);
+
         if (_context.Count == 0)
         {
             throw new InvalidOperationException("Cannot create a break with an empty context");

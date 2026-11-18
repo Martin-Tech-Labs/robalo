@@ -18,7 +18,8 @@ public record Message(
         {
             UserMessageAdded e => FromUserMessageAdded(e),
             AssistantMessageAdded e => FromAssistantMessageAdded(e),
-            BreakMessageAdded e => FromBreakMessageAdded(e)
+            BreakMessageAdded e => FromBreakMessageAdded(e),
+            SummaryMessageAdded e => FromSummaryMessageAdded(e)
         };
 
         Message FromUserMessageAdded(UserMessageAdded e)
@@ -44,6 +45,17 @@ public record Message(
         }
 
         Message FromBreakMessageAdded(BreakMessageAdded e)
+        {
+            return new(
+                MessageId: e.MessageId,
+                Number: messageNumber,
+                EventType: e.GetType().Name,
+                Content: e.Content,
+                RepliedToMessageId: None.Default,
+                CreatedOn: e.AddedOn);
+        }
+
+        Message FromSummaryMessageAdded(SummaryMessageAdded e)
         {
             return new(
                 MessageId: e.MessageId,

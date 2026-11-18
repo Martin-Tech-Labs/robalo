@@ -16,6 +16,7 @@ public record ContextMessage(
         {
             UserMessageAdded e => FromUserMessageAdded(e),
             AssistantMessageAdded e => FromLlmMessageAdded(e),
+            SummaryMessageAdded e => FromSummaryMessageAdded(e),
 
             _ => throw new ArgumentException($"Wrong type {messageAdded.GetType().Name}")
         };
@@ -25,6 +26,15 @@ public record ContextMessage(
             return new(
                 MessageId: e.MessageId,
                 Role: MessageRole.User,
+                Content: e.Content,
+                RepliedToMessageId: None.Default);
+        }
+
+        ContextMessage FromSummaryMessageAdded(SummaryMessageAdded e)
+        {
+            return new(
+                MessageId: e.MessageId,
+                Role: MessageRole.Summary,
                 Content: e.Content,
                 RepliedToMessageId: None.Default);
         }

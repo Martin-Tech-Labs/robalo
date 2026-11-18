@@ -12,6 +12,8 @@ public record EventDto
     public string? EventType { set; get; }
     public string? Content { set; get; }
     public MessageIdentifier? RepliedToMessageId { set; get; }
+    public string? References { set; get; }
+    public string? CopiedFrom { set; get; }
     public DateTimeOffset CreatedOn { set; get; }
 
     public EventDto()
@@ -41,6 +43,7 @@ public record EventDto
         {
             nameof(UserMessageAdded) => ToUserMessageAdded(dto),
             nameof(AssistantMessageAdded) => ToLlmMessageAdded(dto),
+            nameof(SummaryMessageAdded) => ToSummaryMessageAdded(dto),
 
             _ => throw new ArgumentOutOfRangeException(nameof(dto))
         };
@@ -59,6 +62,15 @@ public record EventDto
                 MessageId: dto.MessageId ?? throw new ArgumentNullException(nameof(dto), nameof(dto.MessageId)),
                 Content: dto.Content ?? throw new ArgumentNullException(nameof(dto), nameof(dto.Content)),
                 RepliedToMessageId: dto.RepliedToMessageId!,
+                AddedOn: dto.CreatedOn);
+        }
+
+        SummaryMessageAdded ToSummaryMessageAdded(EventDto dto)
+        {
+            return new SummaryMessageAdded(
+                MessageId: dto.MessageId ?? throw new ArgumentNullException(nameof(dto), nameof(dto.MessageId)),
+                Content: dto.Content ?? throw new ArgumentNullException(nameof(dto), nameof(dto.Content)),
+                References: dto.References!.Split(',').Select(MessageIdentifier.FromIdString).ToList(),
                 AddedOn: dto.CreatedOn);
         }
     }
@@ -88,5 +100,13 @@ public record EventDto
            content: breakMessageAdded.Content,
            repliedToMessageId: null,
            createdOn: breakMessageAdded.AddedOn),
+
+        SummaryMessageAdded summaryMessageAdded => new EventDto(
+            threadId: threadIdentifier,
+            messageId: summaryMessageAdded.MessageId,
+            eventType: e.GetType().Name,
+            content: summaryMessageAdded.Content,
+            repliedToMessageId: null,
+            createdOn: summaryMessageAdded.AddedOn),
     };
 }
