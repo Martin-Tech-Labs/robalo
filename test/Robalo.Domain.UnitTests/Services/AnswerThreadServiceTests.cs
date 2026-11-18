@@ -56,7 +56,7 @@ public class AnswerThreadServiceTests : IDisposable
     {
         var thread = Thread.NewThread(_utcNow.AddSeconds(-4));
         thread.AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-3))
-            .AddLlmMessage(_fixture.Create<string>(), thread.Messages[^1], _utcNow.AddSeconds(-2))
+            .AddLlmMessage(_fixture.Create<string>(), thread.Context[^1].MessageId, _utcNow.AddSeconds(-2))
             .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-1));
         thread.MarkAggregateAsSynchronized();
 
@@ -71,11 +71,11 @@ public class AnswerThreadServiceTests : IDisposable
         _llmClient.Verify(
             l => l.GetResponse(It.Is<LlmRequest>(
                 r => r.Messages.Length == 3 &&
-                r.Messages[0].Content == thread.Messages[0].Content &&
+                r.Messages[0].Content == thread.Context[0].Content &&
                 r.Messages[0].Source == MessageSource.User &&
-                r.Messages[1].Content == thread.Messages[1].Content &&
+                r.Messages[1].Content == thread.Context[1].Content &&
                 r.Messages[1].Source == MessageSource.LLM &&
-                r.Messages[2].Content == thread.Messages[2].Content &&
+                r.Messages[2].Content == thread.Context[2].Content &&
                 r.Messages[2].Source == MessageSource.User),
             TestContext.Current.CancellationToken), Times.Once());
         _llmClient.VerifyNoOtherCalls();
@@ -83,7 +83,7 @@ public class AnswerThreadServiceTests : IDisposable
         _repository.Verify(r => r.AppendEvent(thread.Id, It.Is<LlmMessageAdded>(
             l => l.AddedOn == _utcNow
             && l.Content == _llmResponse.Content
-            && l.RepliedToMessageId == thread.Messages[2].MessageId
+            && l.RepliedToMessageId == thread.Context[2].MessageId
             && l.MessageId != l.RepliedToMessageId),
             TestContext.Current.CancellationToken), Times.Once());
 
@@ -118,7 +118,7 @@ public class AnswerThreadServiceTests : IDisposable
         _repository.Verify(r => r.AppendEvent(thread.Id, It.Is<LlmMessageAdded>(
             l => l.AddedOn == _utcNow
             && l.Content == _llmResponse.Content
-            && l.RepliedToMessageId == thread.Messages[1].MessageId
+            && l.RepliedToMessageId == thread.Context[1].MessageId
             && l.MessageId != l.RepliedToMessageId),
             TestContext.Current.CancellationToken), Times.Once());
     }
@@ -157,7 +157,7 @@ public class AnswerThreadServiceTests : IDisposable
             .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(-2));
         thread.MarkAggregateAsSynchronized();
 
-        thread.AddLlmMessage(_fixture.Create<string>(), thread.Messages.Single(), _utcNow);
+        thread.AddLlmMessage(_fixture.Create<string>(), thread.Context.Single().MessageId, _utcNow);
         thread.IsAnswered.ShouldBeTrue();
 
         _repository
@@ -191,7 +191,7 @@ public class AnswerThreadServiceTests : IDisposable
         _repository
             .Setup(r => r.RefreshThread(thread, TestContext.Current.CancellationToken))
             .ReturnsAsync(new Success())
-            .Callback(() => thread.AddLlmMessage(_fixture.Create<string>(), thread.Messages.Single(), _utcNow));
+            .Callback(() => thread.AddLlmMessage(_fixture.Create<string>(), thread.Context.Single().MessageId, _utcNow));
 
         var result = await _sut.Answer(thread.Id, TestContext.Current.CancellationToken);
 
