@@ -56,6 +56,13 @@ public sealed class Thread : AggregateRoot<Thread>
             _lastUserMessageId = message.MessageId;
         });
 
+        When<SummaryMessageAdded>(@event =>
+        {
+            var message = ContextMessage.FromModel(@event);
+            _context.Add(message);
+            ModifiedOn = @event.AddedOn;
+        });
+
         When<AssistantMessageAdded>(@event =>
         {
             var message = ContextMessage.FromModel(@event);
@@ -131,14 +138,79 @@ public sealed class Thread : AggregateRoot<Thread>
         return Apply(CreateUserMessageAdded(content, addedOn));
     }
 
+    public Thread CopyMessage(ContextMessage message, DateTimeOffset addedOn)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(addedOn, ModifiedOn);
+
+        if (_extendedContext.Count == 0)
+        {
+            throw new InvalidOperationException("Copying of messaging to a new segment after a break is only possible before the thread has been persisted.");
+        }
+
+        if (!_extendedContext.Contains(message))
+        {
+            throw new ArgumentException("Invalid message", nameof(message));
+        }
+
+        if (PendingEvents.Any(p => p.CopiedFrom == message.MessageId))
+        {
+            throw new ArgumentException("Duplicate message", nameof(message));
+        }
+
+        MessageAdded ev = message.Role switch
+        {
+            MessageRole.User => new UserMessageAdded(
+                MessageId: MessageIdentifier.NewIdentifier(),
+                Content: message.Content,
+                AddedOn: addedOn) with
+            { CopiedFrom = message.MessageId },
+
+            MessageRole.Assistant => new AssistantMessageAdded(
+                MessageId: MessageIdentifier.NewIdentifier(),
+                Content: message.Content,
+                RepliedToMessageId: ResolveMessageId(message.RepliedToMessageId.ValueOrFailure),
+                AddedOn: addedOn) with
+            { CopiedFrom = message.MessageId },
+
+            _ => throw new InvalidOperationException($"Role {message.Role} not supported")
+        };
+
+        return Apply(ev);
+
+        MessageIdentifier ResolveMessageId(MessageIdentifier messageIdentifier) =>
+            PendingEvents.SingleOrDefault(p => p.CopiedFrom == messageIdentifier)?.MessageId ?? messageIdentifier;
+
+    }
+
+    public Thread AddSummaryMessage(string content, List<MessageIdentifier> messageIds, DateTimeOffset addedOn)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(content);
+        ArgumentOutOfRangeException.ThrowIfLessThan(addedOn, ModifiedOn);
+        ArgumentOutOfRangeException.ThrowIfLessThan(messageIds.Count, 1);
+
+        if (_extendedContext.Count == 0)
+        {
+            throw new InvalidOperationException("Copying of messaging to a new segment after a break is only possible before the thread has been persisted.");
+        }
+
+        if (messageIds.Any(m => !_extendedContext.Any(e => e.MessageId == m)))
+        {
+            throw new ArgumentException("Invalid message ids", nameof(messageIds));
+        }
+
+        return Apply(new SummaryMessageAdded(MessageIdentifier.NewIdentifier(), content, messageIds, addedOn));
+    }
+
     public Thread AddBreakMessage(string content, DateTimeOffset addedOn)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(addedOn, ModifiedOn);
+        ArgumentException.ThrowIfNullOrWhiteSpace(content);
+
         if (_context.Count == 0)
         {
             throw new InvalidOperationException("Cannot create a break with an empty context");
         }
-        
+
         if (_extendedContext.Count != 0)
         {
             throw new InvalidOperationException("Cannot create a break with a pending break change. Persist the aggregate and try again.");
