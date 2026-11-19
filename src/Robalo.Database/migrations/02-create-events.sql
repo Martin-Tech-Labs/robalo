@@ -6,6 +6,7 @@ CREATE TABLE ThreadEvents (
     Content TEXT,
     RepliedToMessageId TEXT,
     ReferencedMessageIds TEXT,
+    OriginalMessageId TEXT,
     CreatedOn TEXT,
     PRIMARY KEY (ThreadId, MessageNumber)
 ) WITHOUT ROWID;

@@ -13,7 +13,4 @@ namespace Robalo.Domain.Models.Events;
 public closed record MessageAdded(
     MessageIdentifier MessageId,
     string Content,
-    DateTimeOffset AddedOn)
-{
-    public Option<MessageIdentifier> CopiedFrom { get; init; } = None.Default;
-}
+    DateTimeOffset AddedOn);

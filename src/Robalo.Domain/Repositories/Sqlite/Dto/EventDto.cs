@@ -13,7 +13,7 @@ public record EventDto
     public string? Content { set; get; }
     public MessageIdentifier? RepliedToMessageId { set; get; }
     public string? ReferencedMessageIds { set; get; }
-    public string? CopiedFrom { set; get; }
+    public MessageIdentifier? OriginalMessageId { set; get; }
     public DateTimeOffset CreatedOn { set; get; }
 
     public EventDto()
