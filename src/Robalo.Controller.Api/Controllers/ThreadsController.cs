@@ -66,10 +66,10 @@ public class ThreadsController : ControllerBase
             return NotFound();
         }
 
-        var threadOrNone = await _threadRepository.GetThread(threadIdOrNone.ValueOrFailure, cancellationToken);
+        var threadOrNone = await _threadRepository.GetThreadInfo(threadIdOrNone.ValueOrFailure, cancellationToken);
         return threadOrNone switch
         {
-            Some<Thread> some => Ok(GetThreadResource(some.Value)),
+            Some<ThreadInfo> some => Ok(GetThreadResource(some.Value)),
             _ => NotFound()
         };
     }
@@ -204,7 +204,7 @@ public class ThreadsController : ControllerBase
                   threadInfo.CreatedOn,
                   threadInfo.ModifiedOn,
                   threadInfo.Title,
-                  threadInfo.Id.IdString,
+                  threadInfo.Id,
                   new ThreadLinks(
                       Self: _httpContextAccessor.LinkToThreadId(threadInfo.Id),
                       Messages: _httpContextAccessor.LinkToMessages(threadInfo.Id),

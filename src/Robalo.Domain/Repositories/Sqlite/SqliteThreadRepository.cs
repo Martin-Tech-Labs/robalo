@@ -117,7 +117,26 @@ public sealed class SqliteThreadRepository : IThreadRepository
         }, cancellationToken);
     }
 
-    public async Task<Option<Thread>> GetThread(ThreadIdentifier identifier, CancellationToken cancellationToken) =>
+    public async Task<Option<ThreadInfo>> GetThreadInfo(ThreadIdentifier identifier, CancellationToken cancellationToken) =>
+         await _sqlConnectionFactory.Execute<Option<ThreadInfo>>(async connection =>
+         {
+             var result = (await connection.QueryAsync<ThreadDto>("SELECT * FROM Threads WHERE Id = @Id", new { Id = identifier })).ToList();
+
+             if (result.Count == 0)
+             {
+                 return None.Default;
+             }
+
+             if (result.Count > 1)
+             {
+                 throw new InvalidOperationException("Received invalid count");
+             }
+
+             return result.Single().ToModel();
+
+         }, cancellationToken);
+
+    public async Task<Option<Thread>> LoadThread(ThreadIdentifier identifier, CancellationToken cancellationToken) =>
         await _sqlConnectionFactory.Execute(async connection =>
         {
             var result = (await connection.QueryAsync<ThreadDto>("SELECT * FROM Threads WHERE Id = @Id", new { Id = identifier })).ToList();
@@ -403,7 +422,7 @@ public sealed class SqliteThreadRepository : IThreadRepository
 
         if (thread.PersistedVersion == 0)
         {
-            throw new InvalidOperationException($"Cannot refresh a thread with no Messages. Use {nameof(GetThread)} instead.");
+            throw new InvalidOperationException($"Cannot refresh a thread with no Messages. Use {nameof(LoadThread)} instead.");
         }
 
         return await _sqlConnectionFactory.Execute<SuccessOrNotFound>(
@@ -469,4 +488,6 @@ public sealed class SqliteThreadRepository : IThreadRepository
 
         return result;
     }
+
+
 }

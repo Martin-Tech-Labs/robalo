@@ -44,33 +44,33 @@ public class EventsController : ControllerBase
                   .Map(checkpointOrNone => Subscribe(threadOrNone, checkpointOrNone)))
                   .Either();
 
-        IResult Subscribe(Option<Thread> threadOrNone, Option<int> checkpointOrNone)
+        IResult Subscribe(Option<ThreadInfo> threadOrNone, Option<int> checkpointOrNone)
         {
             var result = threadOrNone switch
             {
-                Some<Thread> thread => _streamingService.Pull(thread.Value.Id, checkpointOrNone, cancellationToken),
+                Some<ThreadInfo> thread => _streamingService.Pull(thread.Value.Id, checkpointOrNone, cancellationToken),
                 _ => _streamingService.PullAll(cancellationToken)
             };
 
             return Results.ServerSentEvents(result.Map(s => _httpContextAccessor.GetMessageResource(s.Event), cancellationToken));
         }
 
-        Result<Option<int>, IResult> GetCheckpointOrNone(Option<Thread> threadIdOrNone)
+        Result<Option<int>, IResult> GetCheckpointOrNone(Option<ThreadInfo> threadIdOrNone)
         {
             var isValidCheckpoint = threadIdOrNone switch
             {
-                Some<Thread> thread => checkpoint is null || (checkpoint >= 1 && checkpoint <= thread.Value.PersistedVersion.ValueOrFailure),
+                Some<ThreadInfo> thread => checkpoint is null || (checkpoint >= 1 && checkpoint <= thread.Value.Version),
                 _ => checkpoint is null
             };
 
             return isValidCheckpoint ? checkpoint.AsOption() : Results.NotFound();
         }
 
-        async Task<Result<Option<Thread>, IResult>> GetThreadOrNone()
+        async Task<Result<Option<ThreadInfo>, IResult>> GetThreadOrNone()
         {
             if (string.IsNullOrWhiteSpace(threadId))
             {
-                return Option<Thread>.None;
+                return Option<ThreadInfo>.None;
             }
 
             var threadIdOrNone = ThreadIdentifier.TryGetFromId(threadId);
@@ -79,7 +79,7 @@ public class EventsController : ControllerBase
                 return Results.NotFound();
             }
 
-            var threadOrNone = await _repository.GetThread(threadIdentifier, cancellationToken);
+            var threadOrNone = await _repository.GetThreadInfo(threadIdentifier, cancellationToken);
 
             return threadOrNone.HasValue ?
              threadOrNone :

@@ -19,14 +19,10 @@ public class ThreadsController_GetThreadTests : ThreadsControllerTests
     [Fact]
     public async Task ShouldReturnOK_OnExistingThread()
     {
-        var modifiedOn = _utcNow.AddSeconds(5);
-        var thread =
-            Thread.NewThread(_utcNow)
-            .AddUserMessage(_fixture.Create<string>(), modifiedOn)
-            .MarkAggregateAsSynchronized();
+        var thread = _fixture.Create<ThreadInfo>();
 
         _repository
-            .Setup(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken))
+            .Setup(r => r.GetThreadInfo(thread.Id, TestContext.Current.CancellationToken))
             .ReturnsAsync(thread);
 
         var result = await _sut.GetThread(
@@ -42,11 +38,10 @@ public class ThreadsController_GetThreadTests : ThreadsControllerTests
 
         ValidateAllNotNullLinks(resource);
 
-        resource.Links.Events.Href.Query.ShouldBe($"?thread={thread.Id}&checkpoint={thread.PersistedVersion.ValueOrFailure}");
+        resource.Links.Events.Href.Query.ShouldBe($"?thread={thread.Id}&checkpoint={thread.Version}");
 
-
-        resource.CreatedOn.ShouldBe(_utcNow);
-        resource.ModifiedOn.ShouldBe(modifiedOn);
+        resource.CreatedOn.ShouldBe(thread.CreatedOn);
+        resource.ModifiedOn.ShouldBe(thread.ModifiedOn);
         resource.Title.ShouldBe(thread.Title);
         resource.ThreadId.ShouldBe(thread.Id);
     }
@@ -66,10 +61,11 @@ public class ThreadsController_GetThreadTests : ThreadsControllerTests
         _repository.Invocations.Clear();
         var id = ThreadIdentifier.NewIdentifier();
         _repository
-            .Setup(r => r.GetThread(id, TestContext.Current.CancellationToken))
+            .Setup(r => r.GetThreadInfo(id, TestContext.Current.CancellationToken))
             .ReturnsAsync(None.Default);
         var result = await _sut.GetThread(id, TestContext.Current.CancellationToken);
         result.ShouldBeOfType<NotFoundResult>();
-        _repository.Verify(r => r.GetThread(id, TestContext.Current.CancellationToken), Times.Once());
+        _repository.Verify(r => r.GetThreadInfo(id, TestContext.Current.CancellationToken), Times.Once());
+        _repository.VerifyNoOtherCalls();
     }
 }

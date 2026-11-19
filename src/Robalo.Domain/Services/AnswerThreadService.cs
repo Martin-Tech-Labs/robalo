@@ -58,7 +58,7 @@ public sealed class AnswerThreadService : IAnswerThreadService, IDisposable
             return cachedThread2;
         }
 
-        var threadOrNone = await _repository.GetThread(threadId, cancellationToken);
+        var threadOrNone = await _repository.LoadThread(threadId, cancellationToken);
 
         if (threadOrNone is Some<Thread> thread)
         {

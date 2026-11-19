@@ -75,10 +75,10 @@ public class EventsController_GetTests
     [Fact]
     public async Task ShouldSubscribe_WithThreadAndNoCheckpoint()
     {
-        var thread = Thread.NewThread(_utcNow);
+        var thread = _fixture.Create<ThreadInfo>();
 
         _repository
-            .Setup(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken))
+            .Setup(r => r.GetThreadInfo(thread.Id, TestContext.Current.CancellationToken))
             .ReturnsAsync(thread);
 
         _streamingService
@@ -99,14 +99,10 @@ public class EventsController_GetTests
     [InlineData(3)]
     public async Task ShouldSubscribe_WithThreadAndCheckpoint(int checkpoint)
     {
-        var thread = Thread.NewThread(_utcNow)
-            .AddUserMessage(_fixture.Create<string>(), _utcNow)
-            .AddUserMessage(_fixture.Create<string>(), _utcNow)
-            .AddUserMessage(_fixture.Create<string>(), _utcNow)
-            .MarkAggregateAsSynchronized();
+        var thread = _fixture.Create<ThreadInfo>() with { Version = 3 };
 
         _repository
-            .Setup(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken))
+            .Setup(r => r.GetThreadInfo(thread.Id, TestContext.Current.CancellationToken))
             .ReturnsAsync(thread);
 
         _streamingService
@@ -126,13 +122,14 @@ public class EventsController_GetTests
     {
 
         var threadId = ThreadIdentifier.NewIdentifier();
-        _repository.Setup(r => r.GetThread(threadId, TestContext.Current.CancellationToken));
-
+        _repository
+            .Setup(r => r.GetThreadInfo(threadId, TestContext.Current.CancellationToken))
+            .ReturnsAsync(None.Default);
 
         var result = await _sut.Get(threadId, default, TestContext.Current.CancellationToken);
 
         result.ShouldBeOfType<HttpResults.NotFound>();
-        _repository.Verify(r => r.GetThread(threadId, TestContext.Current.CancellationToken), Times.Once());
+        _repository.Verify(r => r.GetThreadInfo(threadId, TestContext.Current.CancellationToken), Times.Once());
         _streamingService.VerifyNoOtherCalls();
     }
 
@@ -162,19 +159,16 @@ public class EventsController_GetTests
     [InlineData(4)]
     public async Task ShouldReturnNotFound_OnInvalidCheckpoint(int checkpoint)
     {
-        var thread = Thread.NewThread(_utcNow) // 0
-            .AddUserMessage(_fixture.Create<string>(), _utcNow) // 1
-            .AddUserMessage(_fixture.Create<string>(), _utcNow) // 2
-            .AddUserMessage(_fixture.Create<string>(), _utcNow) // 3
-            .MarkAggregateAsSynchronized();
+        var thread = _fixture.Create<ThreadInfo>() with { Version = 3 };
+
         _repository
-            .Setup(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken))
+            .Setup(r => r.GetThreadInfo(thread.Id, TestContext.Current.CancellationToken))
             .ReturnsAsync(thread);
 
         var result = await _sut.Get(thread.Id, checkpoint, TestContext.Current.CancellationToken);
 
         result.ShouldBeOfType<HttpResults.NotFound>();
-        _repository.Verify(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken), Times.Once());
+        _repository.Verify(r => r.GetThreadInfo(thread.Id, TestContext.Current.CancellationToken), Times.Once());
         _streamingService.VerifyNoOtherCalls();
     }
 }
