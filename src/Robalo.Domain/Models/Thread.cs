@@ -1,3 +1,4 @@
+using System.Runtime.Serialization;
 using Robalo.Common.Extensions;
 using Robalo.Common.Models;
 using Robalo.Domain.Models.Events;
@@ -27,6 +28,8 @@ public sealed class Thread : AggregateRoot<Thread>
     Option<MessageIdentifier> _lastUserMessageId = None.Default;
     public bool IsAnswered { private set; get; }
 
+    public bool LastUserCopy { private set; get; }
+
     Thread(ThreadIdentifier id, Option<int> persistedVersion, DateTimeOffset createdOn) : base(id, persistedVersion)
     {
         CreatedOn = ModifiedOn = createdOn;
@@ -34,7 +37,10 @@ public sealed class Thread : AggregateRoot<Thread>
         ExtendedContext = _extendedContext.AsReadOnly();
         IsAnswered = true;
 
-        OnSaved += () => _extendedContext.Clear();
+        OnSaved += () =>
+        {
+            _extendedContext.Clear();
+        };
 
         When<BreakMessageAdded>(@event =>
         {
@@ -42,6 +48,7 @@ public sealed class Thread : AggregateRoot<Thread>
             _extendedContext.AddRange(_context);
             _context.Clear();
             IsAnswered = true;
+            LastUserCopy = false;
             ModifiedOn = @event.AddedOn;
             _lastUserMessageId = None.Default;
         });
@@ -51,6 +58,7 @@ public sealed class Thread : AggregateRoot<Thread>
             var message = ContextMessage.FromModel(@event);
             _context.Add(message);
             IsAnswered = false;
+            LastUserCopy = false;
             ModifiedOn = @event.AddedOn;
 
             _lastUserMessageId = message.MessageId;
@@ -61,6 +69,43 @@ public sealed class Thread : AggregateRoot<Thread>
             var message = ContextMessage.FromModel(@event);
             _context.Add(message);
             ModifiedOn = @event.AddedOn;
+
+            IsAnswered = IsAnswered || LastUserCopy;
+            LastUserCopy = false;
+        });
+
+        When<AssistantMessageCopied>(@event =>
+        {
+            var message = ContextMessage.FromModel(@event);
+            _context.Add(message);
+            ModifiedOn = @event.AddedOn;
+
+
+            IsAnswered = IsAnswered || LastUserCopy;
+            LastUserCopy = false;
+        });
+
+        When<UserMessageCopied>(@event =>
+        {
+            var message = ContextMessage.FromModel(@event);
+            _context.Add(message);
+            ModifiedOn = @event.AddedOn;
+
+            if (IsAnswered == true)
+            {
+                IsAnswered = false;
+                LastUserCopy = true;
+            }
+        });
+
+        When<SummaryMessageCopied>(@event =>
+        {
+            var message = ContextMessage.FromModel(@event);
+            _context.Add(message);
+            ModifiedOn = @event.AddedOn;
+
+            IsAnswered = IsAnswered || LastUserCopy;
+            LastUserCopy = false;
         });
 
         When<AssistantMessageAdded>(@event =>
@@ -144,7 +189,7 @@ public sealed class Thread : AggregateRoot<Thread>
 
         if (_extendedContext.Count == 0)
         {
-            throw new InvalidOperationException("Copying of messaging to a new segment after a break is only possible before the thread has been persisted.");
+            throw new InvalidOperationException("Copying of a message to a new segment after a break is only possible before the thread has been persisted.");
         }
 
         if (!_extendedContext.Contains(message))
@@ -152,41 +197,37 @@ public sealed class Thread : AggregateRoot<Thread>
             throw new ArgumentException("Invalid message", nameof(message));
         }
 
-        if (PendingEvents.Any(p => p.CopiedFrom == message.MessageId))
+        if (_context.Any(c => c.OriginalMessageId == message.OriginalMessageId))
         {
             throw new ArgumentException("Duplicate message", nameof(message));
         }
 
         MessageAdded ev = message.Role switch
         {
-            MessageRole.User => new UserMessageAdded(
+            MessageRole.User => new UserMessageCopied(
                 MessageId: MessageIdentifier.NewIdentifier(),
+                OriginalMessageId: message.OriginalMessageId,
                 Content: message.Content,
-                AddedOn: addedOn) with
-            { CopiedFrom = message.MessageId },
+                AddedOn: addedOn),
 
-            MessageRole.Assistant => new AssistantMessageAdded(
+            MessageRole.Assistant => new AssistantMessageCopied(
                 MessageId: MessageIdentifier.NewIdentifier(),
+                OriginalMessageId: message.OriginalMessageId,
                 Content: message.Content,
-                RepliedToMessageId: ResolveMessageId(message.RepliedToMessageId.ValueOrFailure),
-                AddedOn: addedOn) with
-            { CopiedFrom = message.MessageId },
+                RepliedToMessageId: message.RepliedToMessageId.ValueOrFailure,
+                AddedOn: addedOn),
 
-            MessageRole.Summary => new SummaryMessageAdded(
+            MessageRole.Summary => new SummaryMessageCopied(
                 MessageId: MessageIdentifier.NewIdentifier(),
+                OriginalMessageId: message.OriginalMessageId,
                 Content: message.Content,
                 References: message.References.ValueOrFailure,
-                AddedOn: addedOn) with
-            { CopiedFrom = message.MessageId },
+                AddedOn: addedOn),
 
             _ => throw new InvalidOperationException($"Role {message.Role} not supported")
         };
 
         return Apply(ev);
-
-        MessageIdentifier ResolveMessageId(MessageIdentifier messageIdentifier) =>
-            PendingEvents.SingleOrDefault(p => p.CopiedFrom == messageIdentifier)?.MessageId ?? messageIdentifier;
-
     }
 
     public Thread AddSummaryMessage(string content, List<MessageIdentifier> messageIds, DateTimeOffset addedOn)
