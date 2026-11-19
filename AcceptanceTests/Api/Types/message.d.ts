@@ -6,6 +6,7 @@
  */
 
 export interface Message {
+  message_id: string;
   content: string;
   created_on: string;
   event_type: "UserMessageAdded" | "AssistantMessageAdded" | "BreakMessageAdded";

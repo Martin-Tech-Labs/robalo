@@ -1,5 +1,6 @@
 type: object
 required:
+  - message_id
   - content
   - created_on
   - event_type
@@ -7,6 +8,8 @@ required:
   - message_number
   - _links
 properties:
+  message_id:
+    type: string
   content:
     type: string
   created_on:

@@ -498,6 +498,7 @@ paths:
                         items:
                           type: object
                           required: &ref_12
+                            - message_id
                             - content
                             - created_on
                             - event_type
@@ -505,6 +506,8 @@ paths:
                             - message_number
                             - _links
                           properties: &ref_13
+                            message_id:
+                              type: string
                             content:
                               type: string
                             created_on:
@@ -596,7 +599,8 @@ paths:
                   value:
                     _embedded:
                       messages:
-                        - content: Hello world
+                        - message_id: msg_123
+                          content: Hello world
                           created_on: '2027-06-05T12:34:56Z'
                           event_type: UserMessageAdded
                           thread_id: thd_123
@@ -608,7 +612,8 @@ paths:
                               href: /threads/thd_123
                             events:
                               href: /events?thread=thd_123&checkpoint=123
-                        - content: Hi there
+                        - message_id: msg_124
+                          content: Hi there
                           created_on: '2027-06-05T12:35:56Z'
                           event_type: AssistantMessageAdded
                           thread_id: thd_123
@@ -667,6 +672,7 @@ paths:
               examples:
                 default:
                   value: &ref_18
+                    message_id: msg_123
                     content: Hello world
                     created_on: '2027-06-05T12:34:56Z'
                     event_type: UserMessageAdded
@@ -678,7 +684,7 @@ paths:
                       thread:
                         href: /threads/thd_123
                       events:
-                        href: /events?thread=thd_123&checkpoint=12
+                        href: /events?thread=thd_123&checkpoint=123
         '400':
           description: Invalid request.
           content: *ref_14

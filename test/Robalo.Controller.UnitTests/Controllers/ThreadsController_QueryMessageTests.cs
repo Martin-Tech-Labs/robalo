@@ -78,6 +78,7 @@ public class ThreadsController_QueryMessageTests : ThreadsControllerTests
             var messageResource = queryResource.Embedded.Messages[i];
             ValidateAllNotNullLinks(messageResource);
             messageResource.Content.ShouldBe(queryResult.Messages[i].Content);
+            messageResource.MessageId.ShouldBe(queryResult.Messages[i].MessageId);
             messageResource.CreatedOn.ShouldBe(queryResult.Messages[i].CreatedOn);
             messageResource.MessageNumber.ShouldBe(queryResult.Messages[i].Number);
             messageResource.ThreadId.ShouldBe(threadId);

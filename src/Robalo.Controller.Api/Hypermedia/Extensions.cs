@@ -64,6 +64,7 @@ public static class Extensions
     public static MessageResource GetMessageResource(
         this IHttpContextAccessor httpContextAccessor,
         Message message) => new(
+            MessageId: message.MessageId,
             Content: message.Content,
             CreatedOn: message.CreatedOn,
             EventType: message.EventType,

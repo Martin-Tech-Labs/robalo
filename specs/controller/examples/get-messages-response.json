@@ -2,6 +2,7 @@
     "_embedded": {
         "messages": [
             {
+                "message_id": "msg_123",
                 "content": "Hello world",
                 "created_on": "2027-06-05T12:34:56Z",
                 "event_type": "UserMessageAdded",
@@ -20,6 +21,7 @@
                 }
             },
             {
+                "message_id":"msg_124",
                 "content": "Hi there",
                 "created_on": "2027-06-05T12:35:56Z",
                 "event_type": "AssistantMessageAdded",
