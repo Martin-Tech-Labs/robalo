@@ -115,5 +115,7 @@ public record EventDto
             repliedToMessageId: null,
             references: string.Join(",", summaryMessageAdded.References),
             createdOn: summaryMessageAdded.AddedOn),
+
+            _ => throw new InvalidOperationException("tbd")
     };
 }
