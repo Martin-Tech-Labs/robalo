@@ -134,6 +134,7 @@ describe('3 - Threads @drei @threads', () => {
         it("And I verfy the LLM message", () => {
             expect(llmMessage.content).to.not.be.empty;
             expect(llmMessage.event_type).to.equal("AssistantMessageAdded");
+            expect(llmMessage.replied_to_message_id).to.equal(messageQueryResult._embedded.messages[0].message_id);
             expect(llmMessage.message_number).to.equal(2);
         });
 
@@ -145,6 +146,14 @@ describe('3 - Threads @drei @threads', () => {
 
         it("And I verfy the LLM message", () => {
             expect(messageQueryResult._embedded.messages[1]).to.deep.equal(llmMessage);
+        });
+
+        it("And I go to the replied-to link from llm response", async () => {
+            response = await ControllerApi.get(llmMessage._links.replied_to!);
+        });
+
+        it("And I verfy the LLM message", () => {
+            expect(response.body as Message).to.deep.equal(messageQueryResult._embedded.messages[0]);
         });
 
         it("And I verfy next and prev links are null", () => {
