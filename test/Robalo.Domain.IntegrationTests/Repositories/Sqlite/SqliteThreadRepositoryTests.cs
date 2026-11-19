@@ -41,6 +41,13 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
         result.ShouldBeNone();
     }
 
+    [Fact]
+    public async Task GetThreadInfo_ShouldReturnNone_OnNonExistingThread()
+    {
+        var result = await _sut.GetThreadInfo(ThreadIdentifier.NewIdentifier(), TestContext.Current.CancellationToken);
+        result.ShouldBeNone();
+    }
+
 
     [Fact]
     public async Task DeleteThread_ShouldReturnNotFound_OnNonExistingThread()
@@ -94,7 +101,50 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
     }
 
     [Fact]
-    public async Task SaveChanges_ShouldNotSaveThread_WithNoChanges_AfterRetrieval()
+    public async Task GetThreadInfo_ShouldRetrieveThreadInfo_OnThreadWithNoMessages()
+    {
+        var createdOn = _fixture.Create<DateTimeOffset>();
+        var thread = Thread.NewThread(createdOn);
+        (await _sut.SaveThread(thread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
+
+        var version = thread.PendingVersion;
+
+        var threadInfoOrNone = await _sut.GetThreadInfo(thread.Id, TestContext.Current.CancellationToken);
+        threadInfoOrNone.HasValue.ShouldBeTrue();
+
+        var threadInfo = threadInfoOrNone.ValueOrFailure;
+
+        threadInfo.Title.ShouldBeNull();
+        threadInfo.CreatedOn.ShouldBe(thread.CreatedOn);
+        threadInfo.ModifiedOn.ShouldBe(thread.ModifiedOn);
+        threadInfo.Version.ShouldBe(thread.PersistedVersion);       
+    }
+
+      [Fact]
+    public async Task GetThreadInfo_ShouldRetrieveThreadInfo_OnThreadWithMessages()
+    {
+        var createdOn = _fixture.Create<DateTimeOffset>();
+        var thread = Thread.NewThread(createdOn);
+        thread.AddUserMessage(_fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1));
+        thread.AddUserMessage(_fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1));
+        thread.AddAssistantMessage(_fixture.Create<string>(), thread.Context[0].MessageId, thread.ModifiedOn.AddSeconds(1));
+        (await _sut.SaveThread(thread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
+
+        var version = thread.PendingVersion;
+
+        var threadInfoOrNone = await _sut.GetThreadInfo(thread.Id, TestContext.Current.CancellationToken);
+        threadInfoOrNone.HasValue.ShouldBeTrue();
+
+        var threadInfo = threadInfoOrNone.ValueOrFailure;
+
+        threadInfo.Title.ShouldBeNull();
+        threadInfo.CreatedOn.ShouldBe(createdOn);
+        threadInfo.ModifiedOn.ShouldBe(createdOn.AddSeconds(3));
+        threadInfo.Version.ShouldBe(3);       
+    }
+
+    [Fact]
+    public async Task SaveThread_ShouldNotSaveThread_WithNoChanges_AfterRetrieval()
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         (await _sut.SaveThread(thread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
@@ -111,7 +161,7 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
     }
 
     [Fact]
-    public async Task SaveChanges_ShouldNotSaveThread_WithNoChanges_AfterUpdate()
+    public async Task SaveThread_ShouldNotSaveThread_WithNoChanges_AfterUpdate()
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         (await _sut.SaveThread(thread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
@@ -148,6 +198,19 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
         var threadOrNone = await _sut.LoadThread(thread.Id, TestContext.Current.CancellationToken);
         threadOrNone.ShouldBeNone();
     }
+
+    [Fact]
+    public async Task GetThreadInfo_ShouldReturnNone_OnDeletedThread()
+    {
+        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
+        (await _sut.SaveThread(thread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
+
+        (await _sut.DeleteThread(thread.Id, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Success>();
+
+        var threadOrNone = await _sut.GetThreadInfo(thread.Id, TestContext.Current.CancellationToken);
+        threadOrNone.ShouldBeNone();
+    }
+
     [Fact]
     public async Task GetMessages_ShouldReturnNone_OnDeletedThread()
     {

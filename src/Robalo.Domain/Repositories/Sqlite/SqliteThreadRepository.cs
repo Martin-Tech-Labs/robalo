@@ -464,11 +464,11 @@ public sealed class SqliteThreadRepository : IThreadRepository
         {
             var versionOrNone = await connection.QueryAsync<int>(
              """
-             UPDATE Threads
-             SET Version = Version + 1
+             UPDATE Threads             
+             SET Version = Version + 1, ModifiedOn = @ModifiedOn
              WHERE Id = @ThreadId
              RETURNING Version
-            """, new { ThreadId = identifier }).SingleOrNone();
+            """, new { ThreadId = identifier, ModifiedOn = messageAdded.AddedOn }).SingleOrNone();
 
             if (versionOrNone is Some<int> version)
             {
