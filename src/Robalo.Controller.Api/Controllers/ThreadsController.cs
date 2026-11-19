@@ -13,7 +13,7 @@ using Robalo.Domain.Repositories.Sqlite.Dto;
 namespace Robalo.Controller.Api.Controllers;
 
 [ApiController]
-[Route("threads")]
+[Route("")]
 public class ThreadsController : ControllerBase
 {
     private readonly ILogger _logger;
@@ -38,7 +38,7 @@ public class ThreadsController : ControllerBase
         _httpContextAccessor = httpContextAccessor;
     }
 
-    [HttpPost("")]
+    [HttpPost("threads")]
     public async Task<IActionResult> CreateThread(MessageApiRequest request, CancellationToken cancellationToken)
     {
         var utcNow = _dateTimeOffsetProvider.UtcNow;
@@ -57,7 +57,7 @@ public class ThreadsController : ControllerBase
         };
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("threads/{id}")]
     public async Task<IActionResult> GetThread(string id, CancellationToken cancellationToken)
     {
         var threadIdOrNone = ThreadIdentifier.TryGetFromId(id);
@@ -66,15 +66,15 @@ public class ThreadsController : ControllerBase
             return NotFound();
         }
 
-        var threadOrNone = await _threadRepository.GetThread(threadIdOrNone.ValueOrFailure, cancellationToken);
+        var threadOrNone = await _threadRepository.GetThreadInfo(threadIdOrNone.ValueOrFailure, cancellationToken);
         return threadOrNone switch
         {
-            Some<Thread> some => Ok(GetThreadResource(some.Value)),
+            Some<ThreadInfo> some => Ok(GetThreadResource(some.Value)),
             _ => NotFound()
         };
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("threads/{id}")]
     public async Task<IActionResult> DeleteThread(string id, CancellationToken cancellationToken)
     {
         var threadIdOrNone = ThreadIdentifier.TryGetFromId(id);
@@ -91,7 +91,7 @@ public class ThreadsController : ControllerBase
     }
 
 
-    [HttpGet]
+    [HttpGet("threads")]
     public async Task<IActionResult> ListThreads(CancellationToken cancellationToken)
     {
         var threadInfos = await _threadRepository.ListThreads(cancellationToken);
@@ -103,28 +103,23 @@ public class ThreadsController : ControllerBase
                 Links: new(Self: _httpContextAccessor.LinkToThreads()));
     }
 
-    [HttpGet("{id}/messages/{number}")]
-    public async Task<IActionResult> GetMessage(string id, int number, CancellationToken cancellationToken)
+    [HttpGet("messages/{id}")]
+    public async Task<IActionResult> GetMessage(string id, CancellationToken cancellationToken)
     {
-        var threadIdOrNone = ThreadIdentifier.TryGetFromId(id);
-        if (!threadIdOrNone.HasValue)
+        var messageIdOrNone = MessageIdentifier.TryGetFromId(id);
+        if (!messageIdOrNone.HasValue)
         {
             return NotFound();
         }
 
-        if (number < 1)
-        {
-            return NotFound();
-        }
-
-        return await _threadRepository.GetMessage(threadIdOrNone.ValueOrFailure, number, cancellationToken) switch
+        return await _threadRepository.GetMessage(messageIdOrNone.ValueOrFailure, cancellationToken) switch
         {
             None => NotFound(),
-            Some<Message> some =>_httpContextAccessor.GetMessageResource(some.Value, threadIdOrNone.ValueOrFailure).AsOk()
+            Some<Message> some => _httpContextAccessor.GetMessageResource(some).AsOk()
         };
     }
 
-    [HttpPost("{id}/messages")]
+    [HttpPost("threads/{id}/messages")]
     public async Task<IActionResult> CreateMessage(string id, MessageApiRequest request, CancellationToken cancellationToken)
     {
         var threadIdOrNone = ThreadIdentifier.TryGetFromId(id);
@@ -141,12 +136,12 @@ public class ThreadsController : ControllerBase
 
         return result switch
         {
-            Some<int> messageNumber => _httpContextAccessor.GetMessageResource(Message.FromModel(userMessageAdded, messageNumber), threadId).AsCreated(),
+            Some<int> messageNumber => _httpContextAccessor.GetMessageResource(Message.FromModel(userMessageAdded, threadId, messageNumber)).AsCreated(),
             _ => NotFound()
         };
     }
 
-    [HttpGet("{id}/messages/query/{cursor}")]
+    [HttpGet("threads/{id}/messages/query/{cursor}")]
     public async Task<IActionResult> QueryMessages(
         string id,
         string cursor,
@@ -159,7 +154,7 @@ public class ThreadsController : ControllerBase
         };
     }
 
-    [HttpGet("{id}/messages")]
+    [HttpGet("threads/{id}/messages")]
     public async Task<IActionResult> QueryLastMessages(
         string id,
         CancellationToken cancellationToken) => await QueryMessages(id, Cursor.Last(QueryLimit), cancellationToken);
@@ -186,7 +181,7 @@ public class ThreadsController : ControllerBase
         MessageQueryResource GetQueryResource(ThreadIdentifier threadId, QueryResult queryResult)
         {
             return new MessageQueryResource(
-                Embedded: new([.. queryResult.Messages.Select(m => _httpContextAccessor.GetMessageResource(m, threadId))]),
+                Embedded: new([.. queryResult.Messages.Select(_httpContextAccessor.GetMessageResource)]),
                 Links: new MessageQueryLinks(
                     Self: queryResult.Self switch
                     {
@@ -203,13 +198,11 @@ public class ThreadsController : ControllerBase
         }
     }
 
-
-
     ThreadResource GetThreadResource(ThreadInfo threadInfo) => new(
                   threadInfo.CreatedOn,
                   threadInfo.ModifiedOn,
                   threadInfo.Title,
-                  threadInfo.Id.IdString,
+                  threadInfo.Id,
                   new ThreadLinks(
                       Self: _httpContextAccessor.LinkToThreadId(threadInfo.Id),
                       Messages: _httpContextAccessor.LinkToMessages(threadInfo.Id),

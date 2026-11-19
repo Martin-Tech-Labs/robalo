@@ -67,7 +67,7 @@ public static class OptionExtensions
             _ => alternativeValue
         };
 
-    public static T? ValueOrNull<T>(this Option<T> value) where T : struct =>
+    public static T? ValueOrNull<T>(this Option<T> value) where T : notnull =>
         value switch
         {
             Some<T> some => some,

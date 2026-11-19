@@ -1,5 +1,6 @@
 type: object
 required:
+  - message_id
   - content
   - created_on
   - event_type
@@ -7,6 +8,8 @@ required:
   - message_number
   - _links
 properties:
+  message_id:
+    type: string
   content:
     type: string
   created_on:
@@ -22,6 +25,8 @@ properties:
     type: string
   message_number:
     type: integer
+  replied_to_message_id:
+    type: string
   _links:
     type: object
     required:
@@ -34,6 +39,8 @@ properties:
       thread:
         $ref: './link.yaml'
       events:
+        $ref: './link.yaml'
+      replied_to:
         $ref: './link.yaml'
     additionalProperties: false
 additionalProperties: false

@@ -6,12 +6,13 @@ namespace Robalo.Domain.Repositories;
 
 public interface IThreadRepository
 {
-    Task<Option<Thread>> GetThread(ThreadIdentifier identifier, CancellationToken cancellationToken);
+    Task<Option<ThreadInfo>> GetThreadInfo(ThreadIdentifier identifier, CancellationToken cancellationToken);
+    Task<Option<Thread>> LoadThread(ThreadIdentifier identifier, CancellationToken cancellationToken);
     Task<UpdateResult> SaveThread(Thread thread, CancellationToken cancellationToken);
     Task<SuccessOrNotFound> DeleteThread(ThreadIdentifier identifier, CancellationToken cancellationToken);
     Task<Option<IAsyncEnumerable<Message>>> GetMessages(ThreadIdentifier identifier, CancellationToken cancellationToken);
     Task<Option<QueryResult>> QueryMessages(ThreadIdentifier identifier, Cursor cursor, CancellationToken cancellationToken);
-    Task<Option<Message>> GetMessage(ThreadIdentifier identifier, int messageNumber, CancellationToken cancellationToken);
+    Task<Option<Message>> GetMessage(MessageIdentifier messageIdentifier, CancellationToken cancellationToken);
     Task<IReadOnlyList<ThreadInfo>> ListThreads(CancellationToken cancellationToken);
     Task<Option<int>> AppendEvent<T>(ThreadIdentifier identifier, T messageAdded, CancellationToken cancellationToken) where T : MessageAdded;
     Task<SuccessOrNotFound> RefreshThread(Thread thread, CancellationToken cancellationToken);

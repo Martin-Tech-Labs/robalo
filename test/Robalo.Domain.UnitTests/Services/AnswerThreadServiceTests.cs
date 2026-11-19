@@ -44,7 +44,7 @@ public class AnswerThreadServiceTests : IDisposable
     {
         var threadId = ThreadIdentifier.NewIdentifier();
         _repository
-            .Setup(r => r.GetThread(threadId, TestContext.Current.CancellationToken))
+            .Setup(r => r.LoadThread(threadId, TestContext.Current.CancellationToken))
             .ReturnsAsync(None.Default);
 
         var result = await _sut.Answer(threadId, TestContext.Current.CancellationToken);
@@ -62,7 +62,7 @@ public class AnswerThreadServiceTests : IDisposable
         thread.MarkAggregateAsSynchronized();
 
         _repository
-            .Setup(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken))
+            .Setup(r => r.LoadThread(thread.Id, TestContext.Current.CancellationToken))
             .ReturnsAsync(thread);
 
         var result = await _sut.Answer(thread.Id, TestContext.Current.CancellationToken);
@@ -100,7 +100,7 @@ public class AnswerThreadServiceTests : IDisposable
         thread.MarkAggregateAsSynchronized();
 
         _repository
-            .Setup(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken))
+            .Setup(r => r.LoadThread(thread.Id, TestContext.Current.CancellationToken))
             .ReturnsAsync(thread);
 
         _repository
@@ -133,7 +133,7 @@ public class AnswerThreadServiceTests : IDisposable
         thread.MarkAggregateAsSynchronized();
 
         _repository
-            .Setup(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken))
+            .Setup(r => r.LoadThread(thread.Id, TestContext.Current.CancellationToken))
             .ReturnsAsync(thread);
 
         _repository.Setup(r => r.RefreshThread(thread, TestContext.Current.CancellationToken))
@@ -146,7 +146,7 @@ public class AnswerThreadServiceTests : IDisposable
 
         _llmClient.VerifyNoOtherCalls();
 
-        _repository.Verify(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken), Times.Once());
+        _repository.Verify(r => r.LoadThread(thread.Id, TestContext.Current.CancellationToken), Times.Once());
         _repository.Verify(r => r.RefreshThread(thread, TestContext.Current.CancellationToken), Times.Once());
         _repository.VerifyNoOtherCalls();
     }
@@ -162,7 +162,7 @@ public class AnswerThreadServiceTests : IDisposable
         thread.IsAnswered.ShouldBeTrue();
 
         _repository
-            .Setup(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken))
+            .Setup(r => r.LoadThread(thread.Id, TestContext.Current.CancellationToken))
             .ReturnsAsync(thread);
 
         var result = await _sut.Answer(thread.Id, TestContext.Current.CancellationToken);
@@ -171,7 +171,7 @@ public class AnswerThreadServiceTests : IDisposable
 
         _llmClient.VerifyNoOtherCalls();
 
-        _repository.Verify(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken), Times.Once());
+        _repository.Verify(r => r.LoadThread(thread.Id, TestContext.Current.CancellationToken), Times.Once());
         _repository.Verify(r => r.RefreshThread(thread, TestContext.Current.CancellationToken), Times.Once());
         _repository.VerifyNoOtherCalls();
     }
@@ -186,7 +186,7 @@ public class AnswerThreadServiceTests : IDisposable
         thread.IsAnswered.ShouldBeFalse();
 
         _repository
-            .Setup(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken))
+            .Setup(r => r.LoadThread(thread.Id, TestContext.Current.CancellationToken))
             .ReturnsAsync(thread);
 
         _repository
@@ -200,7 +200,7 @@ public class AnswerThreadServiceTests : IDisposable
 
         _llmClient.VerifyNoOtherCalls();
 
-        _repository.Verify(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken), Times.Once());
+        _repository.Verify(r => r.LoadThread(thread.Id, TestContext.Current.CancellationToken), Times.Once());
         _repository.Verify(r => r.RefreshThread(thread, TestContext.Current.CancellationToken), Times.Once());
         _repository.VerifyNoOtherCalls();
     }
@@ -217,7 +217,7 @@ public class AnswerThreadServiceTests : IDisposable
         thread.MarkAggregateAsSynchronized();
 
         _repository
-            .Setup(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken))
+            .Setup(r => r.LoadThread(thread.Id, TestContext.Current.CancellationToken))
             .ReturnsAsync(thread);
 
         _repository
@@ -248,7 +248,7 @@ public class AnswerThreadServiceTests : IDisposable
             TestContext.Current.CancellationToken), Times.Once());
         _llmClient.VerifyNoOtherCalls();
 
-        _repository.Verify(r => r.GetThread(thread.Id, TestContext.Current.CancellationToken), Times.Once());
+        _repository.Verify(r => r.LoadThread(thread.Id, TestContext.Current.CancellationToken), Times.Once());
         _repository.Verify(r => r.RefreshThread(thread, TestContext.Current.CancellationToken), Times.Once());
 
         _repository.VerifyNoOtherCalls();

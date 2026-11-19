@@ -23,7 +23,7 @@ public class ThreadsController_QueryMessageTests : ThreadsControllerTests
         var threadId = ThreadIdentifier.NewIdentifier();
         var cursor = Cursor.Create(22, 5);
         var queryResult = new QueryResult(
-            _fixture.CreateMany<Message>(_fixture.Create<int>()).ToList(),
+            _fixture.CreateMany<Message>(_fixture.Create<int>()).Select(m => m with { ThreadId = threadId }).ToList(),
             Cursor.Create(20, 1),
             Cursor.Create(19, 2),
             Cursor.Create(18, 3));
@@ -42,7 +42,7 @@ public class ThreadsController_QueryMessageTests : ThreadsControllerTests
     {
         var threadId = ThreadIdentifier.NewIdentifier();
         var queryResult = new QueryResult(
-            _fixture.CreateMany<Message>(_fixture.Create<int>()).ToList(),
+            _fixture.CreateMany<Message>(_fixture.Create<int>()).Select(m => m with { ThreadId = threadId }).ToList(),
             Cursor.Create(20, 1),
             Cursor.Create(19, 2),
             Cursor.Create(18, 3));
@@ -78,12 +78,12 @@ public class ThreadsController_QueryMessageTests : ThreadsControllerTests
             var messageResource = queryResource.Embedded.Messages[i];
             ValidateAllNotNullLinks(messageResource);
             messageResource.Content.ShouldBe(queryResult.Messages[i].Content);
+            messageResource.MessageId.ShouldBe(queryResult.Messages[i].MessageId);
             messageResource.CreatedOn.ShouldBe(queryResult.Messages[i].CreatedOn);
             messageResource.MessageNumber.ShouldBe(queryResult.Messages[i].Number);
             messageResource.ThreadId.ShouldBe(threadId);
             messageResource.EventType.ShouldBe(queryResult.Messages[i].EventType);
-            messageResource.Links.Events.Href.Query.ShouldBe($"?thread={threadId.IdString}&checkpoint={messageResource.MessageNumber}");
-
+            messageResource.Links.Events.Href.Query.ShouldBe($"?thread={threadId}&checkpoint={messageResource.MessageNumber}");
         }
     }
 

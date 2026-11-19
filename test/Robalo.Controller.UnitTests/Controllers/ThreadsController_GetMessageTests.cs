@@ -22,7 +22,7 @@ public class ThreadsController_GetMessageTests : ThreadsControllerTests
     [InlineData(nameof(AssistantMessageAdded), true)]
     public async Task ShouldReturnOk_OnExistingMessage(string eventType, bool repliedToMessage)
     {
-        var id = ThreadIdentifier.NewIdentifier();
+        var id = MessageIdentifier.NewIdentifier();
         var number = _fixture.Create<int>();
 
         var message = _fixture.Create<Message>() with
@@ -33,12 +33,11 @@ public class ThreadsController_GetMessageTests : ThreadsControllerTests
         };
 
         _repository
-            .Setup(r => r.GetMessage(id, number, TestContext.Current.CancellationToken))
+            .Setup(r => r.GetMessage(id, TestContext.Current.CancellationToken))
                 .ReturnsAsync(message);
 
         var result = await _sut.GetMessage(
             id: id,
-            number: number,
             cancellationToken: TestContext.Current.CancellationToken);
 
         result.ShouldBeOfType<OkObjectResult>();
@@ -50,32 +49,33 @@ public class ThreadsController_GetMessageTests : ThreadsControllerTests
 
         ValidateAllNotNullLinks(messageResource);
 
-        messageResource.Links.Events.Href.Query.ShouldBe($"?thread={id}&checkpoint={message.Number}");
+        messageResource.Links.Events.Href.Query.ShouldBe($"?thread={message.ThreadId}&checkpoint={message.Number}");
+
+        if (eventType != nameof(AssistantMessageAdded))
+        {
+            messageResource.RepliedToMessageId.ShouldBeNull();
+            messageResource.Links.RepliedTo.ShouldBeNull();
+        }
+        else
+        {
+            messageResource.RepliedToMessageId.ShouldBe(message.RepliedToMessageId.ValueOrFailure);
+            messageResource.Links.RepliedTo.ShouldNotBeNull();
+        }
 
 
+        messageResource.MessageId.ShouldBe(message.MessageId);
         messageResource.Content.ShouldBe(message.Content);
         messageResource.CreatedOn.ShouldBe(message.CreatedOn);
         messageResource.EventType.ShouldBe(message.EventType);
         messageResource.MessageNumber.ShouldBe(message.Number);
-        messageResource.ThreadId.ShouldBe(id);
+        messageResource.ThreadId.ShouldBe(message.ThreadId);
     }
 
     [Fact]
-    public async Task ShouldReturnNotFound_OnInvalidThreadId()
+    public async Task ShouldReturnNotFound_OnInvalidMessageId()
     {
         _repository.Invocations.Clear();
-        var result = await _sut.GetMessage(_fixture.Create<string>(), _fixture.Create<int>(), TestContext.Current.CancellationToken);
-        result.ShouldBeOfType<NotFoundResult>();
-        _repository.VerifyNoOtherCalls();
-    }
-
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-1)]
-    public async Task ShouldReturnNotFound_OnInvalidMessageNumber(int number)
-    {
-        _repository.Invocations.Clear();
-        var result = await _sut.GetMessage(ThreadIdentifier.NewIdentifier(), number, TestContext.Current.CancellationToken);
+        var result = await _sut.GetMessage(_fixture.Create<string>(), TestContext.Current.CancellationToken);
         result.ShouldBeOfType<NotFoundResult>();
         _repository.VerifyNoOtherCalls();
     }
@@ -84,14 +84,14 @@ public class ThreadsController_GetMessageTests : ThreadsControllerTests
     public async Task ShouldReturnNotFound_OnNonExistingMessage()
     {
         _repository.Invocations.Clear();
-        var id = ThreadIdentifier.NewIdentifier();
+        var id = MessageIdentifier.NewIdentifier();
         var number = _fixture.Create<int>();
         _repository
-            .Setup(r => r.GetMessage(id, number, TestContext.Current.CancellationToken))
+            .Setup(r => r.GetMessage(id, TestContext.Current.CancellationToken))
             .ReturnsAsync(None.Default);
 
-        var result = await _sut.GetMessage(id, number, TestContext.Current.CancellationToken);
+        var result = await _sut.GetMessage(id, TestContext.Current.CancellationToken);
         result.ShouldBeOfType<NotFoundResult>();
-        _repository.Verify(r => r.GetMessage(id, number, TestContext.Current.CancellationToken), Times.Once());
+        _repository.Verify(r => r.GetMessage(id, TestContext.Current.CancellationToken), Times.Once());
     }
 }

@@ -111,6 +111,16 @@ public static class Extensions
         };
     }
 
+    public static async Task<Result<Exit<TResult>, TResult>> Bind<T, TResult>(this Task<Result<T, TResult>> value, Func<T, Task<TResult>> func)
+    {
+        return await value switch
+        {
+            TResult error => error,
+            T success => new Exit<TResult>(await func(success)),
+            _ => throw new InvalidOperationException(value.GetType().Name)
+        };
+    }
+
     public static async Task<TResult> Either<TResult>(this Task<Result<TResult, Exit<TResult>>> value)
     {
         return await value switch
