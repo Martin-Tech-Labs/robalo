@@ -2,6 +2,7 @@ using System.Data;
 using System.Data.Common;
 using System.Runtime.CompilerServices;
 using System.Transactions;
+using System.Xml;
 using Dapper;
 using Microsoft.Data.Sqlite;
 using OpenAI.Assistants;
@@ -54,25 +55,22 @@ public sealed class SqliteThreadRepository : IThreadRepository
 
          }, cancellationToken);
 
-    public async Task<Option<Message>> GetMessage(ThreadIdentifier identifier, int messageNumber, CancellationToken cancellationToken)
+    public async Task<Option<Message>> GetMessage(MessageIdentifier messageIdentifier, CancellationToken cancellationToken)
     {
-        ArgumentOutOfRangeException.ThrowIfLessThan(messageNumber, 1);
-
         return await _sqlConnectionFactory.Execute(async connection =>
         {
             return (await connection.QueryAsync<NumberedEventDto>(
             """
             SELECT *
             FROM ThreadEvents
-            WHERE ThreadId = @ThreadId AND MessageNumber = @MessageNumber
+            WHERE MessageId = @MessageId
             """,
                 new
                 {
-                    ThreadId = identifier,
-                    MessageNumber = messageNumber
+                    MessageId = messageIdentifier,
                 }))
-                .Select(dto => (Event: EventDto.ToModel(dto), dto.MessageNumber))
-                .SingleOrNone(row => Message.FromModel(row.Event, row.MessageNumber));
+                .Select(dto => (Event: EventDto.ToModel(dto), dto.MessageNumber, dto.ThreadId))
+                .SingleOrNone(row => Message.FromModel(row.Event, row.ThreadId!, row.MessageNumber));
         }, cancellationToken);
     }
 
@@ -252,7 +250,7 @@ public sealed class SqliteThreadRepository : IThreadRepository
 
             var messages = dtos.OrderBy(m => m.MessageNumber)
                .Take(limit)
-               .Select(dto => Message.FromModel(EventDto.ToModel(dto), dto.MessageNumber))
+               .Select(dto => Message.FromModel(EventDto.ToModel(dto), dto.ThreadId!, dto.MessageNumber))
                .ToList();
 
             Cursor self = Cursor.Create(limit: cursor.Limit, startReference: messages[0].Number)

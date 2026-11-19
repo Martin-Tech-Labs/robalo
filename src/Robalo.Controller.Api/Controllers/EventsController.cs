@@ -52,7 +52,7 @@ public class EventsController : ControllerBase
                 _ => _streamingService.PullAll(cancellationToken)
             };
 
-            return Results.ServerSentEvents(result.Map(s => _httpContextAccessor.GetMessageResource(s.Event, s.StreamId), cancellationToken));
+            return Results.ServerSentEvents(result.Map(s => _httpContextAccessor.GetMessageResource(s.Event), cancellationToken));
         }
 
         Result<Option<int>, IResult> GetCheckpointOrNone(Option<Thread> threadIdOrNone)

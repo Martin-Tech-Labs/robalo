@@ -603,7 +603,7 @@ paths:
                           message_number: '123'
                           _links:
                             self:
-                              href: /threads/thd_123/messages/123
+                              href: /messages/msg_123
                             thread:
                               href: /threads/thd_123
                             events:
@@ -615,7 +615,7 @@ paths:
                           message_number: '124'
                           _links:
                             self:
-                              href: /threads/thd_123/messages/124
+                              href: /messages/msg_124
                             thread:
                               href: /threads/thd_123
                             events:
@@ -674,7 +674,7 @@ paths:
                     message_number: '12'
                     _links:
                       self:
-                        href: /threads/thd_123/messages/12
+                        href: /messages/msg_123
                       thread:
                         href: /threads/thd_123
                       events:

@@ -6,7 +6,7 @@
     "message_number": "12",
     "_links": {
         "self": {
-            "href": "/threads/thd_123/messages/12"
+            "href": "/messages/msg_123"
         },
         "thread": {
             "href": "/threads/thd_123"

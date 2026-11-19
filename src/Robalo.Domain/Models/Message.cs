@@ -5,6 +5,7 @@ using Robalo.Domain.Models.Events;
 namespace Robalo.Domain.Models;
 
 public record Message(
+    ThreadIdentifier ThreadId,
     MessageIdentifier MessageId,
     Option<MessageIdentifier> OriginalMessageId,
     int Number,
@@ -13,7 +14,7 @@ public record Message(
     Option<MessageIdentifier> RepliedToMessageId,
     DateTimeOffset CreatedOn)
 {
-    public static Message FromModel(MessageAdded messageAdded, int messageNumber)
+    public static Message FromModel(MessageAdded messageAdded, ThreadIdentifier threadId, int messageNumber)
     {
         return messageAdded switch
         {
@@ -23,12 +24,13 @@ public record Message(
             AssistantMessageCopied e => FromAssistantMessageCopied(e),
             BreakMessageAdded e => FromBreakMessageAdded(e),
             SummaryMessageAdded e => FromSummaryMessageAdded(e),
-            SummaryMessageCopied e => FromSummaryMessagCopied(e)
+            SummaryMessageCopied e => FromSummaryMessageCopied(e)
         };
 
         Message FromUserMessageAdded(UserMessageAdded e)
         {
             return new(
+                ThreadId: threadId,
                 MessageId: e.MessageId,
                 OriginalMessageId: None.Default,
                 Number: messageNumber,
@@ -41,6 +43,7 @@ public record Message(
         Message FromUserMessageCopied(UserMessageCopied e)
         {
             return new(
+                ThreadId: threadId,
                 MessageId: e.MessageId,
                 OriginalMessageId: e.OriginalMessageId,
                 Number: messageNumber,
@@ -54,6 +57,7 @@ public record Message(
         Message FromAssistantMessageAdded(AssistantMessageAdded e)
         {
             return new(
+                ThreadId: threadId,
                 MessageId: e.MessageId,
                 OriginalMessageId: None.Default,
                 Number: messageNumber,
@@ -66,6 +70,7 @@ public record Message(
         Message FromAssistantMessageCopied(AssistantMessageCopied e)
         {
             return new(
+                ThreadId: threadId,
                 MessageId: e.MessageId,
                 OriginalMessageId: e.OriginalMessageId,
                 Number: messageNumber,
@@ -78,6 +83,7 @@ public record Message(
         Message FromBreakMessageAdded(BreakMessageAdded e)
         {
             return new(
+                ThreadId: threadId,
                 MessageId: e.MessageId,
                 OriginalMessageId: None.Default,
                 Number: messageNumber,
@@ -90,6 +96,7 @@ public record Message(
         Message FromSummaryMessageAdded(SummaryMessageAdded e)
         {
             return new(
+                ThreadId: threadId,
                 MessageId: e.MessageId,
                 OriginalMessageId: None.Default,
                 Number: messageNumber,
@@ -99,9 +106,10 @@ public record Message(
                 CreatedOn: e.AddedOn);
         }
 
-        Message FromSummaryMessagCopied(SummaryMessageCopied e)
+        Message FromSummaryMessageCopied(SummaryMessageCopied e)
         {
             return new(
+                ThreadId: threadId,
                 MessageId: e.MessageId,
                 OriginalMessageId: e.OriginalMessageId,
                 Number: messageNumber,

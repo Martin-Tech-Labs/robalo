@@ -43,7 +43,7 @@ public class StreamingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         List<Message> thread1Messages = new();
         for (var i = 0; i < thread1.PendingEvents.Count; i++)
         {
-            thread1Messages.Add(Message.FromModel(thread1.PendingEvents[i], i + 1));
+            thread1Messages.Add(Message.FromModel(thread1.PendingEvents[i], thread1.Id, i + 1));
         }
 
         await _repository.SaveThread(thread1, TestContext.Current.CancellationToken);
@@ -56,7 +56,7 @@ public class StreamingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         List<Message> thread2Messages = new();
         for (var i = 0; i < thread2.PendingEvents.Count; i++)
         {
-            thread2Messages.Add(Message.FromModel(thread2.PendingEvents[i], i + 1));
+            thread2Messages.Add(Message.FromModel(thread2.PendingEvents[i], thread2.Id, i + 1));
         }
 
         await _repository.SaveThread(thread2, TestContext.Current.CancellationToken);

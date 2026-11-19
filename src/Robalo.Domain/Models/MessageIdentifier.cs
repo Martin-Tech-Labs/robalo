@@ -1,3 +1,5 @@
+using Robalo.Common.Models;
+
 namespace Robalo.Domain.Models;
 
 public sealed class MessageIdentifier : Identifier
@@ -9,6 +11,18 @@ public sealed class MessageIdentifier : Identifier
     private MessageIdentifier(Guid uuid) : base(uuid) { }
 
     public static implicit operator string(MessageIdentifier value) => value.ToString();
+
+    public static Option<MessageIdentifier> TryGetFromId(string id)
+    {
+        try
+        {
+            return FromIdString(id);
+        }
+        catch (ArgumentException)
+        {
+            return None.Default;
+        }
+    }
 
     public static MessageIdentifier FromIdString(string id) => new(id);
 

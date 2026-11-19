@@ -73,7 +73,7 @@ public class ThreadStreamingProvider_GetEventsTests : IClassFixture<DatabaseFixt
         for (var i = 0; i < count; i++)
         {
             thread.AddUserMessage(_fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1));
-            messages.Add(Message.FromModel(thread.PendingEvents[^1], i + 1));
+            messages.Add(Message.FromModel(thread.PendingEvents[^1], thread.Id, i + 1));
         }
 
         await _repository.SaveThread(thread, TestContext.Current.CancellationToken);

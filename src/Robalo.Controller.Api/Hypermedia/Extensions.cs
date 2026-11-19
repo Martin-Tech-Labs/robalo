@@ -27,11 +27,10 @@ public static class Extensions
     public static Link LinkToThreadId(this IHttpContextAccessor accessor, string threadId)
         => accessor.HttpContext!.LinkToPath($"/threads/{threadId}");
 
-    public static Link LinkToMessageNumber(
+    public static Link LinkToMessage(
         this IHttpContextAccessor accessor,
-        ThreadIdentifier threadId,
-        int messageNumber)
-            => accessor.HttpContext!.LinkToPath($"/threads/{threadId}/messages/{messageNumber}");
+        MessageIdentifier messageId)
+            => accessor.HttpContext!.LinkToPath($"/messages/{messageId}");
 
     public static Link LinkToMessages(
         this IHttpContextAccessor accessor,
@@ -64,15 +63,14 @@ public static class Extensions
 
     public static MessageResource GetMessageResource(
         this IHttpContextAccessor httpContextAccessor,
-        Message message,
-        ThreadIdentifier threadId) => new(
+        Message message) => new(
             Content: message.Content,
             CreatedOn: message.CreatedOn,
             EventType: message.EventType,
-            ThreadId: threadId.IdString,
+            ThreadId: message.ThreadId,
             MessageNumber: message.Number,
             Links: new MessageLinks(
-                Self: httpContextAccessor.LinkToMessageNumber(threadId, message.Number),
-                Thread: httpContextAccessor.LinkToThreadId(threadId),
-                Events: httpContextAccessor.LinkToEventsWithThreadIdAndCheckpoint(threadId, message.Number)));
+                Self: httpContextAccessor.LinkToMessage(message.MessageId),
+                Thread: httpContextAccessor.LinkToThreadId(message.ThreadId),
+                Events: httpContextAccessor.LinkToEventsWithThreadIdAndCheckpoint(message.ThreadId, message.Number)));
 }
