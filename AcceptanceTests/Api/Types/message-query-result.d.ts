@@ -26,10 +26,12 @@ export interface Message {
   event_type: "UserMessageAdded" | "AssistantMessageAdded" | "BreakMessageAdded";
   thread_id: string;
   message_number: number;
+  replied_to_message_id?: string;
   _links: {
     self: Link;
     thread: Link;
     events: Link;
+    replied_to?: Link;
   };
 }
 export interface Link {

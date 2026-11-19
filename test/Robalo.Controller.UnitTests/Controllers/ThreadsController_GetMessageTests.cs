@@ -51,6 +51,18 @@ public class ThreadsController_GetMessageTests : ThreadsControllerTests
 
         messageResource.Links.Events.Href.Query.ShouldBe($"?thread={message.ThreadId}&checkpoint={message.Number}");
 
+        if (eventType != nameof(AssistantMessageAdded))
+        {
+            messageResource.RepliedToMessageId.ShouldBeNull();
+            messageResource.Links.RepliedTo.ShouldBeNull();
+        }
+        else
+        {
+            messageResource.RepliedToMessageId.ShouldBe(message.RepliedToMessageId.ValueOrFailure);
+            messageResource.Links.RepliedTo.ShouldNotBeNull();
+        }
+
+
         messageResource.MessageId.ShouldBe(message.MessageId);
         messageResource.Content.ShouldBe(message.Content);
         messageResource.CreatedOn.ShouldBe(message.CreatedOn);

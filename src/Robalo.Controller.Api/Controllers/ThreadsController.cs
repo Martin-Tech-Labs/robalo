@@ -198,8 +198,6 @@ public class ThreadsController : ControllerBase
         }
     }
 
-
-
     ThreadResource GetThreadResource(ThreadInfo threadInfo) => new(
                   threadInfo.CreatedOn,
                   threadInfo.ModifiedOn,

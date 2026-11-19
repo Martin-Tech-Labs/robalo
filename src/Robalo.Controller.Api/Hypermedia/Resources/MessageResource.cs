@@ -8,6 +8,7 @@ public record MessageResource(
     string EventType,
     string ThreadId,
     long MessageNumber,
+    string? RepliedToMessageId,
     MessageLinks Links) : HalResource<MessageLinks>(Links);
 
-public record MessageLinks(Link Self, Link Thread, Link Events) : Links(Self);
+public record MessageLinks(Link Self, Link Thread, Link? RepliedTo, Link Events) : Links(Self);

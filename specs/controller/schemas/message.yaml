@@ -25,6 +25,8 @@ properties:
     type: string
   message_number:
     type: integer
+  replied_to_message_id:
+    type: string
   _links:
     type: object
     required:
@@ -37,6 +39,8 @@ properties:
       thread:
         $ref: './link.yaml'
       events:
+        $ref: './link.yaml'
+      replied_to:
         $ref: './link.yaml'
     additionalProperties: false
 additionalProperties: false

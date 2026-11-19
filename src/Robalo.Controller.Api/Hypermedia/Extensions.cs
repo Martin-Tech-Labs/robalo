@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Http.Extensions;
+using Robalo.Common.Extensions;
+using Robalo.Common.Models;
 using Robalo.Controller.Api.Hypermedia.Resources;
 using Robalo.Domain.Models;
 
@@ -70,8 +72,14 @@ public static class Extensions
             EventType: message.EventType,
             ThreadId: message.ThreadId,
             MessageNumber: message.Number,
+            RepliedToMessageId: message.RepliedToMessageId switch { Some<MessageIdentifier> m => m.Value.IdString, _ => null },
             Links: new MessageLinks(
                 Self: httpContextAccessor.LinkToMessage(message.MessageId),
                 Thread: httpContextAccessor.LinkToThreadId(message.ThreadId),
-                Events: httpContextAccessor.LinkToEventsWithThreadIdAndCheckpoint(message.ThreadId, message.Number)));
+                Events: httpContextAccessor.LinkToEventsWithThreadIdAndCheckpoint(message.ThreadId, message.Number),
+                RepliedTo: message.RepliedToMessageId switch
+                {
+                    Some<MessageIdentifier> messageId => httpContextAccessor.LinkToMessage(messageId),
+                    _ => null
+                }));
 }
