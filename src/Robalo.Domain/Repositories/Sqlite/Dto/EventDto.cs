@@ -16,28 +16,26 @@ public record EventDto
     public MessageIdentifier? OriginalMessageId { set; get; }
     public DateTimeOffset CreatedOn { set; get; }
 
-    public EventDto()
-    {
-
-    }
+    public EventDto() { }
 
     public EventDto(
         ThreadIdentifier threadId,
         MessageIdentifier messageId,
+        MessageIdentifier? originalMessageId,
         string eventType,
         string content,
         MessageIdentifier? repliedToMessageId,
-        string? references,
-
+        string? referencedMessageIds,
         DateTimeOffset createdOn)
     {
         ThreadId = threadId;
         MessageId = messageId;
+        OriginalMessageId = originalMessageId;
         EventType = eventType;
         Content = content;
         RepliedToMessageId = repliedToMessageId;
         CreatedOn = createdOn;
-        ReferencedMessageIds = references;
+        ReferencedMessageIds = referencedMessageIds;
     }
 
     public static MessageAdded ToModel(EventDto dto)
@@ -45,11 +43,23 @@ public record EventDto
         return dto.EventType switch
         {
             nameof(UserMessageAdded) => ToUserMessageAdded(dto),
-            nameof(AssistantMessageAdded) => ToLlmMessageAdded(dto),
+            nameof(AssistantMessageAdded) => ToAssistantMessageAdded(dto),
             nameof(SummaryMessageAdded) => ToSummaryMessageAdded(dto),
+            nameof(BreakMessageAdded) => ToBreakMessageAdded(dto),
+            nameof(UserMessageCopied) => ToUserMessageCopied(dto),
+            nameof(AssistantMessageCopied) => ToAssistantMessageCopied(dto),
+            nameof(SummaryMessageCopied) => ToSummaryMessageCopied(dto),
 
-            _ => throw new ArgumentOutOfRangeException(nameof(dto))
+            _ => throw new ArgumentException($"Unexpected event type {dto.EventType}")
         };
+
+        BreakMessageAdded ToBreakMessageAdded(EventDto dto)
+        {
+            return new BreakMessageAdded(
+                MessageId: dto.MessageId ?? throw new ArgumentNullException(nameof(dto), nameof(dto.MessageId)),
+                Content: dto.Content ?? throw new ArgumentNullException(nameof(dto), nameof(dto.Content)),
+                AddedOn: dto.CreatedOn);
+        }
 
         UserMessageAdded ToUserMessageAdded(EventDto dto)
         {
@@ -59,10 +69,29 @@ public record EventDto
                 AddedOn: dto.CreatedOn);
         }
 
-        AssistantMessageAdded ToLlmMessageAdded(EventDto dto)
+        UserMessageCopied ToUserMessageCopied(EventDto dto)
+        {
+            return new UserMessageCopied(
+                MessageId: dto.MessageId ?? throw new ArgumentNullException(nameof(dto), nameof(dto.MessageId)),
+                OriginalMessageId: dto.OriginalMessageId ?? throw new ArgumentNullException(nameof(dto), nameof(dto.OriginalMessageId)),
+                Content: dto.Content ?? throw new ArgumentNullException(nameof(dto), nameof(dto.Content)),
+                AddedOn: dto.CreatedOn);
+        }
+
+        AssistantMessageAdded ToAssistantMessageAdded(EventDto dto)
         {
             return new AssistantMessageAdded(
                 MessageId: dto.MessageId ?? throw new ArgumentNullException(nameof(dto), nameof(dto.MessageId)),
+                Content: dto.Content ?? throw new ArgumentNullException(nameof(dto), nameof(dto.Content)),
+                RepliedToMessageId: dto.RepliedToMessageId!,
+                AddedOn: dto.CreatedOn);
+        }
+
+        AssistantMessageCopied ToAssistantMessageCopied(EventDto dto)
+        {
+            return new AssistantMessageCopied(
+                MessageId: dto.MessageId ?? throw new ArgumentNullException(nameof(dto), nameof(dto.MessageId)),
+                OriginalMessageId: dto.OriginalMessageId ?? throw new ArgumentNullException(nameof(dto), nameof(dto.OriginalMessageId)),
                 Content: dto.Content ?? throw new ArgumentNullException(nameof(dto), nameof(dto.Content)),
                 RepliedToMessageId: dto.RepliedToMessageId!,
                 AddedOn: dto.CreatedOn);
@@ -76,6 +105,16 @@ public record EventDto
                 References: dto.ReferencedMessageIds!.Split(',').Select(MessageIdentifier.FromIdString).ToList(),
                 AddedOn: dto.CreatedOn);
         }
+
+        SummaryMessageCopied ToSummaryMessageCopied(EventDto dto)
+        {
+            return new SummaryMessageCopied(
+                MessageId: dto.MessageId ?? throw new ArgumentNullException(nameof(dto), nameof(dto.MessageId)),
+                OriginalMessageId: dto.OriginalMessageId ?? throw new ArgumentNullException(nameof(dto), nameof(dto.OriginalMessageId)),
+                Content: dto.Content ?? throw new ArgumentNullException(nameof(dto), nameof(dto.Content)),
+                References: dto.ReferencedMessageIds!.Split(',').Select(MessageIdentifier.FromIdString).ToList(),
+                AddedOn: dto.CreatedOn);
+        }
     }
 
     public static EventDto FromModel(ThreadIdentifier threadIdentifier, MessageAdded e) => e switch
@@ -83,39 +122,71 @@ public record EventDto
         UserMessageAdded userMessageAdded => new EventDto(
            threadId: threadIdentifier,
            messageId: userMessageAdded.MessageId,
+           originalMessageId: null,
            eventType: e.GetType().Name,
            content: userMessageAdded.Content,
            repliedToMessageId: null,
-           references: null,
+           referencedMessageIds: null,
            createdOn: userMessageAdded.AddedOn),
 
-        AssistantMessageAdded llmMessageAdded => new EventDto(
+        UserMessageCopied userMessageCopied => new EventDto(
+            threadId: threadIdentifier,
+            messageId: userMessageCopied.MessageId,
+            originalMessageId: userMessageCopied.OriginalMessageId,
+            eventType: e.GetType().Name,
+            content: userMessageCopied.Content,
+            repliedToMessageId: null,
+            referencedMessageIds: null,
+            createdOn: userMessageCopied.AddedOn),
+
+        AssistantMessageAdded assistantMessageAdded => new EventDto(
            threadId: threadIdentifier,
-           messageId: llmMessageAdded.MessageId,
+           messageId: assistantMessageAdded.MessageId,
+           originalMessageId: null,
            eventType: e.GetType().Name,
-           content: llmMessageAdded.Content,
-           repliedToMessageId: llmMessageAdded.RepliedToMessageId,
-           references: null,
-           createdOn: llmMessageAdded.AddedOn),
+           content: assistantMessageAdded.Content,
+           repliedToMessageId: assistantMessageAdded.RepliedToMessageId,
+           referencedMessageIds: null,
+           createdOn: assistantMessageAdded.AddedOn),
+
+        AssistantMessageCopied assistantMessageCopied => new EventDto(
+           threadId: threadIdentifier,
+           messageId: assistantMessageCopied.MessageId,
+           originalMessageId: assistantMessageCopied.OriginalMessageId,
+           eventType: e.GetType().Name,
+           content: assistantMessageCopied.Content,
+           repliedToMessageId: assistantMessageCopied.RepliedToMessageId,
+           referencedMessageIds: null,
+           createdOn: assistantMessageCopied.AddedOn),
 
         BreakMessageAdded breakMessageAdded => new EventDto(
            threadId: threadIdentifier,
            messageId: breakMessageAdded.MessageId,
+           originalMessageId: null,
            eventType: e.GetType().Name,
            content: breakMessageAdded.Content,
            repliedToMessageId: null,
-           references: null,
+           referencedMessageIds: null,
            createdOn: breakMessageAdded.AddedOn),
 
         SummaryMessageAdded summaryMessageAdded => new EventDto(
             threadId: threadIdentifier,
             messageId: summaryMessageAdded.MessageId,
+            originalMessageId: null,
             eventType: e.GetType().Name,
             content: summaryMessageAdded.Content,
             repliedToMessageId: null,
-            references: string.Join(",", summaryMessageAdded.References),
+            referencedMessageIds: string.Join(",", summaryMessageAdded.References),
             createdOn: summaryMessageAdded.AddedOn),
 
-            _ => throw new InvalidOperationException("tbd")
+        SummaryMessageCopied summaryMessageCopied => new EventDto(
+            threadId: threadIdentifier,
+            messageId: summaryMessageCopied.MessageId,
+            originalMessageId: summaryMessageCopied.OriginalMessageId,
+            eventType: e.GetType().Name,
+            content: summaryMessageCopied.Content,
+            repliedToMessageId: null,
+            referencedMessageIds: string.Join(",", summaryMessageCopied.References),
+            createdOn: summaryMessageCopied.AddedOn)
     };
 }

@@ -14,12 +14,13 @@ public sealed class Thread : AggregateRoot<Thread>
     readonly List<ContextMessage> _extendedContext = [];
 
     /// <summary>
-    /// Current context of a thread
+    /// Current context of a thread, logically ordered
     /// </summary>
     public IReadOnlyList<ContextMessage> Context { get; }
 
     /// <summary>
-    /// Extended context of a thread (limited to one previous segment as separated by breaks)
+    /// Temporary extended context of a thread (limited to one previous segment as separated by breaks)
+    /// To copy messages over, or create a summary
     /// </summary>
     public IReadOnlyList<ContextMessage> ExtendedContext { get; }
 
@@ -238,7 +239,7 @@ public sealed class Thread : AggregateRoot<Thread>
 
         if (_extendedContext.Count == 0)
         {
-            throw new InvalidOperationException("Copying of messaging to a new segment after a break is only possible before the thread has been persisted.");
+            throw new InvalidOperationException("Copying of a message to a new segment after a break is only possible before the thread has been persisted.");
         }
 
         if (messageIds.Any(m => !_extendedContext.Any(e => e.MessageId == m)))
