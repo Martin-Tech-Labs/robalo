@@ -74,12 +74,15 @@ public class ThreadTests_MultipleSegments
     [Fact]
     public void AddBreakMessage_ShouldWorkAsExpected()
     {
+        var events = new List<MessageAdded>();
+
         var thread = Thread.NewThread(_utcNow)
             .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(1))
             .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(2));
 
         thread.AddAssistantMessage(_fixture.Create<string>(), thread.Context[0].MessageId, _utcNow.AddSeconds(3));
         var context = thread.Context.ToList();
+        events.AddRange(thread.PendingEvents);
         thread.MarkAggregateAsSynchronized();
         thread.IsAnswered.ShouldBeFalse();
         var content = _fixture.Create<string>();
@@ -93,8 +96,14 @@ public class ThreadTests_MultipleSegments
         thread.Context.ShouldBeEmpty();
         thread.ExtendedContext.ToList().ShouldBeEquivalentTo(context);
 
+        events.AddRange(thread.PendingEvents);
         thread.MarkAggregateAsSynchronized();
         thread.ExtendedContext.ShouldBeEmpty();
+
+        var thread2 = Thread.Rehydrate(thread.Id, thread.CreatedOn, thread.Title, thread.PersistedVersion.ValueOrFailure, events);
+        thread2.IsAnswered.ShouldBe(thread.IsAnswered);
+        thread2.Context.ShouldBeEquivalentTo(thread.Context);
+        thread2.ExtendedContext.ShouldBeEmpty();
     }
 
     [Fact]
@@ -221,7 +230,69 @@ public class ThreadTests_MultipleSegments
         thread.Context[0].MessageId.ShouldBe(thread.PendingEvents[1].MessageId);
         thread.ExtendedContext.ToList().ShouldBeEquivalentTo(context);
 
+        thread.ModifiedOn.ShouldBe(_utcNow.AddSeconds(5));
+
         thread.MarkAggregateAsSynchronized();
         thread.ExtendedContext.ShouldBeEmpty();
     }
+
+    [Fact]
+    public void AddBreak_With_Summary_And_Other_Messages()
+    {
+        var events = new List<MessageAdded>();
+        var thread = Thread.NewThread(_utcNow)
+            .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(1))
+            .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(2));
+        thread.AddAssistantMessage(_fixture.Create<string>(), thread.Context[0].MessageId, _utcNow.AddSeconds(3));
+        events.AddRange(thread.PendingEvents);
+        thread.MarkAggregateAsSynchronized();
+        thread.AddBreakMessage(_fixture.Create<string>(), _utcNow.AddSeconds(4));
+
+        thread.AddSummaryMessage(_fixture.Create<string>(), thread.ExtendedContext.Select(c => c.MessageId).ToList(), _utcNow.AddSeconds(5));
+        thread.AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(6));
+        thread.AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(7));
+        thread.AddAssistantMessage(_fixture.Create<string>(), thread.Context[1].MessageId, _utcNow.AddSeconds(8));
+        thread.IsAnswered.ShouldBeFalse();
+        thread.AddAssistantMessage(_fixture.Create<string>(), thread.Context[^1].MessageId, _utcNow.AddSeconds(9));
+        thread.IsAnswered.ShouldBeTrue();
+        events.AddRange(thread.PendingEvents);
+        thread.MarkAggregateAsSynchronized();
+        thread.ModifiedOn.ShouldBe(_utcNow.AddSeconds(9));
+
+        var thread2 = Thread.Rehydrate(thread.Id, thread.CreatedOn, thread.Title, thread.PersistedVersion.ValueOrFailure, events);
+        thread2.IsAnswered.ShouldBeTrue();
+        thread2.Context.ShouldBeEquivalentTo(thread.Context);
+        thread2.ExtendedContext.ShouldBeEmpty();
+        thread2.ModifiedOn.ShouldBe(thread.ModifiedOn);
+        thread2.PersistedVersion.ValueOrFailure.ShouldBe(events.Count);
+    }
+
+    [Fact]
+    public void AddBreak_With_Summary_And_Other_Messages_MultipleTimes()
+    {
+        var events = new List<MessageAdded>();
+        var thread = Thread.NewThread(_utcNow);
+
+        for (var i = 0; i < 10; i++)
+        {
+            thread.AddUserMessage(_fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1));
+            thread.AddUserMessage(_fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1));
+            thread.AddAssistantMessage(_fixture.Create<string>(), thread.Context[0].MessageId, thread.ModifiedOn.AddSeconds(1));
+            events.AddRange(thread.PendingEvents);
+            thread.MarkAggregateAsSynchronized();
+            thread.IsAnswered.ShouldBeFalse();
+            thread.AddBreakMessage(_fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1));
+            thread.IsAnswered.ShouldBeTrue();
+            thread.AddSummaryMessage(_fixture.Create<string>(), thread.ExtendedContext.Select(c => c.MessageId).ToList(), thread.ModifiedOn.AddSeconds(1));
+            events.AddRange(thread.PendingEvents);
+            thread.MarkAggregateAsSynchronized();
+            thread.IsAnswered.ShouldBeTrue();
+        }
+
+        var thread2 = Thread.Rehydrate(thread.Id, thread.CreatedOn, thread.Title, thread.PersistedVersion.ValueOrFailure, events);
+        thread2.IsAnswered.ShouldBeTrue();
+        thread2.Context.ShouldBeEquivalentTo(thread.Context);
+        thread2.ExtendedContext.ShouldBeEmpty();
+        thread2.ModifiedOn.ShouldBe(thread.ModifiedOn);
+        }
 }
