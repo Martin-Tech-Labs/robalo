@@ -242,6 +242,11 @@ public sealed class Thread : AggregateRoot<Thread>
             throw new InvalidOperationException("Copying of a message to a new segment after a break is only possible before the thread has been persisted.");
         }
 
+        if (messageIds.Distinct().Count() != messageIds.Count)
+        {
+            throw new ArgumentException("Duplicate message ids", nameof(messageIds));
+        }
+
         if (messageIds.Any(m => !_extendedContext.Any(e => e.MessageId == m)))
         {
             throw new ArgumentException("Invalid message ids", nameof(messageIds));
