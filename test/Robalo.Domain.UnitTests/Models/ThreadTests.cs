@@ -101,7 +101,7 @@ public class ThreadTests
         var thread = Thread.NewThread(createdOn);
 
         thread.AddUserMessage(_fixture.Create<string>(), createdOn.AddSeconds(1));
-        Should.Throw<ArgumentException>(() => thread.AddUserMessage(_fixture.Create<string>(), createdOn));
+        Should.Throw<ArgumentOutOfRangeException>(() => thread.AddUserMessage(_fixture.Create<string>(), createdOn));
     }
 
     [Fact]
@@ -179,7 +179,7 @@ public class ThreadTests
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
 
-        Should.Throw<ArgumentException>(() => thread.AddAssistantMessage(_fixture.Create<string>(), thread.Context[0].MessageId, thread.CreatedOn.AddSeconds(-5)));
+        Should.Throw<ArgumentOutOfRangeException>(() => thread.AddAssistantMessage(_fixture.Create<string>(), thread.Context[0].MessageId, thread.CreatedOn.AddSeconds(-5)));
     }
 
     [Fact]
@@ -188,7 +188,7 @@ public class ThreadTests
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
 
-        Should.Throw<ArgumentException>(() => thread.CreateAssistantMessageAdded(_fixture.Create<string>(), thread.Context[0].MessageId, thread.CreatedOn.AddSeconds(-5)));
+        Should.Throw<ArgumentOutOfRangeException>(() => thread.CreateAssistantMessageAdded(_fixture.Create<string>(), thread.Context[0].MessageId, thread.CreatedOn.AddSeconds(-5)));
     }
 
     [Fact]
