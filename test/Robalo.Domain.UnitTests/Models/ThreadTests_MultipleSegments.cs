@@ -3,6 +3,7 @@ using Robalo.Common.Extensions;
 using Robalo.Common.Models;
 using Robalo.Domain.Models;
 using Robalo.Domain.Models.Events;
+using Robalo.Domain.Repositories.Sqlite.Dto;
 using Robalo.Tests.Common;
 
 namespace Robalo.Domain.UnitTests.Models;
@@ -228,6 +229,7 @@ public class ThreadTests_MultipleSegments
         thread.Context[0].References.HasValue.ShouldBeTrue();
         thread.Context[0].References.ValueOrFailure.ToList().ShouldBeEquivalentTo(thread.ExtendedContext.Select(c => c.MessageId).ToList());
         thread.Context[0].MessageId.ShouldBe(thread.PendingEvents[1].MessageId);
+        thread.Context[0].OriginalMessageId.ShouldBe(thread.PendingEvents[1].MessageId);
         thread.ExtendedContext.ToList().ShouldBeEquivalentTo(context);
 
         thread.ModifiedOn.ShouldBe(_utcNow.AddSeconds(5));
@@ -294,5 +296,73 @@ public class ThreadTests_MultipleSegments
         thread2.Context.ShouldBeEquivalentTo(thread.Context);
         thread2.ExtendedContext.ShouldBeEmpty();
         thread2.ModifiedOn.ShouldBe(thread.ModifiedOn);
-        }
+    }
+
+
+    [Fact]
+    public void AddCopyOfMessage_ShouldThrow_OutsideOfBreakPhrase()
+    {
+        var thread = Thread.NewThread(_utcNow).AddUserMessage(_fixture.Create<string>(), _utcNow);
+        thread.MarkAggregateAsSynchronized();
+        thread.AddBreakMessage(_fixture.Create<string>(), _utcNow);
+        var message = thread.ExtendedContext[0];
+        thread.MarkAggregateAsSynchronized();
+
+        Should.Throw<InvalidOperationException>(() => thread.AddCopyOfMessage(message, _utcNow));
+    }
+
+    [Fact]
+    public void AddCopyOfMessage_ShouldThrow_OnInvalidAddedOn()
+    {
+        var thread = Thread.NewThread(_utcNow).AddUserMessage(_fixture.Create<string>(), _utcNow);
+        thread.MarkAggregateAsSynchronized();
+        thread.AddBreakMessage(_fixture.Create<string>(), _utcNow);
+        var message = thread.ExtendedContext[0];
+
+        Should.Throw<ArgumentOutOfRangeException>(() => thread.AddCopyOfMessage(message, _utcNow.AddSeconds(-1)));
+    }
+
+    [Fact]
+    public void AddCopyOfMessage_ShouldThrow_OnInvalidMessage()
+    {
+        var thread = Thread.NewThread(_utcNow).AddUserMessage(_fixture.Create<string>(), _utcNow);
+        thread.MarkAggregateAsSynchronized();
+        thread.AddBreakMessage(_fixture.Create<string>(), _utcNow);
+
+        Should.Throw<ArgumentOutOfRangeException>(() => thread.AddCopyOfMessage(_fixture.Create<ContextMessage>(), _utcNow.AddSeconds(-1)));
+    }
+
+    [Fact]
+    public void AddCopyOfMessage_ShouldCopy_UserMessage()
+    {
+        var events = new List<MessageAdded>();
+        var content = _fixture.Create<string>();
+        var thread = Thread.NewThread(_utcNow).AddUserMessage(content, _utcNow);
+        events.AddRange(thread.PendingEvents);
+        thread.MarkAggregateAsSynchronized();
+        thread.AddBreakMessage(_fixture.Create<string>(), _utcNow.AddSeconds(1));
+        thread.AddCopyOfMessage(thread.ExtendedContext[0], _utcNow.AddSeconds(2));
+        thread.Context.Count.ShouldBe(1);
+        thread.Context[0].MessageId.ShouldNotBe(thread.Context[0].OriginalMessageId);
+        thread.Context[0].OriginalMessageId.ShouldBe(thread.ExtendedContext[0].MessageId);
+        thread.Context[0].Content.ShouldBe(thread.ExtendedContext[0].Content);
+        thread.Context[0].Role.ShouldBe(MessageRole.User);
+        thread.PendingEvents[1].AddedOn.ShouldBe(_utcNow.AddSeconds(2));
+        thread.PendingEvents[1].Content.ShouldBe(content);
+        thread.PendingEvents[1].MessageId.ShouldBe(thread.Context[0].MessageId);
+        thread.PendingEvents[1].ShouldBeOfType<UserMessageCopied>();
+        var userMessageCopied = (UserMessageCopied)thread.PendingEvents[1];
+        userMessageCopied.OriginalMessageId.ShouldBe(thread.ExtendedContext[0].MessageId);
+        events.AddRange(thread.PendingEvents);
+        thread.MarkAggregateAsSynchronized();
+        thread.IsAnswered.ShouldBeFalse();
+        var context = thread.Context;
+
+        var thread2 = Thread.Rehydrate(thread.Id, thread.CreatedOn, thread.Title, thread.PersistedVersion.ValueOrFailure, events);
+        thread2.IsAnswered.ShouldBeFalse();
+        thread2.Context.ShouldBeEquivalentTo(context);
+
+
+
+    }
 }

@@ -184,7 +184,7 @@ public sealed class Thread : AggregateRoot<Thread>
         return Apply(CreateUserMessageAdded(content, addedOn));
     }
 
-    public Thread CopyMessage(ContextMessage message, DateTimeOffset addedOn)
+    public Thread AddCopyOfMessage(ContextMessage message, DateTimeOffset addedOn)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(addedOn, ModifiedOn);
 
