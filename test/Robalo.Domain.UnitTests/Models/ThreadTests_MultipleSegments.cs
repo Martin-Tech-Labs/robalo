@@ -346,15 +346,15 @@ public class ThreadTests_MultipleSegments
         thread.Context.Count.ShouldBe(1);
         var messageId = thread.PendingEvents[^1].MessageId;
         thread.Context[0].MessageId.ShouldNotBe(thread.Context[0].OriginalMessageId);
-        thread.Context[0].OriginalMessageId.ShouldBe(thread.ExtendedContext[0].MessageId);
+        thread.Context[0].OriginalMessageId.ShouldBe(originalMessageId);
         thread.Context[0].Content.ShouldBe(thread.ExtendedContext[0].Content);
         thread.Context[0].Role.ShouldBe(MessageRole.User);
         thread.PendingEvents[1].AddedOn.ShouldBe(_utcNow.AddSeconds(2));
         thread.PendingEvents[1].Content.ShouldBe(content);
         thread.PendingEvents[1].MessageId.ShouldBe(thread.Context[0].MessageId);
         thread.PendingEvents[1].ShouldBeOfType<UserMessageCopied>();
-        var userMessageCopied = (UserMessageCopied)thread.PendingEvents[1];
-        userMessageCopied.OriginalMessageId.ShouldBe(thread.ExtendedContext[0].MessageId);
+        var messageCopied = (UserMessageCopied)thread.PendingEvents[1];
+        messageCopied.OriginalMessageId.ShouldBe(originalMessageId);
         events.AddRange(thread.PendingEvents);
         thread.MarkAggregateAsSynchronized();
         thread.IsAnswered.ShouldBeFalse();
@@ -376,47 +376,109 @@ public class ThreadTests_MultipleSegments
         thread2.Context.Single().OriginalMessageId.ShouldBe(originalMessageId);
     }
 
-      [Fact]
+    [Fact]
     public void AddCopyOfMessage_ShouldCopy_AssistantMessage()
     {
         var events = new List<MessageAdded>();
         var content = _fixture.Create<string>();
-        var thread = Thread.NewThread(_utcNow).AddUserMessage(content, _utcNow);
+        var thread = Thread.NewThread(_utcNow).AddUserMessage(_fixture.Create<string>(), _utcNow);
+        var repliedToMessageId = thread.Context.Single().MessageId;
+        thread.AddAssistantMessage(content, repliedToMessageId, thread.ModifiedOn.AddSeconds(1));
         events.AddRange(thread.PendingEvents);
         var originalMessageId = thread.PendingEvents[^1].MessageId;
         thread.MarkAggregateAsSynchronized();
-        thread.AddBreakMessage(_fixture.Create<string>(), _utcNow.AddSeconds(1));
-        thread.AddCopyOfMessage(thread.ExtendedContext[0], _utcNow.AddSeconds(2));
+        thread.AddBreakMessage(_fixture.Create<string>(), _utcNow.AddSeconds(2));
+        thread.AddCopyOfMessage(thread.ExtendedContext[1], _utcNow.AddSeconds(3));
         thread.Context.Count.ShouldBe(1);
         var messageId = thread.PendingEvents[^1].MessageId;
-        thread.Context[0].MessageId.ShouldNotBe(thread.Context[0].OriginalMessageId);
-        thread.Context[0].OriginalMessageId.ShouldBe(thread.ExtendedContext[0].MessageId);
-        thread.Context[0].Content.ShouldBe(thread.ExtendedContext[0].Content);
-        thread.Context[0].Role.ShouldBe(MessageRole.User);
-        thread.PendingEvents[1].AddedOn.ShouldBe(_utcNow.AddSeconds(2));
+        thread.Context[0].MessageId.ShouldNotBe(originalMessageId);
+        thread.Context[0].OriginalMessageId.ShouldBe(originalMessageId);
+        thread.Context[0].Content.ShouldBe(content);
+        thread.Context[0].Role.ShouldBe(MessageRole.Assistant);
+        thread.Context[0].RepliedToMessageId.ShouldBe(repliedToMessageId);
+
+        thread.PendingEvents[1].AddedOn.ShouldBe(_utcNow.AddSeconds(3));
         thread.PendingEvents[1].Content.ShouldBe(content);
         thread.PendingEvents[1].MessageId.ShouldBe(thread.Context[0].MessageId);
-        thread.PendingEvents[1].ShouldBeOfType<UserMessageCopied>();
-        var userMessageCopied = (UserMessageCopied)thread.PendingEvents[1];
-        userMessageCopied.OriginalMessageId.ShouldBe(thread.ExtendedContext[0].MessageId);
+        thread.PendingEvents[1].ShouldBeOfType<AssistantMessageCopied>();
+        var messageCopied = (AssistantMessageCopied)thread.PendingEvents[1];
+        messageCopied.OriginalMessageId.ShouldBe(originalMessageId);
+        messageCopied.RepliedToMessageId.ShouldBe(repliedToMessageId);
         events.AddRange(thread.PendingEvents);
         thread.MarkAggregateAsSynchronized();
-        thread.IsAnswered.ShouldBeFalse();
-        thread.ModifiedOn.ShouldBe(_utcNow.AddSeconds(2));
+        thread.IsAnswered.ShouldBeTrue();
+        thread.ModifiedOn.ShouldBe(_utcNow.AddSeconds(3));
         var context = thread.Context;
 
         var thread2 = Thread.Rehydrate(thread.Id, thread.CreatedOn, thread.Title, thread.PersistedVersion.ValueOrFailure, events);
-        thread2.IsAnswered.ShouldBeFalse();
+        thread2.IsAnswered.ShouldBeTrue();
         thread2.Context.ShouldBeEquivalentTo(context);
         thread2.ModifiedOn.ShouldBe(thread.ModifiedOn);
 
         thread2.AddBreakMessage(_fixture.Create<string>(), thread2.ModifiedOn.AddSeconds(1));
         thread2.IsAnswered.ShouldBeTrue();
         thread2.AddCopyOfMessage(thread2.ExtendedContext.Single(), thread2.ModifiedOn.AddSeconds(1));
-        thread2.IsAnswered.ShouldBeFalse();
-        thread2.Context.Single().Role.ShouldBe(MessageRole.User);
+        thread2.IsAnswered.ShouldBeTrue();
+        thread2.Context.Single().Role.ShouldBe(MessageRole.Assistant);
         thread2.Context.Single().Content.ShouldBe(content);
         thread2.Context.Single().MessageId.ShouldNotBe(messageId);
         thread2.Context.Single().OriginalMessageId.ShouldBe(originalMessageId);
+        thread2.Context.Single().RepliedToMessageId.ShouldBe(repliedToMessageId);
+    }
+
+    [Fact]
+    public void AddCopyOfSummary_ShouldCopy_SummaryMessage()
+    {
+        var events = new List<MessageAdded>();
+        var content = _fixture.Create<string>();
+        var thread = Thread.NewThread(_utcNow)
+            .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(1))
+            .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(2))
+            .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(3));
+        var references = thread.Context.Select(c => c.MessageId).ToList();
+        events.AddRange(thread.PendingEvents);
+        thread.MarkAggregateAsSynchronized();
+        thread.AddBreakMessage(_fixture.Create<string>(), _utcNow.AddSeconds(4));
+        thread.AddSummaryMessage(content, references, _utcNow.AddSeconds(5));
+        var originalMessageId = thread.PendingEvents[^1].MessageId;
+        events.AddRange(thread.PendingEvents);
+        thread.MarkAggregateAsSynchronized();
+        thread.AddBreakMessage(_fixture.Create<string>(), _utcNow.AddSeconds(6));
+        thread.AddCopyOfMessage(thread.ExtendedContext.Single(), _utcNow.AddSeconds(7));
+        thread.Context.Count.ShouldBe(1);
+        var messageId = thread.PendingEvents[^1].MessageId;
+        thread.Context[0].MessageId.ShouldNotBe(originalMessageId);
+        thread.Context[0].OriginalMessageId.ShouldBe(originalMessageId);
+        thread.Context[0].Content.ShouldBe(content);
+        thread.Context[0].Role.ShouldBe(MessageRole.Summary);
+        thread.Context[0].References.ValueOrFailure.ToList().ShouldBeEquivalentTo(references);
+
+        thread.PendingEvents[1].AddedOn.ShouldBe(_utcNow.AddSeconds(7));
+        thread.PendingEvents[1].Content.ShouldBe(content);
+        thread.PendingEvents[1].MessageId.ShouldBe(thread.Context[0].MessageId);
+        thread.PendingEvents[1].ShouldBeOfType<SummaryMessageCopied>();
+        var messageCopied = (SummaryMessageCopied)thread.PendingEvents[1];
+        messageCopied.OriginalMessageId.ShouldBe(originalMessageId);
+        messageCopied.References.ToList().ShouldBeEquivalentTo(references);
+        events.AddRange(thread.PendingEvents);
+        thread.MarkAggregateAsSynchronized();
+        thread.IsAnswered.ShouldBeTrue();
+        thread.ModifiedOn.ShouldBe(_utcNow.AddSeconds(7));
+        var context = thread.Context;
+
+        var thread2 = Thread.Rehydrate(thread.Id, thread.CreatedOn, thread.Title, thread.PersistedVersion.ValueOrFailure, events);
+        thread2.IsAnswered.ShouldBeTrue();
+        thread2.Context.ShouldBeEquivalentTo(context);
+        thread2.ModifiedOn.ShouldBe(thread.ModifiedOn);
+
+        thread2.AddBreakMessage(_fixture.Create<string>(), thread2.ModifiedOn.AddSeconds(1));
+        thread2.IsAnswered.ShouldBeTrue();
+        thread2.AddCopyOfMessage(thread2.ExtendedContext.Single(), thread2.ModifiedOn.AddSeconds(1));
+        thread2.IsAnswered.ShouldBeTrue();
+        thread2.Context.Single().Role.ShouldBe(MessageRole.Summary);
+        thread2.Context.Single().Content.ShouldBe(content);
+        thread2.Context.Single().MessageId.ShouldNotBe(messageId);
+        thread2.Context.Single().OriginalMessageId.ShouldBe(originalMessageId);
+        thread2.Context.Single().References.ValueOrFailure.ToList().ShouldBe(references);
     }
 }

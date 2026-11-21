@@ -231,7 +231,7 @@ public sealed class Thread : AggregateRoot<Thread>
         return Apply(ev);
     }
 
-    public Thread AddSummaryMessage(string content, List<MessageIdentifier> messageIds, DateTimeOffset addedOn)
+    public Thread AddSummaryMessage(string content, IReadOnlyList<MessageIdentifier> messageIds, DateTimeOffset addedOn)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
         ArgumentOutOfRangeException.ThrowIfLessThan(addedOn, ModifiedOn);
