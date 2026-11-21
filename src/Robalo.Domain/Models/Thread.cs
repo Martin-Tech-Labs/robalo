@@ -29,8 +29,6 @@ public sealed class Thread : AggregateRoot<Thread>
     Option<MessageIdentifier> _lastUserMessageId = None.Default;
     public bool IsAnswered { private set; get; }
 
-    public bool LastUserCopy { private set; get; }
-
     Thread(ThreadIdentifier id, Option<int> persistedVersion, DateTimeOffset createdOn) : base(id, persistedVersion)
     {
         CreatedOn = ModifiedOn = createdOn;
@@ -49,7 +47,6 @@ public sealed class Thread : AggregateRoot<Thread>
             _extendedContext.AddRange(_context);
             _context.Clear();
             IsAnswered = true;
-            LastUserCopy = false;
             ModifiedOn = @event.AddedOn;
             _lastUserMessageId = None.Default;
         });
@@ -59,7 +56,6 @@ public sealed class Thread : AggregateRoot<Thread>
             var message = ContextMessage.FromModel(@event);
             _context.Add(message);
             IsAnswered = false;
-            LastUserCopy = false;
             ModifiedOn = @event.AddedOn;
 
             _lastUserMessageId = message.MessageId;
@@ -70,9 +66,6 @@ public sealed class Thread : AggregateRoot<Thread>
             var message = ContextMessage.FromModel(@event);
             _context.Add(message);
             ModifiedOn = @event.AddedOn;
-
-            IsAnswered = IsAnswered || LastUserCopy;
-            LastUserCopy = false;
         });
 
         When<AssistantMessageCopied>(@event =>
@@ -80,10 +73,6 @@ public sealed class Thread : AggregateRoot<Thread>
             var message = ContextMessage.FromModel(@event);
             _context.Add(message);
             ModifiedOn = @event.AddedOn;
-
-
-            IsAnswered = IsAnswered || LastUserCopy;
-            LastUserCopy = false;
         });
 
         When<UserMessageCopied>(@event =>
@@ -91,12 +80,6 @@ public sealed class Thread : AggregateRoot<Thread>
             var message = ContextMessage.FromModel(@event);
             _context.Add(message);
             ModifiedOn = @event.AddedOn;
-
-            if (IsAnswered == true)
-            {
-                IsAnswered = false;
-                LastUserCopy = true;
-            }
         });
 
         When<SummaryMessageCopied>(@event =>
@@ -104,9 +87,6 @@ public sealed class Thread : AggregateRoot<Thread>
             var message = ContextMessage.FromModel(@event);
             _context.Add(message);
             ModifiedOn = @event.AddedOn;
-
-            IsAnswered = IsAnswered || LastUserCopy;
-            LastUserCopy = false;
         });
 
         When<AssistantMessageAdded>(@event =>
