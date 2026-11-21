@@ -26,7 +26,7 @@ describe('3 - Threads @drei @threads', () => {
     let messageQueryResult: MessageQueryResult;
     let eventSource: EventSourceClient;
     let eventSource2: EventSourceClient;
-    let llmMessage: Message;
+    let assistantMessage: Message;
 
     const timeoutLlmMs = 60_000;
 
@@ -126,16 +126,16 @@ describe('3 - Threads @drei @threads', () => {
         it("And I wait for the LLM response from Events endpoint", async () => {
             console.log(`Retrieving a new message (1) from ${thread._links.events.href}`);
             for await (const { data } of eventSource) { // NOSONAR
-                llmMessage = JSON.parse(data);
+                assistantMessage = JSON.parse(data);
                 break;
             }
         }).timeout(timeoutLlmMs);
 
         it("And I verfy the LLM message", () => {
-            expect(llmMessage.content).to.not.be.empty;
-            expect(llmMessage.event_type).to.equal("AssistantMessageAdded");
-            expect(llmMessage.replied_to_message_id).to.equal(messageQueryResult._embedded.messages[0].message_id);
-            expect(llmMessage.message_number).to.equal(2);
+            expect(assistantMessage.content).to.not.be.empty;
+            expect(assistantMessage.event_type).to.equal("AssistantMessageAdded");
+            expect(assistantMessage.replied_to_message_id).to.equal(messageQueryResult._embedded.messages[0].message_id);
+            expect(assistantMessage.message_number).to.equal(2);
         });
 
         it("And I wait for the LLM response from Get Endpoint", async () => {
@@ -145,11 +145,11 @@ describe('3 - Threads @drei @threads', () => {
         });
 
         it("And I verfy the LLM message", () => {
-            expect(messageQueryResult._embedded.messages[1]).to.deep.equal(llmMessage);
+            expect(messageQueryResult._embedded.messages[1]).to.deep.equal(assistantMessage);
         });
 
         it("And I go to the replied-to link from llm response", async () => {
-            response = await ControllerApi.get(llmMessage._links.replied_to!);
+            response = await ControllerApi.get(assistantMessage._links.replied_to!);
         });
 
         it("And I verfy the LLM message", () => {
@@ -232,7 +232,7 @@ describe('3 - Threads @drei @threads', () => {
             console.log(`Retrieving a new message from ${message._links.events.href}`)
             try {
                 for await (const { data } of eventSource2) { // NOSONAR
-                    llmMessage = JSON.parse(data);
+                    assistantMessage = JSON.parse(data);
                     break;
                 }
             }
@@ -248,7 +248,7 @@ describe('3 - Threads @drei @threads', () => {
         });
 
         it("And I verfy the LLM response", () => {
-            expect(llmMessage).to.deep.equal(messageQueryResult._embedded.messages[3]);
+            expect(assistantMessage).to.deep.equal(messageQueryResult._embedded.messages[3]);
             expect(messageQueryResult._embedded.messages[3].content).to.not.be.empty;
             expect(messageQueryResult._embedded.messages[3].event_type).to.equal("AssistantMessageAdded");
             expect(messageQueryResult._embedded.messages[3].message_number).to.equal(4);

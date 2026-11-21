@@ -134,7 +134,7 @@ public class ThreadTests
     }
 
     [Fact]
-    public void AddLlmMessage_ShouldThrowIfNoMessages()
+    public void AddAssistantMessageAdded_ShouldThrowIfNoMessages()
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
 
@@ -154,7 +154,7 @@ public class ThreadTests
     [Theory]
     [InlineData("")]
     [InlineData(" ")]
-    public void AddLlmMessage_ShouldThrowOnEmptyContent(string content)
+    public void AddAssistantMessageAdded_ShouldThrowOnEmptyContent(string content)
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
@@ -174,7 +174,7 @@ public class ThreadTests
     }
 
     [Fact]
-    public void AddLlmMessage_ShouldThrowOnInvalidDate()
+    public void AddAssistantMessageAdded_ShouldThrowOnInvalidDate()
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
@@ -192,7 +192,7 @@ public class ThreadTests
     }
 
     [Fact]
-    public void AddLlmMessage_ShouldThrowOnInvalidRepliedToMessage()
+    public void AddAssistantMessageAdded_ShouldThrowOnInvalidRepliedToMessage()
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
@@ -229,7 +229,7 @@ public class ThreadTests
     }
 
     [Fact]
-    public void AddLlmMessage_ForSameUserMessage_ShouldCorrectlyUpdateContext()
+    public void AddAssistantMessageAdded_ForSameUserMessage_ShouldCorrectlyUpdateContext()
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
@@ -285,7 +285,7 @@ public class ThreadTests
     [Theory]
     [InlineData(0, false, 1)]
     [InlineData(1, true, 2)]
-    public void AddLlmMessage_ShouldUpdateContextCorrectly_And_Set_Answered_Correctly(int repliedToMessageIndex, bool isAnswered, int indexLLmMessage)
+    public void AddAssistantMessageAdded_ShouldUpdateContextCorrectly_And_Set_Answered_Correctly(int repliedToMessageIndex, bool isAnswered, int indexLLmMessage)
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         var content1 = _fixture.Create<string>();
@@ -340,7 +340,7 @@ public class ThreadTests
     }
 
     [Fact]
-    public void AddLlmMessage_ShouldNotAnsweredToFalse_IfWasTrue()
+    public void AddAssistantMessageAdded_ShouldNotAnsweredToFalse_IfWasTrue()
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
