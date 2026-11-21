@@ -142,7 +142,7 @@ public class ThreadTests
     }
 
     [Fact]
-    public void CreateLlmMessageAdded_ShouldThrowIfNoMessages()
+    public void CreateAssistantMessageAdded_ShouldThrowIfNoMessages()
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
 
@@ -165,7 +165,7 @@ public class ThreadTests
     [Theory]
     [InlineData("")]
     [InlineData(" ")]
-    public void CreateLlmMessage_ShouldThrowOnEmptyContent(string content)
+    public void CreateAssistantMessageAdded_ShouldThrowOnEmptyContent(string content)
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
@@ -183,7 +183,7 @@ public class ThreadTests
     }
 
     [Fact]
-    public void CreateLlmMessage_ShouldThrowOnInvalidDate()
+    public void CreateAssistantMessageAdded_ShouldThrowOnInvalidDate()
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
@@ -202,7 +202,7 @@ public class ThreadTests
     }
 
     [Fact]
-    public void CreateLlmMessage_ShouldThrowOnInvalidRepliedToMessage()
+    public void CreateAssistantMessageAdded_ShouldThrowOnInvalidRepliedToMessage()
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
@@ -212,7 +212,7 @@ public class ThreadTests
     }
 
     [Fact]
-    public void CreateLlmMessage_ShouldReturnEvent_And_Not_Change_Thread()
+    public void CreateAssistantMessageAdded_ShouldReturnEvent_And_Not_Change_Thread()
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
@@ -439,7 +439,7 @@ public class ThreadTests
     }
 
     [Fact]
-    public void Rehydrate_ShouldSucceed_WithWrongRepliedToMessageOnLlmMessage()
+    public void Rehydrate_ShouldSucceed_WithWrongRepliedToMessageOAssistantMessage()
     {
         var threadId = ThreadIdentifier.NewIdentifier();
         var title = _fixture.Create<string>();
