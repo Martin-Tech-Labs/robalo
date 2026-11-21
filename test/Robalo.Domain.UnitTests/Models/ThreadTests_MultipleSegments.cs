@@ -481,4 +481,29 @@ public class ThreadTests_MultipleSegments
         thread2.Context.Single().OriginalMessageId.ShouldBe(originalMessageId);
         thread2.Context.Single().References.ValueOrFailure.ToList().ShouldBe(references);
     }
+
+    [Fact]
+    public void AddAssistantMessage_CanReply_To_MessageInExtendedContext()
+    {
+        var events = new List<MessageAdded>();
+        var thread = Thread.NewThread(_utcNow)
+            .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(1))
+            .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(2))
+            .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(3));
+
+        var messageId = thread.Context[^1].MessageId;
+
+        events.AddRange(thread.PendingEvents);
+        thread.MarkAggregateAsSynchronized();
+        thread.AddBreakMessage(_fixture.Create<string>(), _utcNow.AddSeconds(4));
+        thread.AddAssistantMessage(_fixture.Create<string>(), messageId, _utcNow.AddSeconds(5));
+
+        thread.Context[^1].RepliedToMessageId.ShouldBe(messageId);
+        (thread.PendingEvents[^1] as AssistantMessageAdded)!.RepliedToMessageId.ShouldBe(messageId);
+        events.AddRange(thread.PendingEvents);
+
+        thread.MarkAggregateAsSynchronized();
+        var thread2 = Thread.Rehydrate(thread.Id, thread.CreatedOn, thread.Title, thread.PersistedVersion.ValueOrFailure, events);
+        thread2.Context.ShouldBeEquivalentTo(thread.Context);
+    }
 }
