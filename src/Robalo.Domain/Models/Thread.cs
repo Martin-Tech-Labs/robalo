@@ -29,8 +29,6 @@ public sealed class Thread : AggregateRoot<Thread>
     Option<MessageIdentifier> _lastUserMessageId = None.Default;
     public bool IsAnswered { private set; get; }
 
-    public bool LastUserCopy { private set; get; }
-
     Thread(ThreadIdentifier id, Option<int> persistedVersion, DateTimeOffset createdOn) : base(id, persistedVersion)
     {
         CreatedOn = ModifiedOn = createdOn;
@@ -49,7 +47,6 @@ public sealed class Thread : AggregateRoot<Thread>
             _extendedContext.AddRange(_context);
             _context.Clear();
             IsAnswered = true;
-            LastUserCopy = false;
             ModifiedOn = @event.AddedOn;
             _lastUserMessageId = None.Default;
         });
@@ -59,7 +56,6 @@ public sealed class Thread : AggregateRoot<Thread>
             var message = ContextMessage.FromModel(@event);
             _context.Add(message);
             IsAnswered = false;
-            LastUserCopy = false;
             ModifiedOn = @event.AddedOn;
 
             _lastUserMessageId = message.MessageId;
@@ -70,9 +66,6 @@ public sealed class Thread : AggregateRoot<Thread>
             var message = ContextMessage.FromModel(@event);
             _context.Add(message);
             ModifiedOn = @event.AddedOn;
-
-            IsAnswered = IsAnswered || LastUserCopy;
-            LastUserCopy = false;
         });
 
         When<AssistantMessageCopied>(@event =>
@@ -80,10 +73,6 @@ public sealed class Thread : AggregateRoot<Thread>
             var message = ContextMessage.FromModel(@event);
             _context.Add(message);
             ModifiedOn = @event.AddedOn;
-
-
-            IsAnswered = IsAnswered || LastUserCopy;
-            LastUserCopy = false;
         });
 
         When<UserMessageCopied>(@event =>
@@ -91,12 +80,6 @@ public sealed class Thread : AggregateRoot<Thread>
             var message = ContextMessage.FromModel(@event);
             _context.Add(message);
             ModifiedOn = @event.AddedOn;
-
-            if (IsAnswered == true)
-            {
-                IsAnswered = false;
-                LastUserCopy = true;
-            }
         });
 
         When<SummaryMessageCopied>(@event =>
@@ -104,9 +87,6 @@ public sealed class Thread : AggregateRoot<Thread>
             var message = ContextMessage.FromModel(@event);
             _context.Add(message);
             ModifiedOn = @event.AddedOn;
-
-            IsAnswered = IsAnswered || LastUserCopy;
-            LastUserCopy = false;
         });
 
         When<AssistantMessageAdded>(@event =>
@@ -184,7 +164,7 @@ public sealed class Thread : AggregateRoot<Thread>
         return Apply(CreateUserMessageAdded(content, addedOn));
     }
 
-    public Thread CopyMessage(ContextMessage message, DateTimeOffset addedOn)
+    public Thread AddCopyOfMessage(ContextMessage message, DateTimeOffset addedOn)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(addedOn, ModifiedOn);
 
@@ -231,7 +211,7 @@ public sealed class Thread : AggregateRoot<Thread>
         return Apply(ev);
     }
 
-    public Thread AddSummaryMessage(string content, List<MessageIdentifier> messageIds, DateTimeOffset addedOn)
+    public Thread AddSummaryMessage(string content, IReadOnlyList<MessageIdentifier> messageIds, DateTimeOffset addedOn)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
         ArgumentOutOfRangeException.ThrowIfLessThan(addedOn, ModifiedOn);
@@ -240,6 +220,11 @@ public sealed class Thread : AggregateRoot<Thread>
         if (_extendedContext.Count == 0)
         {
             throw new InvalidOperationException("Copying of a message to a new segment after a break is only possible before the thread has been persisted.");
+        }
+
+        if (messageIds.Distinct().Count() != messageIds.Count)
+        {
+            throw new ArgumentException("Duplicate message ids", nameof(messageIds));
         }
 
         if (messageIds.Any(m => !_extendedContext.Any(e => e.MessageId == m)))

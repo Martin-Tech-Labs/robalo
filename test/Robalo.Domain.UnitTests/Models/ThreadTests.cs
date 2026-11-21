@@ -101,7 +101,7 @@ public class ThreadTests
         var thread = Thread.NewThread(createdOn);
 
         thread.AddUserMessage(_fixture.Create<string>(), createdOn.AddSeconds(1));
-        Should.Throw<ArgumentException>(() => thread.AddUserMessage(_fixture.Create<string>(), createdOn));
+        Should.Throw<ArgumentOutOfRangeException>(() => thread.AddUserMessage(_fixture.Create<string>(), createdOn));
     }
 
     [Fact]
@@ -134,7 +134,7 @@ public class ThreadTests
     }
 
     [Fact]
-    public void AddLlmMessage_ShouldThrowIfNoMessages()
+    public void AddAssistantMessageAdded_ShouldThrowIfNoMessages()
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
 
@@ -142,7 +142,7 @@ public class ThreadTests
     }
 
     [Fact]
-    public void CreateLlmMessageAdded_ShouldThrowIfNoMessages()
+    public void CreateAssistantMessageAdded_ShouldThrowIfNoMessages()
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
 
@@ -154,7 +154,7 @@ public class ThreadTests
     [Theory]
     [InlineData("")]
     [InlineData(" ")]
-    public void AddLlmMessage_ShouldThrowOnEmptyContent(string content)
+    public void AddAssistantMessageAdded_ShouldThrowOnEmptyContent(string content)
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
@@ -165,7 +165,7 @@ public class ThreadTests
     [Theory]
     [InlineData("")]
     [InlineData(" ")]
-    public void CreateLlmMessage_ShouldThrowOnEmptyContent(string content)
+    public void CreateAssistantMessageAdded_ShouldThrowOnEmptyContent(string content)
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
@@ -174,25 +174,25 @@ public class ThreadTests
     }
 
     [Fact]
-    public void AddLlmMessage_ShouldThrowOnInvalidDate()
+    public void AddAssistantMessageAdded_ShouldThrowOnInvalidDate()
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
 
-        Should.Throw<ArgumentException>(() => thread.AddAssistantMessage(_fixture.Create<string>(), thread.Context[0].MessageId, thread.CreatedOn.AddSeconds(-5)));
+        Should.Throw<ArgumentOutOfRangeException>(() => thread.AddAssistantMessage(_fixture.Create<string>(), thread.Context[0].MessageId, thread.CreatedOn.AddSeconds(-5)));
     }
 
     [Fact]
-    public void CreateLlmMessage_ShouldThrowOnInvalidDate()
+    public void CreateAssistantMessageAdded_ShouldThrowOnInvalidDate()
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
 
-        Should.Throw<ArgumentException>(() => thread.CreateAssistantMessageAdded(_fixture.Create<string>(), thread.Context[0].MessageId, thread.CreatedOn.AddSeconds(-5)));
+        Should.Throw<ArgumentOutOfRangeException>(() => thread.CreateAssistantMessageAdded(_fixture.Create<string>(), thread.Context[0].MessageId, thread.CreatedOn.AddSeconds(-5)));
     }
 
     [Fact]
-    public void AddLlmMessage_ShouldThrowOnInvalidRepliedToMessage()
+    public void AddAssistantMessageAdded_ShouldThrowOnInvalidRepliedToMessage()
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
@@ -202,7 +202,7 @@ public class ThreadTests
     }
 
     [Fact]
-    public void CreateLlmMessage_ShouldThrowOnInvalidRepliedToMessage()
+    public void CreateAssistantMessageAdded_ShouldThrowOnInvalidRepliedToMessage()
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
@@ -212,7 +212,7 @@ public class ThreadTests
     }
 
     [Fact]
-    public void CreateLlmMessage_ShouldReturnEvent_And_Not_Change_Thread()
+    public void CreateAssistantMessageAdded_ShouldReturnEvent_And_Not_Change_Thread()
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
@@ -229,7 +229,7 @@ public class ThreadTests
     }
 
     [Fact]
-    public void AddLlmMessage_ForSameUserMessage_ShouldCorrectlyUpdateContext()
+    public void AddAssistantMessageAdded_ForSameUserMessage_ShouldCorrectlyUpdateContext()
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
@@ -285,7 +285,7 @@ public class ThreadTests
     [Theory]
     [InlineData(0, false, 1)]
     [InlineData(1, true, 2)]
-    public void AddLlmMessage_ShouldUpdateContextCorrectly_And_Set_Answered_Correctly(int repliedToMessageIndex, bool isAnswered, int indexLLmMessage)
+    public void AddAssistantMessageAdded_ShouldUpdateContextCorrectly_And_Set_Answered_Correctly(int repliedToMessageIndex, bool isAnswered, int indexLLmMessage)
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         var content1 = _fixture.Create<string>();
@@ -340,7 +340,7 @@ public class ThreadTests
     }
 
     [Fact]
-    public void AddLlmMessage_ShouldNotAnsweredToFalse_IfWasTrue()
+    public void AddAssistantMessageAdded_ShouldNotAnsweredToFalse_IfWasTrue()
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
@@ -439,7 +439,7 @@ public class ThreadTests
     }
 
     [Fact]
-    public void Rehydrate_ShouldSucceed_WithWrongRepliedToMessageOnLlmMessage()
+    public void Rehydrate_ShouldSucceed_WithWrongRepliedToMessageOAssistantMessage()
     {
         var threadId = ThreadIdentifier.NewIdentifier();
         var title = _fixture.Create<string>();

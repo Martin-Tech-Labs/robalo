@@ -7,7 +7,7 @@ using Shouldly;
 
 namespace Robalo.Tests.Common;
 
-public static class Extensions
+public static class AssertionExtensions
 {
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static void ShouldBeEquivalentToWithGivenMessageIds(
