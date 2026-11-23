@@ -158,7 +158,7 @@ public sealed class SqliteThreadRepository : IThreadRepository
             SELECT *
             FROM ThreadEvents
             WHERE ThreadId = @ThreadId
-              AND MessageNumber > COALESCE(
+              AND MessageNumber >= COALESCE(
                   (SELECT MAX(MessageNumber)
                    FROM ThreadEvents
                    WHERE ThreadId = @ThreadId

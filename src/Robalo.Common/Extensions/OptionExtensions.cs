@@ -25,9 +25,6 @@ public static class OptionExtensions
 
     public static Option<T> Some<T>(this T value) where T : notnull => value;
 
-    public static Option<T> Some<T>(this T? value, Func<T, bool> predicate) where T : struct =>
-        value is not null && predicate(value.Value) ? value.Value : None.Default;
-
 #pragma warning disable CC001
     public static async Task<Option<T>> Some<T>(this Task<T> task) where T : notnull
     {
@@ -53,13 +50,6 @@ public static class OptionExtensions
         action(value.ValueOrFailure);
     }
 
-    public static T2 Match<T1, T2>(this Option<T1> value, Func<T1, T2> someFunc, Func<T2> noneFunc) where T1 : notnull =>
-        value switch
-        {
-            Some<T1> some => someFunc(some.Value),
-            None => noneFunc()
-        };
-
     public static T ValueOr<T>(this Option<T> value, T alternativeValue) where T : notnull =>
         value switch
         {
@@ -67,12 +57,6 @@ public static class OptionExtensions
             _ => alternativeValue
         };
 
-    public static T? ValueOrNull<T>(this Option<T> value) where T : notnull =>
-        value switch
-        {
-            Some<T> some => some,
-            _ => default(T?)
-        };
 
     public static string ValueOrString<T>(this Option<T> value, string alternativeValue) where T : notnull =>
         value switch

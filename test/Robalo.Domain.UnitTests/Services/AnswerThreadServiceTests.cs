@@ -92,6 +92,58 @@ public class AnswerThreadServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Answer_ShouldCorrectlyProcess_With_Break_Summary_AndCopyMessages()
+    {
+        var thread = Thread.NewThread(_utcNow);
+        thread.AddUserMessage(_fixture.Create<string>(), _utcNow)
+            .AddAssistantMessage(_fixture.Create<string>(), thread.Context[0].MessageId, _utcNow);
+        thread.MarkAggregateAsSynchronized();
+        thread.AddBreakMessage(_fixture.Create<string>(), _utcNow);
+        thread.AddSummaryMessage(_fixture.Create<string>(), thread.ExtendedContext.Select(c => c.MessageId).ToList(), _utcNow);
+        thread.AddCopyOfMessage(thread.ExtendedContext[0], _utcNow);
+        thread.AddCopyOfMessage(thread.ExtendedContext[1], _utcNow);
+        thread.MarkAggregateAsSynchronized();
+        thread.AddBreakMessage(_fixture.Create<string>(), _utcNow);
+        foreach (var msg in thread.ExtendedContext)
+        {
+            thread.AddCopyOfMessage(msg, _utcNow);
+        }
+        thread.AddUserMessage(_fixture.Create<string>(), _utcNow);
+        thread.MarkAggregateAsSynchronized();
+
+        _repository
+            .Setup(r => r.LoadThread(thread.Id, TestContext.Current.CancellationToken))
+            .ReturnsAsync(thread);
+
+        var result = await _sut.Answer(thread.Id, TestContext.Current.CancellationToken);
+
+        result.Value.ShouldBeOfType<Success>();
+
+        _llmClient.Verify(
+            l => l.GetResponse(It.Is<LlmRequest>(
+                r => r.Messages.Length == 4 &&
+                r.Messages[0].Content == thread.Context[0].Content &&
+                r.Messages[0].Source == MessageRole.Summary &&
+                r.Messages[1].Content == thread.Context[1].Content &&
+                r.Messages[1].Source == MessageRole.User &&
+                r.Messages[2].Content == thread.Context[2].Content &&
+                r.Messages[2].Source == MessageRole.Assistant &&
+                r.Messages[3].Content == thread.Context[3].Content &&
+                r.Messages[3].Source == MessageRole.User),
+            TestContext.Current.CancellationToken), Times.Once());
+        _llmClient.VerifyNoOtherCalls();
+
+        _repository.Verify(r => r.AppendEvent(thread.Id, It.Is<AssistantMessageAdded>(
+            l => l.AddedOn == _utcNow
+            && l.Content == _llmResponse.Content
+            && l.RepliedToMessageId == thread.Context[3].MessageId
+            && l.MessageId != l.RepliedToMessageId),
+            TestContext.Current.CancellationToken), Times.Once());
+
+        _repository.Verify(r => r.RefreshThread(thread, TestContext.Current.CancellationToken), Times.Once());
+    }
+
+    [Fact]
     public async Task Answer_ShouldReturnSuccess_IfThreadGotDeletedAfterLlmRequest()
     {
         var thread = Thread.NewThread(_utcNow.AddSeconds(-4))

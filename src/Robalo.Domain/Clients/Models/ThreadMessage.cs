@@ -11,6 +11,7 @@ public record ThreadMessage(string Content, MessageRole Source)
         {
             MessageRole.User => ChatMessage.CreateUserMessage(message.Content),
             MessageRole.Assistant => ChatMessage.CreateAssistantMessage(message.Content),
+            MessageRole.Summary => ChatMessage.CreateUserMessage(message.Content),
 
             _ => throw new ArgumentException(nameof(message.Source))
         };

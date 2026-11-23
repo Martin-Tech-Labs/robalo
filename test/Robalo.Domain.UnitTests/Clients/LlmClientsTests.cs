@@ -38,7 +38,8 @@ public class LlmClientsTests
         var llmRequest = new LlmRequest(
             new ThreadMessage(_fixture.Create<string>(), MessageRole.User),
             new ThreadMessage(_fixture.Create<string>(), MessageRole.Assistant),
-            new ThreadMessage(_fixture.Create<string>(), MessageRole.User));
+            new ThreadMessage(_fixture.Create<string>(), MessageRole.User),
+            new ThreadMessage(_fixture.Create<string>(), MessageRole.Summary));
 
         ConfigureResponse(expectedResponse);
 
@@ -46,13 +47,15 @@ public class LlmClientsTests
 
         _chatClient.Verify(c => c.CompleteChatAsync(
             It.Is<IEnumerable<ChatMessage>>(messages =>
-                messages.Count() == 3 &&
+                messages.Count() == 4 &&
                 messages.First() is UserChatMessage &&
                 messages.First().Content.Single().Text == llmRequest.Messages[0].Content &&
                 messages.ElementAt(1) is AssistantChatMessage &&
                 messages.ElementAt(1).Content.Single().Text == llmRequest.Messages[1].Content &&
                 messages.ElementAt(2) is UserChatMessage &&
-                messages.ElementAt(2).Content.Single().Text == llmRequest.Messages[2].Content),
+                messages.ElementAt(2).Content.Single().Text == llmRequest.Messages[2].Content &&
+                messages.ElementAt(3) is UserChatMessage &&
+                messages.ElementAt(3).Content.Single().Text == llmRequest.Messages[3].Content),
             It.IsAny<ChatCompletionOptions>(),
             TestContext.Current.CancellationToken),
             Times.Once);
@@ -169,7 +172,7 @@ public class LlmClientsTests
         newConfig.Value.Verify();
         _repository.Setup(r => r.LoadConfiguration(It.IsAny<CancellationToken>())).ReturnsAsync(newConfig);
 
-        await Task.Delay(100, TestContext.Current.CancellationToken);
+        await Task.Delay(1000, TestContext.Current.CancellationToken);
         smart1.Value.ShouldBe(smart2.Value);
         smart1.Value.ShouldNotBe(oldValue);
     }

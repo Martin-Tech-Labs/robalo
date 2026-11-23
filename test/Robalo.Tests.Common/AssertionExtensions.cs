@@ -26,16 +26,6 @@ public static class AssertionExtensions
         actual.ToList().ShouldBeEquivalentTo(newExpected);
     }
 
-    public static async Task ShouldBe<T>(this Task<T> actual, T expected) where T : notnull
-    {
-        (await actual).ShouldBe(expected);
-    }
-
-    public static async Task ShouldBe<T>(this Task<T> actual, Option<T> expected) where T : notnull
-    {
-        (await actual).ShouldBe(expected);
-    }
-
     public static async Task ShouldBeNone<T>(this Task<Option<T>> actual) where T : notnull
     {
         (await actual).ShouldBeNone();
@@ -58,27 +48,15 @@ public static class AssertionExtensions
             $"Expected {actual} to equal {expected}.");
     }
 
-    public static void ShouldNotBe<T>(this T actual, Option<T> expected) where T : notnull
-    {
-        (actual != expected).ShouldBeTrue(
-            $"Expected {actual} to differ from {expected}.");
-    }
-
-    public static void ShouldNotBe<T>(this Option<T> actual, T expected) where T : notnull
-    {
-        (actual != expected).ShouldBeTrue(
-            $"Expected {actual} to differ from {expected}.");
-    }
 
     public static void ShouldBeNone<T>(this Option<T> value) where T : notnull
     {
         (value is None).ShouldBeTrue($"Expected {value} to be None");
-    }
+    }    
 
     extension(It)
     {
         public static Option<TValue> IsNone<TValue>() where TValue : notnull =>
             It.Is<Option<TValue>>(o => o.IsNone);
-
     }
 }
