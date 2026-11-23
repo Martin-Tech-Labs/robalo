@@ -3,6 +3,7 @@ using Robalo.Common.Coordination;
 using Robalo.Common.Extensions;
 using Robalo.Common.Models;
 using Robalo.Domain.Models;
+using Robalo.Domain.Models.Events;
 using Robalo.Domain.Repositories.Sqlite;
 using Robalo.Domain.Repositories.Sqlite.Dto;
 using Serilog;
@@ -95,12 +96,13 @@ public class SqliteThreadRepositoryTests_MultipleSegments : IClassFixture<Databa
         var thread2 = (await _sut.LoadThread(thread.Id, TestContext.Current.CancellationToken)).ValueOrFailure;
         Assert.Equivalent(thread, thread2, strict: true);
         thread.Context.Select(c => c.MessageId).ShouldBeEquivalentTo(thread2.Context.Select(c => c.MessageId));
-    
+
     }
 
     [Fact]
-    public async Task ShouldCorrectly_Save_And_Load_SummaryMessage_AndCopyMessages()
+    public async Task ComplexTest_With_Save_Load_and_Get_Messages()
     {
+        var events = new List<MessageAdded>();
         var thread = Thread.NewThread(_utcNow)
             .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(1))
             .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(2));
@@ -108,6 +110,7 @@ public class SqliteThreadRepositoryTests_MultipleSegments : IClassFixture<Databa
         thread.AddAssistantMessage(_fixture.Create<string>(), thread.Context[0].MessageId, thread.ModifiedOn.AddSeconds(1));
 
         thread.ExtendedContext.ShouldBeEmpty();
+        events.AddRange(thread.PendingEvents);
         await _sut.SaveThread(thread, TestContext.Current.CancellationToken);
         var contextBeforeBreak = thread.Context.ToList();
         thread.AddBreakMessage(_fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1));
@@ -119,6 +122,7 @@ public class SqliteThreadRepositoryTests_MultipleSegments : IClassFixture<Databa
         thread.AddUserMessage(_fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1));
         thread.AddUserMessage(_fixture.Create<string>(), thread.ModifiedOn.AddSeconds(2));
         thread.AddAssistantMessage(_fixture.Create<string>(), thread.ExtendedContext[0].MessageId, thread.ModifiedOn.AddSeconds(3));
+        events.AddRange(thread.PendingEvents);
         await _sut.SaveThread(thread, TestContext.Current.CancellationToken);
         thread.ExtendedContext.ShouldBeEmpty();
         contextBeforeBreak = thread.Context.ToList();
@@ -129,10 +133,18 @@ public class SqliteThreadRepositoryTests_MultipleSegments : IClassFixture<Databa
             thread.AddCopyOfMessage(msg, thread.ModifiedOn.AddSeconds(1));
         }
         thread.AddSummaryMessage(_fixture.Create<string>(), new List<MessageIdentifier> { thread.ExtendedContext[0].MessageId }, thread.ModifiedOn.AddSeconds(1));
+        events.AddRange(thread.PendingEvents);
         await _sut.SaveThread(thread, TestContext.Current.CancellationToken);
+        Should.Throw<InvalidOperationException>((() => thread.AddSummaryMessage(_fixture.Create<string>(), contextBeforeBreak.Select(c => c.MessageId).ToList(), thread.ModifiedOn.AddSeconds(1))));
+        Should.Throw<InvalidOperationException>((() => thread.AddCopyOfMessage(contextBeforeBreak[0], thread.ModifiedOn.AddSeconds(1))));
+        Should.Throw<ArgumentException>((() => thread.AddAssistantMessage(_fixture.Create<string>(), contextBeforeBreak[0].MessageId, thread.ModifiedOn.AddSeconds(1))));
 
         var thread2 = (await _sut.LoadThread(thread.Id, TestContext.Current.CancellationToken)).ValueOrFailure;
         Assert.Equivalent(thread, thread2, strict: true);
         thread.Context.Select(c => c.MessageId).ShouldBeEquivalentTo(thread2.Context.Select(c => c.MessageId));
+
+        var messages = await (await _sut.GetMessages(thread.Id, TestContext.Current.CancellationToken)).ValueOrFailure.ToListAsync(TestContext.Current.CancellationToken);
+        var i = 0;
+        messages.ShouldBeEquivalentTo(events.Select(e => Message.FromModel(e, thread.Id, ++i)).ToList());
     }
 }
