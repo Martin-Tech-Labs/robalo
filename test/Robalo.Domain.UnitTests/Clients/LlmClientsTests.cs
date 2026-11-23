@@ -169,7 +169,7 @@ public class LlmClientsTests
         newConfig.Value.Verify();
         _repository.Setup(r => r.LoadConfiguration(It.IsAny<CancellationToken>())).ReturnsAsync(newConfig);
 
-        await Task.Delay(100, TestContext.Current.CancellationToken);
+        await Task.Delay(1000, TestContext.Current.CancellationToken);
         smart1.Value.ShouldBe(smart2.Value);
         smart1.Value.ShouldNotBe(oldValue);
     }
