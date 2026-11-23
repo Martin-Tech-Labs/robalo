@@ -7,14 +7,6 @@ namespace Robalo.Domain.Repositories.Sqlite;
 
 public static class Extensions
 {
-    public static IServiceCollection AddSqliteRepositories(this IServiceCollection services, ConfigurationManager configuration)
-    {
-        services.AddTransient<IThreadRepository, SqliteThreadRepository>();
-        services.AddTransient<IConfigurationRepository, SqliteConfigurationRepository>();
-
-        return services;
-    }
-
     public static void AddDapperTypeHandlers()
     {
         SqlMapper.RemoveTypeMap(typeof(DateTimeOffset));

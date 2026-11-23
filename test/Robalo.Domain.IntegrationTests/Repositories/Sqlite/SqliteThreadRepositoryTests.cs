@@ -30,7 +30,7 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
             Log.Logger,
             new SqliteConnectionFactory(Log.Logger, new(fixture.Database, fixture.Password)),
             _messageBus.Object);
-        Domain.Repositories.Sqlite.Extensions.AddDapperTypeHandlers();
+        Extensions.AddDapperTypeHandlers();
     }
 
 
