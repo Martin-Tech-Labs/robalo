@@ -100,6 +100,46 @@ public class SqliteThreadRepositoryTests_MultipleSegments : IClassFixture<Databa
     }
 
     [Fact]
+    public async Task RefreshThread_ShouldCorrectly_Handle_Segments()
+    {
+        var thread = Thread.NewThread(_utcNow)
+            .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(1))
+            .AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(2));
+        thread.AddAssistantMessage(_fixture.Create<string>(), thread.Context[0].MessageId, thread.ModifiedOn.AddSeconds(1));
+        await _sut.SaveThread(thread, TestContext.Current.CancellationToken);
+        var thread2 = (await _sut.LoadThread(thread.Id, TestContext.Current.CancellationToken)).ValueOrFailure;
+        thread2.AddBreakMessage(_fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1));
+        await _sut.SaveThread(thread2, TestContext.Current.CancellationToken);
+        await _sut.RefreshThread(thread, TestContext.Current.CancellationToken);
+        thread.ExtendedContext.ShouldBeEmpty();
+        thread.Context.ShouldBeEmpty();
+        thread.IsAnswered.ShouldBeTrue();
+        thread.ModifiedOn.ShouldBe(thread2.ModifiedOn);
+        Assert.Equivalent(thread2, thread, strict: true);
+        thread2.Context.Select(c => c.MessageId).ShouldBeEquivalentTo(thread.Context.Select(c => c.MessageId));
+        thread2.AddUserMessage(_fixture.Create<string>(), thread2.ModifiedOn.AddSeconds(1));
+        thread2.AddAssistantMessage(_fixture.Create<string>(), thread2.Context[0].MessageId, thread2.ModifiedOn.AddSeconds(1));
+        await _sut.SaveThread(thread2, TestContext.Current.CancellationToken);
+        thread2.AddBreakMessage(_fixture.Create<string>(), thread2.ModifiedOn.AddSeconds(1));
+        thread2.AddSummaryMessage(_fixture.Create<string>(), thread2.ExtendedContext.Select(m => m.MessageId).ToList(), thread2.ModifiedOn.AddSeconds(1));
+        foreach (var msg in thread2.ExtendedContext)
+        {
+            thread2.AddCopyOfMessage(msg, thread2.ModifiedOn.AddSeconds(1));
+        }
+
+        await _sut.SaveThread(thread2, TestContext.Current.CancellationToken);
+        thread2.AddBreakMessage(_fixture.Create<string>(), thread2.ModifiedOn.AddSeconds(1));
+        foreach (var msg in thread2.ExtendedContext)
+        {
+            thread2.AddCopyOfMessage(msg, thread2.ModifiedOn.AddSeconds(1));
+        }
+        await _sut.SaveThread(thread2, TestContext.Current.CancellationToken);
+        await _sut.RefreshThread(thread, TestContext.Current.CancellationToken);
+        Assert.Equivalent(thread2, thread, strict: true);
+        thread2.Context.Select(c => c.MessageId).ShouldBeEquivalentTo(thread.Context.Select(c => c.MessageId));
+    }
+
+    [Fact]
     public async Task ComplexTest_With_Save_Load_and_Get_Messages()
     {
         var events = new List<MessageAdded>();
