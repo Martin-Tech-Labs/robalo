@@ -28,12 +28,14 @@ public sealed class LlmClient : ILlmClient
         {
             var stopwatch = Stopwatch.StartNew();
 
-            var response = await _chatClient.Value.CompleteChatAsync(
+            var chatClient = _chatClient.Value;
+
+            var response = await chatClient.CompleteChatAsync(
                 messages: request.Messages.Select(ThreadMessage.ToChatMessage),
                 options: null,
                 cancellationToken: cancellationToken);
 
-                stopwatch.Stop();
+            stopwatch.Stop();
 
             var text = string.Concat(response.Value.Content.Select(c => c.Text));
             var completion = response.Value;
@@ -53,8 +55,11 @@ public sealed class LlmClient : ILlmClient
                 _logger.Error("LLM responded with empty content.");
                 return new ServiceError();
             }
-
-            return new LlmResponse(text);
+            return new LlmResponse(text, new LlmMetadata(
+                Endpoint: chatClient.Endpoint,
+                Model: chatClient.Model,
+                InputTokens: completion.Usage?.InputTokenCount,
+                OutputTokens: completion.Usage?.OutputTokenCount));
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

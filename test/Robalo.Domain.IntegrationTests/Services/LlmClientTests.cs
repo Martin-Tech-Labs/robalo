@@ -15,12 +15,14 @@ public class LlmClientTests
     [Fact]
     public async Task ShouldReturn_Success()
     {
+        var endpoint = new Uri("http://localhost:11500/v1/");
+        var model = "test-model";
         var client = new ChatClient(
-          model: "test-model",
+          model: model,
           credential: new ApiKeyCredential("test"),
           options: new OpenAI.OpenAIClientOptions
           {
-              Endpoint = new Uri("http://localhost:11500/v1/"),
+              Endpoint = endpoint,
           });
 
         var smart = new Mock<ISmart<ChatClient>>();
@@ -35,6 +37,12 @@ public class LlmClientTests
         result.Value.ShouldBeOfType<LlmResponse>();
 
         var llmResponse = (LlmResponse)result.Value;
+        llmResponse.Metadata.Endpoint.ShouldBe(endpoint);
+        llmResponse.Metadata.Model.ShouldBe(model);
+        llmResponse.Metadata.InputTokens.HasValue.ShouldBeTrue();
+        llmResponse.Metadata.OutputTokens.HasValue.ShouldBeTrue();
+        llmResponse.Metadata.InputTokens.Value.ShouldBeGreaterThan(0);
+        llmResponse.Metadata.OutputTokens.Value.ShouldBeGreaterThan(0);
         llmResponse.Content.ShouldNotBeNullOrEmpty();
     }
 
