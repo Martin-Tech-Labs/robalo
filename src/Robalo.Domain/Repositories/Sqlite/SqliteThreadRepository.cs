@@ -394,8 +394,8 @@ public sealed class SqliteThreadRepository : IThreadRepository
     {
         var rowsAffected = await connection.ExecuteAsync(
                         """
-                INSERT INTO ThreadEvents(ThreadId, MessageId, EventType, Content, RepliedToMessageId, ReferencedMessageIds, OriginalMessageId, CreatedOn, MessageNumber) 
-                VALUES(@ThreadId, @MessageId, @EventType, @Content, @RepliedToMessageId, @ReferencedMessageIds, @OriginalMessageId, @CreatedOn, @MessageNumber)
+                INSERT INTO ThreadEvents(ThreadId, MessageId, EventType, Content, RepliedToMessageId, ReferencedMessageIds, Tokens, PromptTokens, Model, OriginalMessageId, CreatedOn, MessageNumber) 
+                VALUES(@ThreadId, @MessageId, @EventType, @Content, @RepliedToMessageId, @ReferencedMessageIds, @Tokens, @PromptTokens, @Model, @OriginalMessageId, @CreatedOn, @MessageNumber)
                 """,
                        NumberedEventDto.FromEventDto(EventDto.FromModel(threadId, @event), messageNumber));
 

@@ -1,4 +1,5 @@
 using Robalo.Common.Extensions;
+using Robalo.Common.Models;
 using Robalo.Domain.Models;
 
 namespace Robalo.Domain.Models.Events;
@@ -13,4 +14,7 @@ public record AssistantMessageAdded(
     MessageIdentifier MessageId,
     string Content,
     MessageIdentifier RepliedToMessageId,
+    Option<int> Tokens,
+    Option<int> PromptTokens,
+    string Model,
     DateTimeOffset AddedOn) : MessageAdded(MessageId, Content, AddedOn);

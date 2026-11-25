@@ -2,6 +2,7 @@ using System.ClientModel;
 using Moq;
 using OpenAI.Chat;
 using Robalo.Common.Configuration;
+using Robalo.Common.Extensions;
 using Robalo.Common.Models;
 using Robalo.Domain.Clients;
 using Robalo.Domain.Clients.Models;
@@ -41,8 +42,8 @@ public class LlmClientTests
         llmResponse.Metadata.Model.ShouldBe(model);
         llmResponse.Metadata.InputTokens.HasValue.ShouldBeTrue();
         llmResponse.Metadata.OutputTokens.HasValue.ShouldBeTrue();
-        llmResponse.Metadata.InputTokens.Value.ShouldBeGreaterThan(0);
-        llmResponse.Metadata.OutputTokens.Value.ShouldBeGreaterThan(0);
+        llmResponse.Metadata.InputTokens.ValueOrFailure.ShouldBeGreaterThan(0);
+        llmResponse.Metadata.OutputTokens.ValueOrFailure.ShouldBeGreaterThan(0);
         llmResponse.Content.ShouldNotBeNullOrEmpty();
     }
 

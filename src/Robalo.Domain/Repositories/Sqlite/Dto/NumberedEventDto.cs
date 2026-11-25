@@ -16,7 +16,21 @@ public sealed record NumberedEventDto : EventDto
         string content,
         MessageIdentifier? repliedToMessageId,
         string? references,
-        DateTimeOffset createdOn) : base(threadId, messageId, originalMessageId, eventType, content, repliedToMessageId, references, createdOn)
+        int? inputTokens,
+        int? outputTokens,
+        string? model,
+        DateTimeOffset createdOn) : base(
+            threadId: threadId,
+            messageId: messageId,
+            originalMessageId: originalMessageId,
+            eventType: eventType,
+            content: content,
+            repliedToMessageId: repliedToMessageId,
+            referencedMessageIds: references,
+            promptTokens: inputTokens,
+            tokens: outputTokens,
+            model: model,
+            createdOn: createdOn)
     {
         MessageNumber = messageNumber;
     }
@@ -31,6 +45,9 @@ public sealed record NumberedEventDto : EventDto
             content: dto.Content ?? throw new ArgumentNullException(nameof(dto), nameof(dto.Content)),
             repliedToMessageId: dto.RepliedToMessageId,
             references: dto.ReferencedMessageIds,
+            inputTokens: dto.PromptTokens,
+            outputTokens: dto.Tokens,
+            model: dto.Model,
             createdOn: dto.CreatedOn,
             messageNumber: messageNumber);
 }

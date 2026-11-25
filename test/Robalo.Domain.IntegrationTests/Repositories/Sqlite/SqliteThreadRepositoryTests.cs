@@ -117,17 +117,17 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
         threadInfo.Title.ShouldBeNull();
         threadInfo.CreatedOn.ShouldBe(thread.CreatedOn);
         threadInfo.ModifiedOn.ShouldBe(thread.ModifiedOn);
-        threadInfo.Version.ShouldBe(thread.PersistedVersion);       
+        threadInfo.Version.ShouldBe(thread.PersistedVersion);
     }
 
-      [Fact]
+    [Fact]
     public async Task GetThreadInfo_ShouldRetrieveThreadInfo_OnThreadWithMessages()
     {
         var createdOn = _fixture.Create<DateTimeOffset>();
         var thread = Thread.NewThread(createdOn);
         thread.AddUserMessage(_fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1));
         thread.AddUserMessage(_fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1));
-        thread.AddAssistantMessage(_fixture.Create<string>(), thread.Context[0].MessageId, thread.ModifiedOn.AddSeconds(1));
+        thread.AddAssistantMessage(_fixture.Create<string>(), thread.Context[0].MessageId, _fixture.Create<int>(), _fixture.Create<int>(), _fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1));
         (await _sut.SaveThread(thread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
 
         var version = thread.PendingVersion;
@@ -140,7 +140,7 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
         threadInfo.Title.ShouldBeNull();
         threadInfo.CreatedOn.ShouldBe(createdOn);
         threadInfo.ModifiedOn.ShouldBe(createdOn.AddSeconds(3));
-        threadInfo.Version.ShouldBe(3);       
+        threadInfo.Version.ShouldBe(3);
     }
 
     [Fact]
@@ -266,14 +266,14 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
         var event3 = new UserMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), newThread.CreatedOn.AddSeconds(2));
         newThread.AddUserMessage(event3.Content, event3.AddedOn);
 
-        var event4 = new AssistantMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), newThread.Context[^1].MessageId, newThread.CreatedOn.AddSeconds(3));
-        newThread.AddAssistantMessage(event4.Content, newThread.Context[^1].MessageId, event4.AddedOn);
+        var event4 = new AssistantMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), newThread.Context[^1].MessageId, _fixture.Create<int>(), _fixture.Create<int>(), _fixture.Create<string>(), newThread.CreatedOn.AddSeconds(3));
+        newThread.AddAssistantMessage(event4.Content, newThread.Context[^1].MessageId, event4.PromptTokens, event4.Tokens, event4.Model, event4.AddedOn);
 
         var event5 = new UserMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), newThread.CreatedOn.AddSeconds(4));
         newThread.AddUserMessage(event5.Content, event5.AddedOn);
 
-        var event6 = new AssistantMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), newThread.Context[^1].MessageId, newThread.CreatedOn.AddSeconds(5));
-        newThread.AddAssistantMessage(event6.Content, newThread.Context[^1].MessageId, event6.AddedOn);
+        var event6 = new AssistantMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), newThread.Context[^1].MessageId, _fixture.Create<int>(), _fixture.Create<int>(), _fixture.Create<string>(), newThread.CreatedOn.AddSeconds(5));
+        newThread.AddAssistantMessage(event6.Content, newThread.Context[^1].MessageId, event6.PromptTokens, event6.Tokens, event6.Model, event6.AddedOn);
 
         var events = new MessageAdded[] { event1, event2, event3, event4, event5, event6 };
 
@@ -296,11 +296,16 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
             {
                 thread.Context[i].Role.ShouldBe(Models.MessageRole.User);
                 thread.Context[i].RepliedToMessageId.ShouldBeNone();
+                thread.Context[i].PromptTokens.ShouldBeNone();
+                thread.Context[i].Model.ShouldBeNone();
             }
             else if (events[i] is AssistantMessageAdded llmMessageAdded)
             {
                 thread.Context[i].Role.ShouldBe(Models.MessageRole.Assistant);
                 thread.Context[i].RepliedToMessageId.ShouldBe(llmMessageAdded.RepliedToMessageId, $"{i}");
+                thread.Context[i].Tokens.ShouldBe(llmMessageAdded.Tokens);
+                thread.Context[i].PromptTokens.ShouldBe(llmMessageAdded.PromptTokens);
+                thread.Context[i].Model.ShouldBe(llmMessageAdded.Model);
             }
             else
             {
@@ -358,7 +363,7 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
         thread.ForEach(expectedMessages, (t, e) => thread.AddUserMessage(e.Content, e.CreatedOn));
 
         expectedMessages.Add(new(thread.Id, MessageIdentifier.NewIdentifier(), None.Default, 4, nameof(AssistantMessageAdded), _fixture.Create<string>(), thread.Context[^1].MessageId, thread.CreatedOn.AddSeconds(4)));
-        thread.AddAssistantMessage(expectedMessages[^1].Content, thread.Context[^1].MessageId, expectedMessages[^1].CreatedOn);
+        thread.AddAssistantMessage(expectedMessages[^1].Content, thread.Context[^1].MessageId, _fixture.Create<int>(), _fixture.Create<int>(), _fixture.Create<string>(), expectedMessages[^1].CreatedOn);
 
 
         for (var i = 0; i < thread.PendingEvents.Count; i++)
@@ -471,7 +476,7 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
 
         thread.ForEach(expectedMessages, (t, e) => thread.AddUserMessage(e.Content, e.CreatedOn));
         expectedMessages.Add(new(thread.Id, MessageIdentifier.NewIdentifier(), None.Default, 4, nameof(AssistantMessageAdded), _fixture.Create<string>(), expectedMessages[^1].MessageId, thread.ModifiedOn.AddSeconds(4)));
-        thread.AddAssistantMessage(expectedMessages[^1].Content, thread.Context[^1].MessageId, expectedMessages[^1].CreatedOn);
+        thread.AddAssistantMessage(expectedMessages[^1].Content, thread.Context[^1].MessageId, _fixture.Create<int>(), _fixture.Create<int>(), _fixture.Create<string>(), expectedMessages[^1].CreatedOn);
 
         for (var i = 0; i < thread.PendingEvents.Count; i++)
         {
@@ -776,7 +781,7 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
         var messageId1 = thread.PendingEvents[0].MessageId;
         (await _sut.SaveThread(thread, TestContext.Current.CancellationToken)).Value.ShouldBeOfType<Created>();
 
-        thread.AddAssistantMessage(message3, thread.Context[0].MessageId, _utcNow);
+        thread.AddAssistantMessage(message3, thread.Context[0].MessageId, _fixture.Create<int>(), _fixture.Create<int>(), _fixture.Create<string>(), _utcNow);
 
         thread.IsAnswered.ShouldBeTrue();
         var messageId3 = thread.PendingEvents[0].MessageId;
@@ -883,7 +888,7 @@ public class SqliteThreadRepositoryTests : IClassFixture<DatabaseFixture>
         var thread = Thread.NewThread(_utcNow);
         thread.AddUserMessage(message1, _utcNow);
         var messageId1 = thread.PendingEvents[^1].MessageId;
-        thread.AddAssistantMessage(message2, thread.Context.Single().MessageId, _utcNow);
+        thread.AddAssistantMessage(message2, thread.Context.Single().MessageId, _fixture.Create<int>(), _fixture.Create<int>(), _fixture.Create<string>(), _utcNow);
         var messageId2 = thread.PendingEvents[^1].MessageId;
         thread.IsAnswered.ShouldBeTrue();
         await _sut.SaveThread(thread, TestContext.Current.CancellationToken);

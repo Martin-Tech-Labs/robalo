@@ -10,6 +10,9 @@ public record ContextMessage(
     MessageRole Role,
     string Content,
     Option<MessageIdentifier> RepliedToMessageId,
+    Option<int> Tokens,
+    Option<int> PromptTokens,
+    Option<string> Model,
     Option<IReadOnlyList<MessageIdentifier>> References)
 {
     public static ContextMessage FromModel(MessageAdded messageAdded)
@@ -33,6 +36,9 @@ public record ContextMessage(
                 Role: MessageRole.User,
                 Content: e.Content,
                 RepliedToMessageId: None.Default,
+                Model: None.Default,
+                Tokens: None.Default,
+                PromptTokens: None.Default,
                 References: None.Default);
         }
 
@@ -44,6 +50,9 @@ public record ContextMessage(
                 Role: MessageRole.User,
                 Content: e.Content,
                 RepliedToMessageId: None.Default,
+                Model: None.Default,
+                Tokens: None.Default,
+                PromptTokens: None.Default,
                 References: None.Default);
         }
 
@@ -55,6 +64,9 @@ public record ContextMessage(
                 Role: MessageRole.Summary,
                 Content: e.Content,
                 RepliedToMessageId: None.Default,
+                Model: e.Model,
+                Tokens: e.Tokens,
+                PromptTokens: None.Default,
                 References: e.References.Some());
         }
 
@@ -66,6 +78,9 @@ public record ContextMessage(
                 Role: MessageRole.Summary,
                 Content: e.Content,
                 RepliedToMessageId: None.Default,
+                Model: e.Model,
+                Tokens: e.Tokens,
+                PromptTokens: None.Default,
                 References: e.References.Some());
         }
 
@@ -77,6 +92,9 @@ public record ContextMessage(
                 Role: MessageRole.Assistant,
                 Content: e.Content,
                 RepliedToMessageId: e.RepliedToMessageId.AsOption(),
+                Model: e.Model,
+                Tokens: e.Tokens,
+                PromptTokens: e.PromptTokens,
                 References: None.Default);
         }
 
@@ -88,6 +106,9 @@ public record ContextMessage(
                 Role: MessageRole.Assistant,
                 Content: e.Content,
                 RepliedToMessageId: e.RepliedToMessageId.AsOption(),
+                Model: e.Model,
+                Tokens: e.Tokens,
+                PromptTokens: None.Default,
                 References: None.Default);
         }
     }

@@ -14,6 +14,10 @@ public record EventDto
     public MessageIdentifier? RepliedToMessageId { set; get; }
     public string? ReferencedMessageIds { set; get; }
     public MessageIdentifier? OriginalMessageId { set; get; }
+    public int? PromptTokens { set; get; }
+    public int? Tokens { set; get; }
+    public string? Model { set; get; }
+
     public DateTimeOffset CreatedOn { set; get; }
 
     public EventDto() { }
@@ -26,6 +30,9 @@ public record EventDto
         string content,
         MessageIdentifier? repliedToMessageId,
         string? referencedMessageIds,
+        int? promptTokens,
+        int? tokens,
+        string? model,
         DateTimeOffset createdOn)
     {
         ThreadId = threadId;
@@ -36,6 +43,9 @@ public record EventDto
         RepliedToMessageId = repliedToMessageId;
         CreatedOn = createdOn;
         ReferencedMessageIds = referencedMessageIds;
+        PromptTokens = promptTokens;
+        Tokens = tokens;
+        Model = model;
     }
 
     public static MessageAdded ToModel(EventDto dto)
@@ -84,6 +94,9 @@ public record EventDto
                 MessageId: dto.MessageId ?? throw new ArgumentNullException(nameof(dto), nameof(dto.MessageId)),
                 Content: dto.Content ?? throw new ArgumentNullException(nameof(dto), nameof(dto.Content)),
                 RepliedToMessageId: dto.RepliedToMessageId!,
+                Tokens: dto.Tokens.SomeIf(v => v > 0),
+                PromptTokens: dto.PromptTokens.SomeIf(v => v > 0),
+                Model: dto.Model!,
                 AddedOn: dto.CreatedOn);
         }
 
@@ -94,6 +107,8 @@ public record EventDto
                 OriginalMessageId: dto.OriginalMessageId ?? throw new ArgumentNullException(nameof(dto), nameof(dto.OriginalMessageId)),
                 Content: dto.Content ?? throw new ArgumentNullException(nameof(dto), nameof(dto.Content)),
                 RepliedToMessageId: dto.RepliedToMessageId!,
+                Tokens: dto.Tokens.SomeIf(v => v > 0),
+                Model: dto.Model!,
                 AddedOn: dto.CreatedOn);
         }
 
@@ -103,6 +118,8 @@ public record EventDto
                 MessageId: dto.MessageId ?? throw new ArgumentNullException(nameof(dto), nameof(dto.MessageId)),
                 Content: dto.Content ?? throw new ArgumentNullException(nameof(dto), nameof(dto.Content)),
                 References: dto.ReferencedMessageIds!.Split(',').Select(MessageIdentifier.FromIdString).ToList(),
+                Tokens: dto.Tokens.SomeIf(v => v > 0),
+                Model: dto.Model!,
                 AddedOn: dto.CreatedOn);
         }
 
@@ -113,6 +130,8 @@ public record EventDto
                 OriginalMessageId: dto.OriginalMessageId ?? throw new ArgumentNullException(nameof(dto), nameof(dto.OriginalMessageId)),
                 Content: dto.Content ?? throw new ArgumentNullException(nameof(dto), nameof(dto.Content)),
                 References: dto.ReferencedMessageIds!.Split(',').Select(MessageIdentifier.FromIdString).ToList(),
+                Tokens: dto.Tokens.SomeIf(v => v > 0),
+                Model: dto.Model!,
                 AddedOn: dto.CreatedOn);
         }
     }
@@ -127,6 +146,9 @@ public record EventDto
            content: userMessageAdded.Content,
            repliedToMessageId: null,
            referencedMessageIds: null,
+           promptTokens: null,
+           tokens: null,
+           model: null,
            createdOn: userMessageAdded.AddedOn),
 
         UserMessageCopied userMessageCopied => new EventDto(
@@ -137,6 +159,9 @@ public record EventDto
             content: userMessageCopied.Content,
             repliedToMessageId: null,
             referencedMessageIds: null,
+            promptTokens: null,
+            tokens: null,
+            model: null,
             createdOn: userMessageCopied.AddedOn),
 
         AssistantMessageAdded assistantMessageAdded => new EventDto(
@@ -147,6 +172,9 @@ public record EventDto
            content: assistantMessageAdded.Content,
            repliedToMessageId: assistantMessageAdded.RepliedToMessageId,
            referencedMessageIds: null,
+           promptTokens: assistantMessageAdded.PromptTokens.ValueOr(default),
+           tokens: assistantMessageAdded.Tokens.ValueOr(default),
+           model: assistantMessageAdded.Model,
            createdOn: assistantMessageAdded.AddedOn),
 
         AssistantMessageCopied assistantMessageCopied => new EventDto(
@@ -157,6 +185,9 @@ public record EventDto
            content: assistantMessageCopied.Content,
            repliedToMessageId: assistantMessageCopied.RepliedToMessageId,
            referencedMessageIds: null,
+           promptTokens: null,
+           tokens: assistantMessageCopied.Tokens.ValueOr(default),
+           model: assistantMessageCopied.Model,
            createdOn: assistantMessageCopied.AddedOn),
 
         BreakMessageAdded breakMessageAdded => new EventDto(
@@ -167,6 +198,9 @@ public record EventDto
            content: breakMessageAdded.Content,
            repliedToMessageId: null,
            referencedMessageIds: null,
+           promptTokens: null,
+           tokens: null,
+           model: null,
            createdOn: breakMessageAdded.AddedOn),
 
         SummaryMessageAdded summaryMessageAdded => new EventDto(
@@ -177,6 +211,9 @@ public record EventDto
             content: summaryMessageAdded.Content,
             repliedToMessageId: null,
             referencedMessageIds: string.Join(",", summaryMessageAdded.References),
+            promptTokens: null,
+            tokens: summaryMessageAdded.Tokens.ValueOr(default),
+            model: summaryMessageAdded.Model,
             createdOn: summaryMessageAdded.AddedOn),
 
         SummaryMessageCopied summaryMessageCopied => new EventDto(
@@ -187,6 +224,9 @@ public record EventDto
             content: summaryMessageCopied.Content,
             repliedToMessageId: null,
             referencedMessageIds: string.Join(",", summaryMessageCopied.References),
+            promptTokens: null,
+            tokens: summaryMessageCopied.Tokens.ValueOr(default),
+            model: summaryMessageCopied.Model,
             createdOn: summaryMessageCopied.AddedOn)
     };
 }

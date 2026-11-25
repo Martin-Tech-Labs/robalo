@@ -58,8 +58,8 @@ public sealed class LlmClient : ILlmClient
             return new LlmResponse(text, new LlmMetadata(
                 Endpoint: chatClient.Endpoint,
                 Model: chatClient.Model,
-                InputTokens: completion.Usage?.InputTokenCount,
-                OutputTokens: completion.Usage?.OutputTokenCount));
+                InputTokens: (completion.Usage?.InputTokenCount).SomeIf(v => v > 0),
+                OutputTokens: (completion.Usage?.OutputTokenCount).SomeIf(v => v > 0)));
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

@@ -51,7 +51,7 @@ public class ThreadStreamingProvider_GetAllCheckpointsTests : IDisposable
         await _repository.SaveThread(t2, TestContext.Current.CancellationToken);
 
         var t3 = Thread.NewThread(_utcNow).AddUserMessage(_fixture.Create<string>(), _utcNow);
-        t3.AddAssistantMessage(_fixture.Create<string>(), t3.Context[0].MessageId, _utcNow);
+        t3.AddAssistantMessage(_fixture.Create<string>(), t3.Context[0].MessageId, _fixture.Create<int>(), _fixture.Create<int>(), _fixture.Create<string>(), _utcNow);
         await _repository.SaveThread(t3, TestContext.Current.CancellationToken);
 
         var t4 = Thread.NewThread(_utcNow).AddUserMessage(_fixture.Create<string>(), _utcNow);

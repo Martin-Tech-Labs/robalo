@@ -32,6 +32,15 @@ public static class OptionExtensions
     }
 #pragma warning restore
 
+    public static Option<T> SomeIf<T>(this T? valueOrNull, Func<T, bool> predicate) where T : struct
+    {
+        if (valueOrNull is T value)
+        {
+            return predicate(value) ? value : None.Default;
+        }
+
+        return None.Default;
+    }
 
     public static T2? FuncOrDefault<T1, T2>(this Option<T1> value, Func<T1, T2> func) where T1 : notnull =>
          value switch
