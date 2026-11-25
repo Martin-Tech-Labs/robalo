@@ -138,7 +138,7 @@ public class ThreadTests
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
 
-        Should.Throw<InvalidOperationException>(() => thread.AddAssistantMessage(_fixture.Create<string>(), MessageIdentifier.NewIdentifier(), thread.CreatedOn));
+        Should.Throw<InvalidOperationException>(() => thread.AddAssistantMessage(_fixture.Create<string>(), MessageIdentifier.NewIdentifier(), None.Default, None.Default, _fixture.Create<string>(), thread.CreatedOn));
     }
 
     [Fact]
@@ -146,7 +146,7 @@ public class ThreadTests
     {
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
 
-        Should.Throw<InvalidOperationException>(() => thread.CreateAssistantMessageAdded(_fixture.Create<string>(), MessageIdentifier.NewIdentifier(), thread.CreatedOn));
+        Should.Throw<InvalidOperationException>(() => thread.CreateAssistantMessageAdded(_fixture.Create<string>(), MessageIdentifier.NewIdentifier(), None.Default, None.Default, _fixture.Create<string>(), thread.CreatedOn));
     }
 
 
@@ -159,7 +159,7 @@ public class ThreadTests
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
 
-        Should.Throw<ArgumentException>(() => thread.AddAssistantMessage(content, thread.Context[0].MessageId, thread.CreatedOn));
+        Should.Throw<ArgumentException>(() => thread.AddAssistantMessage(content, thread.Context[0].MessageId, None.Default, None.Default, _fixture.Create<string>(), thread.CreatedOn));
     }
 
     [Theory]
@@ -170,8 +170,38 @@ public class ThreadTests
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
 
-        Should.Throw<ArgumentException>(() => thread.CreateAssistantMessageAdded(content, thread.Context[0].MessageId, thread.CreatedOn));
+        Should.Throw<ArgumentException>(() => thread.CreateAssistantMessageAdded(content, thread.Context[0].MessageId, None.Default, None.Default, _fixture.Create<string>(), thread.CreatedOn));
     }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void CreateAssistantMessageAdded_ShouldThrowOnEmptyModel(string model)
+    {
+        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
+        thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
+
+        Should.Throw<ArgumentException>(() => thread.CreateAssistantMessageAdded(_fixture.Create<string>(), thread.Context[0].MessageId, None.Default, None.Default, model, thread.CreatedOn));
+    }
+
+    [Fact]
+    public void CreateAssistantMessageAdded_ShouldThrowOnInvalidTokens()
+    {
+        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
+        thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
+
+        Should.Throw<ArgumentOutOfRangeException>(() => thread.CreateAssistantMessageAdded(_fixture.Create<string>(), thread.Context[0].MessageId, None.Default, 0, _fixture.Create<string>(), thread.CreatedOn));
+    }
+
+    [Fact]
+    public void CreateAssistantMessageAdded_ShouldThrowOnInvalidPromptTokens()
+    {
+        var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
+        thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
+
+        Should.Throw<ArgumentOutOfRangeException>(() => thread.CreateAssistantMessageAdded(_fixture.Create<string>(), thread.Context[0].MessageId, 0, None.Default, _fixture.Create<string>(), thread.CreatedOn));
+    }
+
 
     [Fact]
     public void AddAssistantMessageAdded_ShouldThrowOnInvalidDate()
@@ -179,7 +209,7 @@ public class ThreadTests
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
 
-        Should.Throw<ArgumentOutOfRangeException>(() => thread.AddAssistantMessage(_fixture.Create<string>(), thread.Context[0].MessageId, thread.CreatedOn.AddSeconds(-5)));
+        Should.Throw<ArgumentOutOfRangeException>(() => thread.AddAssistantMessage(_fixture.Create<string>(), thread.Context[0].MessageId, None.Default, None.Default, _fixture.Create<string>(), thread.CreatedOn.AddSeconds(-5)));
     }
 
     [Fact]
@@ -188,7 +218,7 @@ public class ThreadTests
         var thread = Thread.NewThread(_fixture.Create<DateTimeOffset>());
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
 
-        Should.Throw<ArgumentOutOfRangeException>(() => thread.CreateAssistantMessageAdded(_fixture.Create<string>(), thread.Context[0].MessageId, thread.CreatedOn.AddSeconds(-5)));
+        Should.Throw<ArgumentOutOfRangeException>(() => thread.CreateAssistantMessageAdded(_fixture.Create<string>(), thread.Context[0].MessageId, None.Default, None.Default, _fixture.Create<string>(), thread.CreatedOn.AddSeconds(-5)));
     }
 
     [Fact]
@@ -198,7 +228,7 @@ public class ThreadTests
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
 
-        Should.Throw<ArgumentException>(() => thread.AddAssistantMessage(_fixture.Create<string>(), MessageIdentifier.NewIdentifier(), thread.CreatedOn));
+        Should.Throw<ArgumentException>(() => thread.AddAssistantMessage(_fixture.Create<string>(), MessageIdentifier.NewIdentifier(), None.Default, None.Default, _fixture.Create<string>(), thread.CreatedOn));
     }
 
     [Fact]
@@ -208,7 +238,7 @@ public class ThreadTests
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
 
-        Should.Throw<ArgumentException>(() => thread.CreateAssistantMessageAdded(_fixture.Create<string>(), MessageIdentifier.NewIdentifier(), thread.CreatedOn));
+        Should.Throw<ArgumentException>(() => thread.CreateAssistantMessageAdded(_fixture.Create<string>(), MessageIdentifier.NewIdentifier(), None.Default, None.Default, _fixture.Create<string>(), thread.CreatedOn));
     }
 
     [Fact]
@@ -221,7 +251,7 @@ public class ThreadTests
         var content = _fixture.Create<string>();
         var addedOn = thread.CreatedOn.AddSeconds(5);
 
-        var result = thread.CreateAssistantMessageAdded(content, thread.Context[^1].MessageId, addedOn);
+        var result = thread.CreateAssistantMessageAdded(content, thread.Context[^1].MessageId, None.Default, None.Default, _fixture.Create<string>(), addedOn);
         result.AddedOn.ShouldBe(addedOn);
         result.Content.ShouldBe(content);
         thread.PersistedVersion.ShouldBe(thread.PendingVersion);
@@ -238,32 +268,32 @@ public class ThreadTests
         var u2 = thread.PendingEvents[^1].MessageId;
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
         var u3 = thread.PendingEvents[^1].MessageId;
-        thread.AddAssistantMessage(_fixture.Create<string>(), u1, thread.CreatedOn);
+        thread.AddAssistantMessage(_fixture.Create<string>(), u1, _fixture.Create<int>(), _fixture.Create<int>(), _fixture.Create<string>(), thread.CreatedOn);
         var l1_u1 = thread.PendingEvents[^1].MessageId;
-        thread.AddAssistantMessage(_fixture.Create<string>(), u1, thread.CreatedOn);
+        thread.AddAssistantMessage(_fixture.Create<string>(), u1, _fixture.Create<int>(), _fixture.Create<int>(), _fixture.Create<string>(), thread.CreatedOn);
         var l2_u1 = thread.PendingEvents[^1].MessageId;
-        thread.AddAssistantMessage(_fixture.Create<string>(), u1, thread.CreatedOn);
+        thread.AddAssistantMessage(_fixture.Create<string>(), u1, _fixture.Create<int>(), _fixture.Create<int>(), _fixture.Create<string>(), thread.CreatedOn);
         var l3_u1 = thread.PendingEvents[^1].MessageId;
-        thread.AddAssistantMessage(_fixture.Create<string>(), l2_u1, thread.CreatedOn);
+        thread.AddAssistantMessage(_fixture.Create<string>(), l2_u1, _fixture.Create<int>(), _fixture.Create<int>(), _fixture.Create<string>(), thread.CreatedOn);
         var l1_l2 = thread.PendingEvents[^1].MessageId;
-        thread.AddAssistantMessage(_fixture.Create<string>(), l2_u1, thread.CreatedOn);
+        thread.AddAssistantMessage(_fixture.Create<string>(), l2_u1, _fixture.Create<int>(), _fixture.Create<int>(), _fixture.Create<string>(), thread.CreatedOn);
         var l2_l2 = thread.PendingEvents[^1].MessageId;
 
         thread.Context.Select(c => c.MessageId).ShouldBe(new[] { u1, l1_u1, l2_u1, l1_l2, l2_l2, l3_u1, u2, u3 }.AsEnumerable());
         thread.IsAnswered.ShouldBeFalse();
 
-        thread.AddAssistantMessage(_fixture.Create<string>(), u3, thread.CreatedOn);
+        thread.AddAssistantMessage(_fixture.Create<string>(), u3, _fixture.Create<int>(), _fixture.Create<int>(), _fixture.Create<string>(), thread.CreatedOn);
         var l1_u3 = thread.PendingEvents[^1].MessageId;
         thread.IsAnswered.ShouldBeTrue();
         thread.Context.Select(c => c.MessageId).ShouldBe(new[] { u1, l1_u1, l2_u1, l1_l2, l2_l2, l3_u1, u2, u3, l1_u3 }.AsEnumerable());
 
-        thread.AddAssistantMessage(_fixture.Create<string>(), u3, thread.CreatedOn);
+        thread.AddAssistantMessage(_fixture.Create<string>(), u3, _fixture.Create<int>(), _fixture.Create<int>(), _fixture.Create<string>(), thread.CreatedOn);
         var l2_u3 = thread.PendingEvents[^1].MessageId;
 
-        thread.AddAssistantMessage(_fixture.Create<string>(), u2, thread.CreatedOn);
+        thread.AddAssistantMessage(_fixture.Create<string>(), u2, _fixture.Create<int>(), _fixture.Create<int>(), _fixture.Create<string>(), thread.CreatedOn);
         var l1_u2 = thread.PendingEvents[^1].MessageId;
 
-        thread.AddAssistantMessage(_fixture.Create<string>(), l1_u3, thread.CreatedOn);
+        thread.AddAssistantMessage(_fixture.Create<string>(), l1_u3, _fixture.Create<int>(), _fixture.Create<int>(), _fixture.Create<string>(), thread.CreatedOn);
         var l1_l1_u3 = thread.PendingEvents[^1].MessageId;
 
         thread.IsAnswered.ShouldBeTrue();
@@ -295,9 +325,12 @@ public class ThreadTests
 
         var versionBeforeLlmMessage = thread.PendingVersion;
         var content = _fixture.Create<string>();
+        var tokens = _fixture.Create<int>();
+        var promptTokens = _fixture.Create<int>();
+        var model = _fixture.Create<string>();
         var addedOn = thread.CreatedOn.AddSeconds(1);
 
-        thread.AddAssistantMessage(content, thread.Context[repliedToMessageIndex].MessageId, addedOn);
+        thread.AddAssistantMessage(content, thread.Context[repliedToMessageIndex].MessageId, promptTokens, tokens, model, addedOn);
 
         thread.IsAnswered.ShouldBe(isAnswered);
         thread.Context.Count.ShouldBe(3);
@@ -312,6 +345,9 @@ public class ThreadTests
         var event3 = (AssistantMessageAdded)thread.PendingEvents[2];
         event3.AddedOn.ShouldBe(addedOn);
         event3.Content.ShouldBe(content);
+        event3.Model.ShouldBe(model);
+        event3.Tokens.ShouldBe(tokens);
+        event3.PromptTokens.ShouldBe(promptTokens);
         event3.RepliedToMessageId.ShouldBe(thread.Context[repliedToMessageIndex].MessageId);
 
         thread.Context.Count.ShouldBe(3);
@@ -320,6 +356,9 @@ public class ThreadTests
         thread.Context[indexLLmMessage].Role.ShouldBe(MessageRole.Assistant);
         thread.Context[indexLLmMessage].RepliedToMessageId.ShouldBe(thread.Context[repliedToMessageIndex].MessageId);
         thread.Context[indexLLmMessage].MessageId.ShouldBe(thread.PendingEvents[2].MessageId);
+        thread.Context[indexLLmMessage].Tokens.ShouldBe(event3.Tokens);
+        thread.Context[indexLLmMessage].PromptTokens.ShouldBe(event3.PromptTokens);
+        thread.Context[indexLLmMessage].Model.ShouldBe(event3.Model);
 
         thread.Context.First(f => f.Role == MessageRole.User).Content.ShouldBe(content1);
         thread.Context.Last(f => f.Role == MessageRole.User).Content.ShouldBe(content2);
@@ -332,7 +371,7 @@ public class ThreadTests
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
         thread.IsAnswered.ShouldBeFalse();
 
-        thread.AddAssistantMessage(_fixture.Create<string>(), thread.Context[0].MessageId, thread.CreatedOn);
+        thread.AddAssistantMessage(_fixture.Create<string>(), thread.Context[0].MessageId, _fixture.Create<int>(), _fixture.Create<int>(), _fixture.Create<string>(), thread.CreatedOn);
         thread.IsAnswered.ShouldBeTrue();
 
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
@@ -347,10 +386,10 @@ public class ThreadTests
         thread.AddUserMessage(_fixture.Create<string>(), thread.CreatedOn);
         thread.IsAnswered.ShouldBeFalse();
 
-        thread.AddAssistantMessage(_fixture.Create<string>(), thread.Context[1].MessageId, thread.CreatedOn);
+        thread.AddAssistantMessage(_fixture.Create<string>(), thread.Context[1].MessageId, _fixture.Create<int>(), _fixture.Create<int>(), _fixture.Create<string>(), thread.CreatedOn);
         thread.IsAnswered.ShouldBeTrue();
 
-        thread.AddAssistantMessage(_fixture.Create<string>(), thread.Context[0].MessageId, thread.CreatedOn);
+        thread.AddAssistantMessage(_fixture.Create<string>(), thread.Context[0].MessageId, _fixture.Create<int>(), _fixture.Create<int>(), _fixture.Create<string>(), thread.CreatedOn);
         thread.IsAnswered.ShouldBeTrue();
     }
 
@@ -448,8 +487,23 @@ public class ThreadTests
 
         events.Add(new UserMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), _utcNow.AddSeconds(1)));
         events.Add(new UserMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), _utcNow.AddSeconds(2)));
-        events.Add(new AssistantMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), events[0].MessageId, _utcNow.AddSeconds(3)));
-        events.Add(new AssistantMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), MessageIdentifier.NewIdentifier(), _utcNow.AddSeconds(4)));
+        events.Add(new AssistantMessageAdded(
+            MessageIdentifier.NewIdentifier(),
+             _fixture.Create<string>(),
+             events[0].MessageId,
+             _fixture.Create<int>(),
+             _fixture.Create<int>(),
+             _fixture.Create<string>(),
+             _utcNow.AddSeconds(3)));
+
+        events.Add(new AssistantMessageAdded(
+            MessageIdentifier.NewIdentifier(),
+            _fixture.Create<string>(),
+            MessageIdentifier.NewIdentifier(),
+            _fixture.Create<int>(),
+            _fixture.Create<int>(),
+            _fixture.Create<string>(),
+            _utcNow.AddSeconds(4)));
 
         var thread = Thread.Rehydrate(
             identifier: threadId,
@@ -466,14 +520,23 @@ public class ThreadTests
         thread.PendingEvents.ShouldBeEmpty();
         thread.Context.Count.ShouldBe(4);
         thread.Context.Select(v => v.MessageId).Distinct().Count().ShouldBe(4);
-        thread.Context.ToList().ShouldBeEquivalentTo(new List<MessageAdded> { events[0], events[2], events[1], events[3] }.Select(ContextMessage.FromModel).ToList());
+
+        var event3WithoutPromptTokens = (AssistantMessageAdded)events[3] with { PromptTokens = None.Default };
+
+        thread.Context.ToList().ShouldBeEquivalentTo(new List<MessageAdded> { events[0], events[2], events[1], event3WithoutPromptTokens }.Select(ContextMessage.FromModel).ToList());
 
         thread.PersistedVersion.ShouldBe(10);
         thread.PendingVersion.ShouldBe(10);
         thread.IsAnswered.ShouldBeFalse();
 
 
-        thread.AddAssistantMessage(_fixture.Create<string>(), events[1].MessageId, _utcNow.AddSeconds(5));
+        thread.AddAssistantMessage(
+            content: _fixture.Create<string>(),
+            repliedToMessage: events[1].MessageId,
+            promptTokens: _fixture.Create<int>(),
+            tokens: _fixture.Create<int>(),
+            model: _fixture.Create<string>(),
+            addedOn: _utcNow.AddSeconds(5));
 
         thread.ModifiedOn.ShouldBe(_utcNow.AddSeconds(5));
 
@@ -481,7 +544,7 @@ public class ThreadTests
         thread.Context.Count.ShouldBe(5);
         thread.Context.Select(v => v.MessageId).Distinct().Count().ShouldBe(5);
 
-        thread.Context.ToList().ShouldBeEquivalentTo(new List<MessageAdded> { events[0], events[2], events[1], thread.PendingEvents[^1], events[3] }.Select(ContextMessage.FromModel).ToList());
+        thread.Context.ToList().ShouldBeEquivalentTo(new List<MessageAdded> { events[0], events[2], events[1], thread.PendingEvents[^1], event3WithoutPromptTokens }.Select(ContextMessage.FromModel).ToList());
 
 
         thread.PersistedVersion.ShouldBe(10);
@@ -491,11 +554,11 @@ public class ThreadTests
 
         thread.AddUserMessage(_fixture.Create<string>(), _utcNow.AddSeconds(6));
         thread.IsAnswered.ShouldBeFalse();
-        thread.Context.ToList().ShouldBeEquivalentTo(new List<MessageAdded> { events[0], events[2], events[1], thread.PendingEvents[^2], events[3], thread.PendingEvents[^1] }.Select(ContextMessage.FromModel).ToList());
+        thread.Context.ToList().ShouldBeEquivalentTo(new List<MessageAdded> { events[0], events[2], events[1], thread.PendingEvents[^2], event3WithoutPromptTokens, thread.PendingEvents[^1] }.Select(ContextMessage.FromModel).ToList());
 
-        thread.AddAssistantMessage(_fixture.Create<string>(), thread.Context[^1].MessageId, _utcNow.AddSeconds(7));
+        thread.AddAssistantMessage(_fixture.Create<string>(), thread.Context[^1].MessageId, _fixture.Create<int>(), _fixture.Create<int>(), _fixture.Create<string>(), _utcNow.AddSeconds(7));
         thread.IsAnswered.ShouldBeTrue();
-        thread.Context.ToList().ShouldBeEquivalentTo(new List<MessageAdded> { events[0], events[2], events[1], thread.PendingEvents[^3], events[3], thread.PendingEvents[^2], thread.PendingEvents[^1] }.Select(ContextMessage.FromModel).ToList());
+        thread.Context.ToList().ShouldBeEquivalentTo(new List<MessageAdded> { events[0], events[2], events[1], thread.PendingEvents[^3], event3WithoutPromptTokens, thread.PendingEvents[^2], thread.PendingEvents[^1] }.Select(ContextMessage.FromModel).ToList());
 
     }
 
@@ -509,7 +572,8 @@ public class ThreadTests
 
         events.Add(new UserMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), _utcNow.AddSeconds(1)));
         events.Add(new UserMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), _utcNow.AddSeconds(2)));
-        events.Add(new AssistantMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), events[1].MessageId, _utcNow.AddSeconds(3)));
+        events.Add(new AssistantMessageAdded(
+            MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), events[1].MessageId, _fixture.Create<int>(), _fixture.Create<int>(), _fixture.Create<string>(), _utcNow.AddSeconds(3)));
         events.Add(new UserMessageAdded(MessageIdentifier.NewIdentifier(), _fixture.Create<string>(), _utcNow.AddSeconds(4)));
 
         var thread = Thread.Rehydrate(
@@ -535,7 +599,7 @@ public class ThreadTests
         thread.IsAnswered.ShouldBeFalse();
 
 
-        thread.AddAssistantMessage(_fixture.Create<string>(), thread.Context[3].MessageId, _utcNow.AddSeconds(5));
+        thread.AddAssistantMessage(_fixture.Create<string>(), thread.Context[3].MessageId, _fixture.Create<int>(), _fixture.Create<int>(), _fixture.Create<string>(), _utcNow.AddSeconds(5));
 
         thread.ModifiedOn.ShouldBe(_utcNow.AddSeconds(5));
 

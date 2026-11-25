@@ -91,7 +91,6 @@ public sealed class Thread : AggregateRoot<Thread>
 
         When<AssistantMessageAdded>(@event =>
         {
-            var message = ContextMessage.FromModel(@event);
             ModifiedOn = @event.AddedOn;
 
             var repliedToMessageIndex = _context.FindIndex(m => m.MessageId == @event.RepliedToMessageId);
@@ -99,9 +98,12 @@ public sealed class Thread : AggregateRoot<Thread>
             // Should not really happen (repliedToMessage could be in the extended context), but if so, we still need to rehydrate the aggregate
             if (repliedToMessageIndex == -1)
             {
-                _context.Add(message);
+                // We should not add PromptTokens if this is a separate message
+                _context.Add(ContextMessage.FromModel(@event) with { PromptTokens = None.Default });
                 return;
             }
+
+            var message = ContextMessage.FromModel(@event);
 
             IsAnswered = IsAnswered ||  // LLM reply cannot mark thread Unanswered
                 message.RepliedToMessageId == _lastUserMessageId ||// LLM replied directly to the last user message 
@@ -124,7 +126,13 @@ public sealed class Thread : AggregateRoot<Thread>
         return new(ThreadIdentifier.NewIdentifier(), None.Default, createdOn);
     }
 
-    public AssistantMessageAdded CreateAssistantMessageAdded(string content, MessageIdentifier repliedToMessage, DateTimeOffset addedOn)
+    public AssistantMessageAdded CreateAssistantMessageAdded(
+        string content,
+        MessageIdentifier repliedToMessage,
+        Option<int> promptTokensOrNone,
+        Option<int> tokensOrNone,
+        string model,
+        DateTimeOffset addedOn)
     {
         if (_context.Count == 0 && _extendedContext.Count == 0)
         {
@@ -144,12 +152,42 @@ public sealed class Thread : AggregateRoot<Thread>
         }
 
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
+        ArgumentException.ThrowIfNullOrWhiteSpace(model);
 
-        return new AssistantMessageAdded(MessageIdentifier.NewIdentifier(), content, repliedToMessage, addedOn);
+        if (tokensOrNone is Some<int> tokens)
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(tokens.Value, 1, nameof(tokensOrNone));
+        }
+
+        if (promptTokensOrNone is Some<int> promptTokens)
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(promptTokens.Value, 1, nameof(promptTokensOrNone));
+        }
+
+        return new AssistantMessageAdded(
+            MessageId: MessageIdentifier.NewIdentifier(),
+            Content: content,
+            RepliedToMessageId: repliedToMessage,
+            Tokens: tokensOrNone,
+            PromptTokens: promptTokensOrNone,
+            Model: model,
+            AddedOn: addedOn);
     }
 
-    public Thread AddAssistantMessage(string content, MessageIdentifier repliedToMessage, DateTimeOffset addedOn) =>
-        Apply(CreateAssistantMessageAdded(content, repliedToMessage, addedOn));
+    public Thread AddAssistantMessage(
+        string content,
+        MessageIdentifier repliedToMessage,
+        Option<int> promptTokens,
+        Option<int> tokens,
+        string model,
+        DateTimeOffset addedOn) =>
+        Apply(CreateAssistantMessageAdded(
+            content: content,
+            repliedToMessage: repliedToMessage,
+            promptTokensOrNone: promptTokens,
+            tokensOrNone: tokens,
+            model: model,
+            addedOn: addedOn));
 
     public static UserMessageAdded CreateUserMessageAdded(string content, DateTimeOffset addedOn)
     {
@@ -196,6 +234,8 @@ public sealed class Thread : AggregateRoot<Thread>
                 OriginalMessageId: message.OriginalMessageId,
                 Content: message.Content,
                 RepliedToMessageId: message.RepliedToMessageId.ValueOrFailure,
+                Tokens: message.Tokens,
+                Model: message.Model.ValueOrFailure,
                 AddedOn: addedOn),
 
             MessageRole.Summary => new SummaryMessageCopied(
@@ -203,6 +243,8 @@ public sealed class Thread : AggregateRoot<Thread>
                 OriginalMessageId: message.OriginalMessageId,
                 Content: message.Content,
                 References: message.References.ValueOrFailure,
+                Tokens: message.Tokens,
+                Model: message.Model.ValueOrFailure,
                 AddedOn: addedOn),
 
             _ => throw new InvalidOperationException($"Role {message.Role} not supported")
@@ -211,9 +253,14 @@ public sealed class Thread : AggregateRoot<Thread>
         return Apply(ev);
     }
 
-    public Thread AddSummaryMessage(string content, IReadOnlyList<MessageIdentifier> messageIds, DateTimeOffset addedOn)
+    public Thread AddSummaryMessage(string content, IReadOnlyList<MessageIdentifier> messageIds, Option<int> tokensOrNone, string model, DateTimeOffset addedOn)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(content);
+        ArgumentException.ThrowIfNullOrWhiteSpace(model);
+        if (tokensOrNone is Some<int> tokens)
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(tokens.Value, 1, nameof(tokensOrNone));
+        }
         ArgumentOutOfRangeException.ThrowIfLessThan(addedOn, ModifiedOn);
         ArgumentOutOfRangeException.ThrowIfLessThan(messageIds.Count, 1);
 
@@ -232,7 +279,7 @@ public sealed class Thread : AggregateRoot<Thread>
             throw new ArgumentException("Invalid message ids", nameof(messageIds));
         }
 
-        return Apply(new SummaryMessageAdded(MessageIdentifier.NewIdentifier(), content, messageIds, addedOn));
+        return Apply(new SummaryMessageAdded(MessageIdentifier.NewIdentifier(), content, messageIds, tokensOrNone, model, addedOn));
     }
 
     public Thread AddBreakMessage(string content, DateTimeOffset addedOn)

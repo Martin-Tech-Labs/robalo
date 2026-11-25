@@ -1,4 +1,5 @@
 using Robalo.Common.Extensions;
+using Robalo.Common.Models;
 using Robalo.Domain.Models;
 
 namespace Robalo.Domain.Models.Events;
@@ -14,4 +15,6 @@ public record AssistantMessageCopied(
     MessageIdentifier OriginalMessageId,
     string Content,
     MessageIdentifier RepliedToMessageId,
+    Option<int> Tokens,
+    string Model,
     DateTimeOffset AddedOn) : MessageCopied(MessageId, OriginalMessageId, Content, AddedOn);

@@ -1,4 +1,5 @@
 using Robalo.Common.Extensions;
+using Robalo.Common.Models;
 using Robalo.Domain.Models;
 
 namespace Robalo.Domain.Models.Events;
@@ -13,4 +14,6 @@ public record SummaryMessageAdded(
     MessageIdentifier MessageId,
     string Content,
     IReadOnlyList<MessageIdentifier> References,
+    Option<int> Tokens,
+    string Model,
     DateTimeOffset AddedOn) : MessageAdded(MessageId, Content, AddedOn);

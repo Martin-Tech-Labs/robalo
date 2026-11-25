@@ -8,5 +8,8 @@ CREATE TABLE ThreadEvents (
     ReferencedMessageIds TEXT,
     OriginalMessageId TEXT,
     CreatedOn TEXT,
+    PromptTokens INTEGER,
+    Tokens INTEGER,
+    Model TEXT,
     PRIMARY KEY (ThreadId, MessageNumber)
 ) WITHOUT ROWID;
