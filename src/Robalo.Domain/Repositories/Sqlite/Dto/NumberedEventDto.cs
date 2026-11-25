@@ -16,8 +16,8 @@ public sealed record NumberedEventDto : EventDto
         string content,
         MessageIdentifier? repliedToMessageId,
         string? references,
-        int? inputTokens,
-        int? outputTokens,
+        int? promptTokens,
+        int? tokens,
         string? model,
         DateTimeOffset createdOn) : base(
             threadId: threadId,
@@ -27,8 +27,8 @@ public sealed record NumberedEventDto : EventDto
             content: content,
             repliedToMessageId: repliedToMessageId,
             referencedMessageIds: references,
-            promptTokens: inputTokens,
-            tokens: outputTokens,
+            promptTokens: promptTokens,
+            tokens: tokens,
             model: model,
             createdOn: createdOn)
     {
@@ -45,8 +45,8 @@ public sealed record NumberedEventDto : EventDto
             content: dto.Content ?? throw new ArgumentNullException(nameof(dto), nameof(dto.Content)),
             repliedToMessageId: dto.RepliedToMessageId,
             references: dto.ReferencedMessageIds,
-            inputTokens: dto.PromptTokens,
-            outputTokens: dto.Tokens,
+            promptTokens: dto.PromptTokens,
+            tokens: dto.Tokens,
             model: dto.Model,
             createdOn: dto.CreatedOn,
             messageNumber: messageNumber);

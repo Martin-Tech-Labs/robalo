@@ -169,12 +169,12 @@ public sealed class AnswerThreadService : IAnswerThreadService, IDisposable
         async Task<SuccessOrFailure> CheckLlmResponse(LlmResponse response)
         {
             var llmMessageAdded = thread.CreateAssistantMessageAdded(
-                response.Content, 
-                thread.Context[^1].MessageId,
-                response.Metadata.InputTokens,
-                response.Metadata.OutputTokens,
-                response.Metadata.Model,
-                _dateTimeOffSetProvider.UtcNow);
+                content: response.Content,
+                repliedToMessage: thread.Context[^1].MessageId,
+                promptTokensOrNone: response.Metadata.InputTokens,
+                tokensOrNone: response.Metadata.OutputTokens,
+                model: response.Metadata.Model,
+                addedOn: _dateTimeOffSetProvider.UtcNow);
 
             var result = await _repository.AppendEvent(threadId, llmMessageAdded, cancellationToken);
 
