@@ -6,6 +6,7 @@ using Robalo.Domain.Models;
 using Robalo.Domain.Models.Events;
 using Robalo.Domain.Repositories.Sqlite;
 using Robalo.Domain.Repositories.Sqlite.Dto;
+using Robalo.Tests.Common;
 using Serilog;
 
 namespace Robalo.Domain.IntegrationTests.Repositories.Sqlite;
@@ -137,11 +138,19 @@ public class SqliteThreadRepositoryTests_MultipleSegments : IClassFixture<Databa
         thread.ModifiedOn.ShouldBe(thread2.ModifiedOn);
         Assert.Equivalent(thread2, thread, strict: true);
         thread2.Context.Select(c => c.MessageId).ShouldBeEquivalentTo(thread.Context.Select(c => c.MessageId));
-        thread2.AddUserMessage(_fixture.Create<string>(), thread2.ModifiedOn.AddSeconds(1));
-        thread2.AddAssistantMessage(_fixture.Create<string>(), thread2.Context[0].MessageId, _fixture.Create<int>(), _fixture.Create<int>(), _fixture.Create<string>(), thread2.ModifiedOn.AddSeconds(1));
+        var userContent = _fixture.Create<string>();
+        thread2.AddUserMessage(userContent, thread2.ModifiedOn.AddSeconds(1));
+        var assistantContent = _fixture.Create<string>();
+        var assistantTokens = _fixture.Create<int>();
+        var assistantModel = _fixture.Create<string>();
+        var repliedToMessageId = thread2.Context[0].MessageId;
+        thread2.AddAssistantMessage(assistantContent, repliedToMessageId, _fixture.Create<int>(), assistantTokens, assistantModel, thread2.ModifiedOn.AddSeconds(1));
         await _sut.SaveThread(thread2, TestContext.Current.CancellationToken);
         thread2.AddBreakMessage(_fixture.Create<string>(), thread2.ModifiedOn.AddSeconds(1));
-        thread2.AddSummaryMessage(_fixture.Create<string>(), thread2.ExtendedContext.Select(m => m.MessageId).ToList(), _fixture.Create<int>(), _fixture.Create<string>(), thread2.ModifiedOn.AddSeconds(1));
+        var summaryContent = _fixture.Create<string>();
+        var summaryTokens = _fixture.Create<int>();
+        var summaryModel = _fixture.Create<string>();
+        thread2.AddSummaryMessage(summaryContent, thread2.ExtendedContext.Select(m => m.MessageId).ToList(), summaryTokens, summaryModel, thread2.ModifiedOn.AddSeconds(1));
         foreach (var msg in thread2.ExtendedContext)
         {
             thread2.AddCopyOfMessage(msg, thread2.ModifiedOn.AddSeconds(1));
@@ -153,10 +162,35 @@ public class SqliteThreadRepositoryTests_MultipleSegments : IClassFixture<Databa
         {
             thread2.AddCopyOfMessage(msg, thread2.ModifiedOn.AddSeconds(1));
         }
+
+        var summaryCopyMessageId = thread2.PendingEvents[1].MessageId;
+        var userCopyMessageId = thread2.PendingEvents[2].MessageId;
+        var assistentCopyMessageId = thread2.PendingEvents[3].MessageId;
+
         await _sut.SaveThread(thread2, TestContext.Current.CancellationToken);
         await _sut.RefreshThread(thread, TestContext.Current.CancellationToken);
         Assert.Equivalent(thread2, thread, strict: true);
         thread2.Context.Select(c => c.MessageId).ShouldBeEquivalentTo(thread.Context.Select(c => c.MessageId));
+
+        var summaryCopyMessage = await _sut.GetMessage(summaryCopyMessageId, TestContext.Current.CancellationToken);
+        summaryCopyMessage.HasValue.ShouldBeTrue();
+        summaryCopyMessage.ValueOrFailure.EventType.ShouldBe(nameof(SummaryMessageCopied));
+        summaryCopyMessage.ValueOrFailure.Content.ShouldBe(summaryContent);
+        summaryCopyMessage.ValueOrFailure.Model.ShouldBe(summaryModel);
+        summaryCopyMessage.ValueOrFailure.Tokens.ShouldBe(summaryTokens);
+
+        var userCopyMessage = await _sut.GetMessage(userCopyMessageId, TestContext.Current.CancellationToken);
+        userCopyMessage.HasValue.ShouldBeTrue();
+        userCopyMessage.ValueOrFailure.EventType.ShouldBe(nameof(UserMessageCopied));
+        userCopyMessage.ValueOrFailure.Content.ShouldBe(userContent);
+
+        var assistantCopyMessage = await _sut.GetMessage(assistentCopyMessageId, TestContext.Current.CancellationToken);
+        assistantCopyMessage.HasValue.ShouldBeTrue();
+        assistantCopyMessage.ValueOrFailure.EventType.ShouldBe(nameof(AssistantMessageCopied));
+        assistantCopyMessage.ValueOrFailure.Content.ShouldBe(assistantContent);
+        assistantCopyMessage.ValueOrFailure.Tokens.ShouldBe(assistantTokens);
+        assistantCopyMessage.ValueOrFailure.Model.ShouldBe(assistantModel);
+        assistantCopyMessage.ValueOrFailure.PromptTokens.ShouldBeNone();
     }
 
     [Fact]
