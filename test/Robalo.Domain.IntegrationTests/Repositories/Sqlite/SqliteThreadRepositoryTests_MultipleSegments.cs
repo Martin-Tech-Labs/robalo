@@ -99,6 +99,7 @@ public class SqliteThreadRepositoryTests_MultipleSegments : IClassFixture<Databa
         var content = _fixture.Create<string>();
         var tokens = _fixture.Create<int>();
         var model = _fixture.Create<string>();
+        var references = thread.ExtendedContext.Select(c => c.MessageId).ToList();
 
         thread.AddSummaryMessage(content, thread.ExtendedContext.Select(c => c.MessageId).ToList(), tokens, model, thread.ModifiedOn.AddSeconds(1));
         var messageId = thread.PendingEvents[^1].MessageId;
@@ -118,6 +119,8 @@ public class SqliteThreadRepositoryTests_MultipleSegments : IClassFixture<Databa
         summaryMessage.ValueOrFailure.Tokens.ShouldBe(tokens);
         summaryMessage.ValueOrFailure.Model.ShouldBe(model);
         summaryMessage.ValueOrFailure.EventType.ShouldBe(nameof(SummaryMessageAdded));
+        summaryMessage.ValueOrFailure.References.HasValue.ShouldBeTrue();
+        summaryMessage.ValueOrFailure.References.ValueOrFailure.ToList().ShouldBeEquivalentTo(references);
     }
 
     [Fact]
@@ -150,7 +153,8 @@ public class SqliteThreadRepositoryTests_MultipleSegments : IClassFixture<Databa
         var summaryContent = _fixture.Create<string>();
         var summaryTokens = _fixture.Create<int>();
         var summaryModel = _fixture.Create<string>();
-        thread2.AddSummaryMessage(summaryContent, thread2.ExtendedContext.Select(m => m.MessageId).ToList(), summaryTokens, summaryModel, thread2.ModifiedOn.AddSeconds(1));
+        var summaryReferences = thread2.ExtendedContext.Select(m => m.MessageId).ToList();
+        thread2.AddSummaryMessage(summaryContent, summaryReferences, summaryTokens, summaryModel, thread2.ModifiedOn.AddSeconds(1));
         foreach (var msg in thread2.ExtendedContext)
         {
             thread2.AddCopyOfMessage(msg, thread2.ModifiedOn.AddSeconds(1));
@@ -178,6 +182,8 @@ public class SqliteThreadRepositoryTests_MultipleSegments : IClassFixture<Databa
         summaryCopyMessage.ValueOrFailure.Content.ShouldBe(summaryContent);
         summaryCopyMessage.ValueOrFailure.Model.ShouldBe(summaryModel);
         summaryCopyMessage.ValueOrFailure.Tokens.ShouldBe(summaryTokens);
+        summaryCopyMessage.ValueOrFailure.References.HasValue.ShouldBeTrue();
+        summaryCopyMessage.ValueOrFailure.References.ValueOrFailure.ToList().ShouldBeEquivalentTo(summaryReferences);
 
         var userCopyMessage = await _sut.GetMessage(userCopyMessageId, TestContext.Current.CancellationToken);
         userCopyMessage.HasValue.ShouldBeTrue();
@@ -239,6 +245,6 @@ public class SqliteThreadRepositoryTests_MultipleSegments : IClassFixture<Databa
 
         var messages = await (await _sut.GetMessages(thread.Id, TestContext.Current.CancellationToken)).ValueOrFailure.ToListAsync(TestContext.Current.CancellationToken);
         var i = 0;
-        messages.ShouldBeEquivalentTo(events.Select(e => Message.FromModel(e, thread.Id, ++i)).ToList());
+        Assert.Equivalent(messages, events.Select(e => Message.FromModel(e, thread.Id, ++i)));
     }
 }
