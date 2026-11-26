@@ -9,6 +9,9 @@ public record MessageResource(
     string ThreadId,
     long MessageNumber,
     string? RepliedToMessageId,
+    int? PromptTokens,
+    int? Tokens,
+    string? Model,
     MessageLinks Links) : HalResource<MessageLinks>(Links);
 
 public record MessageLinks(Link Self, Link Thread, Link? RepliedTo, Link Events) : Links(Self);

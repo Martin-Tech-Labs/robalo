@@ -96,7 +96,6 @@ public class SqliteThreadRepositoryTests_MultipleSegments : IClassFixture<Databa
         var thread2 = (await _sut.LoadThread(thread.Id, TestContext.Current.CancellationToken)).ValueOrFailure;
         Assert.Equivalent(thread, thread2, strict: true);
         thread.Context.Select(c => c.MessageId).ShouldBeEquivalentTo(thread2.Context.Select(c => c.MessageId));
-
     }
 
     [Fact]

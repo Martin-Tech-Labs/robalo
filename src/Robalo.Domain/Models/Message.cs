@@ -12,6 +12,9 @@ public record Message(
     string EventType,
     string Content,
     Option<MessageIdentifier> RepliedToMessageId,
+    Option<int> PromptTokens,
+    Option<int> Tokens,
+    Option<string> Model,
     DateTimeOffset CreatedOn)
 {
     public static Message FromModel(MessageAdded messageAdded, ThreadIdentifier threadId, int messageNumber)
@@ -37,6 +40,9 @@ public record Message(
                 EventType: e.GetType().Name,
                 Content: e.Content,
                 RepliedToMessageId: None.Default,
+                PromptTokens: None.Default,
+                Tokens: None.Default,
+                Model: None.Default,
                 CreatedOn: e.AddedOn);
         }
 
@@ -50,6 +56,9 @@ public record Message(
                 EventType: e.GetType().Name,
                 Content: e.Content,
                 RepliedToMessageId: None.Default,
+                PromptTokens: None.Default,
+                Tokens: None.Default,
+                Model: None.Default,
                 CreatedOn: e.AddedOn);
         }
 
@@ -64,6 +73,9 @@ public record Message(
                 EventType: e.GetType().Name,
                 Content: e.Content,
                 RepliedToMessageId: e.RepliedToMessageId.AsOption(),
+                PromptTokens: e.PromptTokens,
+                Tokens: e.Tokens,
+                Model: e.Model,
                 CreatedOn: e.AddedOn);
         }
 
@@ -77,6 +89,9 @@ public record Message(
                 EventType: e.GetType().Name,
                 Content: e.Content,
                 RepliedToMessageId: e.RepliedToMessageId.AsOption(),
+                PromptTokens: None.Default,
+                Tokens: e.Tokens,
+                Model: e.Model,
                 CreatedOn: e.AddedOn);
         }
 
@@ -90,6 +105,9 @@ public record Message(
                 EventType: e.GetType().Name,
                 Content: e.Content,
                 RepliedToMessageId: None.Default,
+                PromptTokens: None.Default,
+                Tokens: None.Default,
+                Model: None.Default,
                 CreatedOn: e.AddedOn);
         }
 
@@ -103,6 +121,9 @@ public record Message(
                 EventType: e.GetType().Name,
                 Content: e.Content,
                 RepliedToMessageId: None.Default,
+                PromptTokens: None.Default,
+                Tokens: e.Tokens,
+                Model: e.Model,
                 CreatedOn: e.AddedOn);
         }
 
@@ -116,6 +137,9 @@ public record Message(
                 EventType: e.GetType().Name,
                 Content: e.Content,
                 RepliedToMessageId: None.Default,
+                PromptTokens: None.Default,
+                Tokens: e.Tokens,
+                Model: e.Model,
                 CreatedOn: e.AddedOn);
         }
     }
