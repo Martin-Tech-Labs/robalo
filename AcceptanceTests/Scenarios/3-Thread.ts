@@ -1,6 +1,9 @@
 import 'chai/register-should.js';
 import "../Api/SchemaAssertions.ts";
 
+import Config from '../Config/config.ts';
+
+
 import { describe, it } from 'mocha';
 import { expect } from "chai";
 
@@ -27,6 +30,7 @@ describe('3 - Threads @drei @threads', () => {
     let eventSource: EventSourceClient;
     let eventSource2: EventSourceClient;
     let assistantMessage: Message;
+    let firstTokens: number, firstPromptTokens: number;
 
     const timeoutLlmMs = 60_000;
 
@@ -136,6 +140,12 @@ describe('3 - Threads @drei @threads', () => {
             expect(assistantMessage.event_type).to.equal("AssistantMessageAdded");
             expect(assistantMessage.replied_to_message_id).to.equal(messageQueryResult._embedded.messages[0].message_id);
             expect(assistantMessage.message_number).to.equal(2);
+            expect(assistantMessage.model).to.equal(Config.Model);
+            expect(assistantMessage.prompt_tokens).to.be.greaterThan(0);
+            expect(assistantMessage.tokens).to.be.greaterThan(0);
+
+            firstTokens = assistantMessage.tokens!;
+            firstPromptTokens = assistantMessage.prompt_tokens!;
         });
 
         it("And I wait for the LLM response from Get Endpoint", async () => {
@@ -252,6 +262,9 @@ describe('3 - Threads @drei @threads', () => {
             expect(messageQueryResult._embedded.messages[3].content).to.not.be.empty;
             expect(messageQueryResult._embedded.messages[3].event_type).to.equal("AssistantMessageAdded");
             expect(messageQueryResult._embedded.messages[3].message_number).to.equal(4);
+            expect(assistantMessage.model).to.equal(Config.Model);
+            expect(assistantMessage.prompt_tokens).to.be.greaterThan(firstPromptTokens + firstTokens);
+            expect(assistantMessage.tokens).to.be.greaterThan(0);
         });
 
         it("When I reload the thread by going to its self link", async () => {
