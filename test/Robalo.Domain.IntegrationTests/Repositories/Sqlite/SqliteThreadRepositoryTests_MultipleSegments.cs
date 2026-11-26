@@ -39,13 +39,21 @@ public class SqliteThreadRepositoryTests_MultipleSegments : IClassFixture<Databa
         thread.ExtendedContext.ShouldBeEmpty();
         await _sut.SaveThread(thread, TestContext.Current.CancellationToken);
         var contextBeforeBreak = thread.Context.ToList();
-        thread.AddBreakMessage(_fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1));
+        var content = _fixture.Create<string>();
+        thread.AddBreakMessage(content, thread.ModifiedOn.AddSeconds(1));
+        var messageId = thread.PendingEvents[^1].MessageId;
         thread.ExtendedContext.ToList().ShouldBeEquivalentTo(contextBeforeBreak);
         await _sut.SaveThread(thread, TestContext.Current.CancellationToken);
         thread.ExtendedContext.ShouldBeEmpty();
 
         var thread2 = (await _sut.LoadThread(thread.Id, TestContext.Current.CancellationToken)).ValueOrFailure;
         thread2.ShouldBeEquivalentTo(thread);
+
+        var breakMessage = await _sut.GetMessage(messageId, TestContext.Current.CancellationToken);
+        breakMessage.HasValue.ShouldBeTrue();
+        breakMessage.ValueOrFailure.Content.ShouldBe(content);
+        breakMessage.ValueOrFailure.CreatedOn.ShouldBe(_utcNow.AddSeconds(4));
+        breakMessage.ValueOrFailure.EventType.ShouldBe(nameof(BreakMessageAdded));
     }
 
     [Fact]
@@ -86,7 +94,13 @@ public class SqliteThreadRepositoryTests_MultipleSegments : IClassFixture<Databa
         var contextBeforeBreak = thread.Context.ToList();
         thread.AddBreakMessage(_fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1));
         thread.ExtendedContext.ToList().ShouldBeEquivalentTo(contextBeforeBreak);
-        thread.AddSummaryMessage(_fixture.Create<string>(), thread.ExtendedContext.Select(c => c.MessageId).ToList(), _fixture.Create<int>(), _fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1));
+
+        var content = _fixture.Create<string>();
+        var tokens = _fixture.Create<int>();
+        var model = _fixture.Create<string>();
+
+        thread.AddSummaryMessage(content, thread.ExtendedContext.Select(c => c.MessageId).ToList(), tokens, model, thread.ModifiedOn.AddSeconds(1));
+        var messageId = thread.PendingEvents[^1].MessageId;
         thread.AddUserMessage(_fixture.Create<string>(), thread.ModifiedOn.AddSeconds(1));
         thread.AddUserMessage(_fixture.Create<string>(), thread.ModifiedOn.AddSeconds(2));
         thread.AddAssistantMessage(_fixture.Create<string>(), thread.Context[0].MessageId, _fixture.Create<int>(), _fixture.Create<int>(), _fixture.Create<string>(), thread.ModifiedOn.AddSeconds(3));
@@ -96,6 +110,13 @@ public class SqliteThreadRepositoryTests_MultipleSegments : IClassFixture<Databa
         var thread2 = (await _sut.LoadThread(thread.Id, TestContext.Current.CancellationToken)).ValueOrFailure;
         Assert.Equivalent(thread, thread2, strict: true);
         thread.Context.Select(c => c.MessageId).ShouldBeEquivalentTo(thread2.Context.Select(c => c.MessageId));
+
+        var summaryMessage = await _sut.GetMessage(messageId, TestContext.Current.CancellationToken);
+        summaryMessage.HasValue.ShouldBeTrue();
+        summaryMessage.ValueOrFailure.Content.ShouldBe(content);
+        summaryMessage.ValueOrFailure.Tokens.ShouldBe(tokens);
+        summaryMessage.ValueOrFailure.Model.ShouldBe(model);
+        summaryMessage.ValueOrFailure.EventType.ShouldBe(nameof(SummaryMessageAdded));
     }
 
     [Fact]
