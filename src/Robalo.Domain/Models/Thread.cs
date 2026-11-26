@@ -41,6 +41,67 @@ public sealed class Thread : AggregateRoot<Thread>
             _extendedContext.Clear();
         };
 
+        void OnUserMessage(MessageAdded @event)
+        {
+            var message = ContextMessage.FromModel(@event);
+            _context.Add(message);
+            IsAnswered = false;
+            ModifiedOn = @event.AddedOn;
+
+            _lastUserMessageId = message.MessageId;
+        }
+
+        void OnAssistantMessage(MessageAdded @event)
+        {
+            ModifiedOn = @event.AddedOn;
+
+            var repliedToMessageId = @event switch
+            {
+                AssistantMessageAdded e => e.RepliedToMessageId,
+                AssistantMessageCopied e => e.RepliedToMessageId,
+                _ => throw new InvalidOperationException($"Unexpected type {@event.GetType().Name}")
+            };
+
+            var repliedToMessageIndex = _context.FindIndex(m => m.MessageId == repliedToMessageId);
+
+            // Should not happen that often (repliedToMessage could be in the extended context and not copied over), but if so, we still need to rehydrate the aggregate
+            if (repliedToMessageIndex == -1)
+            {
+                // We should not add PromptTokens if this is a "detached" message
+                _context.Add(ContextMessage.FromModel(@event) with { PromptTokens = None.Default });
+                return;
+            }
+
+            var message = ContextMessage.FromModel(@event);
+
+            IsAnswered = IsAnswered ||  // LLM reply cannot mark thread Unanswered
+                message.RepliedToMessageId == _lastUserMessageId ||// LLM replied directly to the last user message 
+                repliedToMessageIndex > _context.FindIndex(m => m.MessageId == _lastUserMessageId); // LLM replied to the message past user message
+
+            // For AssistantMessageAdded we want always make sure, that the assistant message is added right after the user message,
+            // or after its replies (if there are multiple assistant messages for the same user message)
+            // This is especially relevant, when a new user message arrives before the assistant messages gets added,
+            // as we may end up in this order: UserMessage1, UserMessage2, AssistantMessage1(for UserMessage1), but what we want is this:
+            // UserMessage1, AssistantMessage1, UserMessage2, so that the subsequent prompt to the LLM uses this logical order
+
+            // It also covers this case: U1,U2,A1(U1),A2(U1),A3(U2) -> U1, A1(U1), A2(U1), U2, A3(U2) 
+
+            if (@event is AssistantMessageAdded)
+            {
+                _context.Insert(1 + Math.Max(
+                    repliedToMessageIndex,
+                    _context.FindLastIndex(m => m.RepliedToMessageId == repliedToMessageId)),
+                    message);
+            }
+            // We do not do logic re-ordering for copy assistant messages, as they are added during the compaction (break) phase,
+            // with no concurrent user messages interfering in the middle.
+            // Though, it should not happen, we leave it up to the compaction service to change the ordering if it wishes so.
+            else
+            {
+                _context.Add(message);
+            }
+        }
+
         When<BreakMessageAdded>(@event =>
         {
             _extendedContext.Clear();
@@ -51,31 +112,10 @@ public sealed class Thread : AggregateRoot<Thread>
             _lastUserMessageId = None.Default;
         });
 
-        When<UserMessageAdded>(@event =>
-        {
-            var message = ContextMessage.FromModel(@event);
-            _context.Add(message);
-            IsAnswered = false;
-            ModifiedOn = @event.AddedOn;
-
-            _lastUserMessageId = message.MessageId;
-        });
+        When<UserMessageAdded>(OnUserMessage);
+        When<UserMessageCopied>(OnUserMessage);
 
         When<SummaryMessageAdded>(@event =>
-        {
-            var message = ContextMessage.FromModel(@event);
-            _context.Add(message);
-            ModifiedOn = @event.AddedOn;
-        });
-
-        When<AssistantMessageCopied>(@event =>
-        {
-            var message = ContextMessage.FromModel(@event);
-            _context.Add(message);
-            ModifiedOn = @event.AddedOn;
-        });
-
-        When<UserMessageCopied>(@event =>
         {
             var message = ContextMessage.FromModel(@event);
             _context.Add(message);
@@ -89,31 +129,8 @@ public sealed class Thread : AggregateRoot<Thread>
             ModifiedOn = @event.AddedOn;
         });
 
-        When<AssistantMessageAdded>(@event =>
-        {
-            ModifiedOn = @event.AddedOn;
-
-            var repliedToMessageIndex = _context.FindIndex(m => m.MessageId == @event.RepliedToMessageId);
-
-            // Should not really happen (repliedToMessage could be in the extended context), but if so, we still need to rehydrate the aggregate
-            if (repliedToMessageIndex == -1)
-            {
-                // We should not add PromptTokens if this is a separate message
-                _context.Add(ContextMessage.FromModel(@event) with { PromptTokens = None.Default });
-                return;
-            }
-
-            var message = ContextMessage.FromModel(@event);
-
-            IsAnswered = IsAnswered ||  // LLM reply cannot mark thread Unanswered
-                message.RepliedToMessageId == _lastUserMessageId ||// LLM replied directly to the last user message 
-                repliedToMessageIndex > _context.FindIndex(m => m.MessageId == _lastUserMessageId); // LLM replied to the message past user message
-
-            _context.Insert(1 + Math.Max(
-                repliedToMessageIndex,
-                _context.FindLastIndex(m => m.RepliedToMessageId == @event.RepliedToMessageId)),
-                message);
-        });
+        When<AssistantMessageCopied>(OnAssistantMessage);
+        When<AssistantMessageAdded>(OnAssistantMessage);
     }
 
     public static Thread NewThread(DateTimeOffset createdOn)
@@ -233,7 +250,8 @@ public sealed class Thread : AggregateRoot<Thread>
                 MessageId: MessageIdentifier.NewIdentifier(),
                 OriginalMessageId: message.OriginalMessageId,
                 Content: message.Content,
-                RepliedToMessageId: message.RepliedToMessageId.ValueOrFailure,
+                // Try resolve RepliedToMessageId against copied message using OriginalId
+                RepliedToMessageId: ResolveRepliedToMessageId(message.RepliedToMessageId.ValueOrFailure),
                 Tokens: message.Tokens,
                 Model: message.Model.ValueOrFailure,
                 AddedOn: addedOn),
@@ -249,6 +267,18 @@ public sealed class Thread : AggregateRoot<Thread>
 
             _ => throw new InvalidOperationException($"Role {message.Role} not supported")
         };
+
+        MessageIdentifier ResolveRepliedToMessageId(MessageIdentifier repliedToMessageId)
+        {
+            var originalUserMessageId = _extendedContext.SingleOrDefault(c => c.MessageId == repliedToMessageId)?.OriginalMessageId;
+
+            if (originalUserMessageId is null)
+            {
+                return repliedToMessageId;
+            }
+
+            return _context.SingleOrDefault(c => c.OriginalMessageId == originalUserMessageId)?.MessageId ?? repliedToMessageId;
+        }
 
         return Apply(ev);
     }
