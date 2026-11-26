@@ -66,6 +66,13 @@ public static class OptionExtensions
             _ => alternativeValue
         };
 
+    public static T? ToNullable<T>(this Option<T> value) where T : notnull =>
+        value switch
+        {
+            Some<T> some => some.Value,
+            _ => default
+        };
+
 
     public static string ValueOrString<T>(this Option<T> value, string alternativeValue) where T : notnull =>
         value switch

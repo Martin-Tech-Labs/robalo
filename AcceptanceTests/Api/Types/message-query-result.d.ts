@@ -27,6 +27,9 @@ export interface Message {
   thread_id: string;
   message_number: number;
   replied_to_message_id?: string;
+  prompt_tokens?: number;
+  tokens?: number;
+  model?: string;
   _links: {
     self: Link;
     thread: Link;

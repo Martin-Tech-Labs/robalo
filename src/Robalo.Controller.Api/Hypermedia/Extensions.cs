@@ -73,6 +73,9 @@ public static class Extensions
             ThreadId: message.ThreadId,
             MessageNumber: message.Number,
             RepliedToMessageId: message.RepliedToMessageId switch { Some<MessageIdentifier> m => m.Value.IdString, _ => null },
+            PromptTokens: message.PromptTokens.ToNullable(),
+            Tokens: message.Tokens.ToNullable(),
+            Model: message.Model.ToNullable(),
             Links: new MessageLinks(
                 Self: httpContextAccessor.LinkToMessage(message.MessageId),
                 Thread: httpContextAccessor.LinkToThreadId(message.ThreadId),

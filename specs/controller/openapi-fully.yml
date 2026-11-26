@@ -525,6 +525,12 @@ paths:
                               type: integer
                             replied_to_message_id:
                               type: string
+                            prompt_tokens:
+                              type: integer
+                            tokens:
+                              type: integer
+                            model:
+                              type: string
                             _links:
                               type: object
                               required:
@@ -626,6 +632,9 @@ paths:
                           thread_id: thd_123
                           message_number: '124'
                           replied_to_message_id: '123'
+                          prompt_tokens: '11'
+                          tokens: '12'
+                          model: model123
                           _links:
                             self:
                               href: /messages/msg_124
